@@ -1,1351 +1,512 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="VIZUtire — Gestión predictiva de neumáticos OTR en minería. Tecnología físico-matemática avanzada para operaciones mineras de alto rendimiento.">
-<title>VIZUtire | Gestión Predictiva de Neumáticos OTR</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Myriad+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --red: #ff0000;
-    --red-dark: #cc0000;
-    --red-deeper: #990000;
-    --dark: #0e0e0e;
-    --dark-2: #1a1a1a;
-    --dark-3: #252525;
-    --mid: #3a3a3a;
-    --light: #f5f5f5;
-    --white: #ffffff;
-    --gray: #888;
-    --font-title: 'Barlow Condensed', sans-serif;
-    --font-body: 'Barlow', sans-serif;
-  }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    font-family: var(--font-body);
-    background: var(--dark);
-    color: var(--white);
-    overflow-x: hidden;
-  }
-
-  /* NAV */
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 5%;
-    height: 72px;
-    background: rgba(14,14,14,0.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255,0,0,0.15);
-    transition: all 0.3s;
-  }
-
-  .nav-logo {
-    font-family: var(--font-title);
-    font-weight: 800;
-    font-size: 26px;
-    letter-spacing: 0.08em;
-    color: var(--white);
-    text-decoration: none;
-  }
-
-  .nav-logo span { color: var(--red); }
-
-  .nav-links {
-    display: flex;
-    gap: 36px;
-    list-style: none;
-  }
-
-  .nav-links a {
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.7);
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-
-  .nav-links a:hover { color: var(--red); }
-
-  .nav-cta {
-    padding: 9px 22px;
-    background: var(--red);
-    color: var(--white) !important;
-    font-weight: 600 !important;
-    border-radius: 2px;
-    transition: background 0.2s !important;
-  }
-
-  .nav-cta:hover { background: var(--red-dark) !important; color: var(--white) !important; }
-
-  /* HERO */
-  #hero {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-    padding: 120px 5% 80px;
-  }
-
-  .hero-bg {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 60% 50% at 80% 50%, rgba(255,0,0,0.08) 0%, transparent 70%),
-      linear-gradient(160deg, #0e0e0e 0%, #1a0a0a 50%, #0e0e0e 100%);
-  }
-
-  .hero-grid-lines {
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(255,0,0,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,0,0,0.04) 1px, transparent 1px);
-    background-size: 60px 60px;
-  }
-
-  .hero-content {
-    position: relative;
-    max-width: 680px;
-    z-index: 2;
-  }
-
-  .hero-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--red);
-    margin-bottom: 28px;
-  }
-
-  .hero-eyebrow::before {
-    content: '';
-    display: block;
-    width: 32px;
-    height: 1px;
-    background: var(--red);
-  }
-
-  .hero-title {
-    font-family: var(--font-title);
-    font-size: clamp(52px, 7vw, 96px);
-    font-weight: 800;
-    line-height: 0.92;
-    letter-spacing: -0.01em;
-    text-transform: uppercase;
-    margin-bottom: 32px;
-  }
-
-  .hero-title em {
-    font-style: normal;
-    color: var(--red);
-    display: block;
-  }
-
-  .hero-desc {
-    font-size: 17px;
-    font-weight: 300;
-    line-height: 1.75;
-    color: rgba(255,255,255,0.65);
-    max-width: 520px;
-    margin-bottom: 48px;
-  }
-
-  .hero-actions {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .btn-primary {
-    display: inline-block;
-    padding: 15px 36px;
-    background: var(--red);
-    color: var(--white);
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-decoration: none;
-    border-radius: 2px;
-    transition: background 0.2s, transform 0.15s;
-  }
-
-  .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
-
-  .btn-outline {
-    display: inline-block;
-    padding: 14px 36px;
-    border: 1px solid rgba(255,255,255,0.25);
-    color: rgba(255,255,255,0.8);
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-decoration: none;
-    border-radius: 2px;
-    transition: border-color 0.2s, color 0.2s;
-  }
-
-  .btn-outline:hover { border-color: var(--red); color: var(--red); }
-
-  .hero-stats {
-    position: absolute;
-    right: 5%;
-    bottom: 10%;
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-    z-index: 2;
-  }
-
-  .stat-item {
-    text-align: right;
-  }
-
-  .stat-number {
-    font-family: var(--font-title);
-    font-size: 52px;
-    font-weight: 800;
-    color: var(--white);
-    line-height: 1;
-  }
-
-  .stat-number span { color: var(--red); }
-
-  .stat-label {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.4);
-    margin-top: 4px;
-  }
-
-  .hero-scroll {
-    position: absolute;
-    bottom: 40px;
-    left: 5%;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.3);
-    z-index: 2;
-  }
-
-  .scroll-line {
-    width: 40px;
-    height: 1px;
-    background: rgba(255,255,255,0.2);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .scroll-line::after {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%;
-    height: 100%;
-    background: var(--red);
-    animation: scrollLine 2s infinite;
-  }
-
-  @keyframes scrollLine {
-    0% { left: -100%; }
-    100% { left: 100%; }
-  }
-
-  /* STRIP */
-  .strip {
-    background: var(--red);
-    padding: 16px 5%;
-    display: flex;
-    align-items: center;
-    gap: 48px;
-    overflow: hidden;
-  }
-
-  .strip-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    white-space: nowrap;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.9);
-    flex-shrink: 0;
-  }
-
-  .strip-dot {
-    width: 5px;
-    height: 5px;
-    background: rgba(255,255,255,0.5);
-    border-radius: 50%;
-  }
-
-  /* SECTIONS */
-  section { padding: 100px 5%; }
-
-  .section-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--red);
-    margin-bottom: 20px;
-  }
-
-  .section-label::before {
-    content: '';
-    display: block;
-    width: 24px;
-    height: 1px;
-    background: var(--red);
-  }
-
-  .section-title {
-    font-family: var(--font-title);
-    font-size: clamp(36px, 4.5vw, 64px);
-    font-weight: 700;
-    line-height: 1.0;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-
-  .section-body {
-    font-size: 16px;
-    font-weight: 300;
-    line-height: 1.8;
-    color: rgba(255,255,255,0.55);
-    max-width: 600px;
-  }
-
-  /* PROBLEMA */
-  #problema {
-    background: var(--dark-2);
-  }
-
-  .problema-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: center;
-    margin-top: 60px;
-  }
-
-  .problema-visual {
-    position: relative;
-    height: 400px;
-  }
-
-  .tire-diagram {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .problema-points {
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
-  }
-
-  .problem-point {
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-  }
-
-  .problem-icon {
-    width: 40px;
-    height: 40px;
-    border: 1px solid rgba(255,0,0,0.3);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: var(--red);
-    font-size: 18px;
-    font-family: var(--font-title);
-    font-weight: 800;
-  }
-
-  .problem-text h4 {
-    font-family: var(--font-title);
-    font-size: 18px;
-    font-weight: 700;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .problem-text p {
-    font-size: 14px;
-    font-weight: 300;
-    line-height: 1.7;
-    color: rgba(255,255,255,0.5);
-  }
-
-  /* SOLUCIÓN */
-  #solucion {
-    background: var(--dark);
-  }
-
-  .solucion-header {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: end;
-    margin-bottom: 64px;
-  }
-
-  .solucion-cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.06);
-  }
-
-  .sol-card {
-    background: var(--dark);
-    padding: 40px 32px;
-    transition: background 0.3s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .sol-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%;
-    height: 2px;
-    background: var(--red);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.3s;
-  }
-
-  .sol-card:hover { background: var(--dark-2); }
-  .sol-card:hover::before { transform: scaleX(1); }
-
-  .sol-number {
-    font-family: var(--font-title);
-    font-size: 56px;
-    font-weight: 800;
-    color: rgba(255,0,0,0.12);
-    line-height: 1;
-    margin-bottom: 24px;
-  }
-
-  .sol-card h3 {
-    font-family: var(--font-title);
-    font-size: 20px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 12px;
-  }
-
-  .sol-card p {
-    font-size: 14px;
-    font-weight: 300;
-    line-height: 1.75;
-    color: rgba(255,255,255,0.5);
-  }
-
-  /* VARIABLES */
-  #variables {
-    background: var(--dark-2);
-  }
-
-  .variables-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: center;
-    margin-top: 60px;
-  }
-
-  .var-count {
-    font-family: var(--font-title);
-    font-size: 160px;
-    font-weight: 800;
-    color: var(--red);
-    line-height: 0.85;
-    opacity: 0.9;
-  }
-
-  .var-subtitle {
-    font-family: var(--font-title);
-    font-size: 28px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.7);
-    margin-top: 8px;
-  }
-
-  .var-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-
-  .var-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 13px;
-    font-weight: 400;
-    color: rgba(255,255,255,0.6);
-  }
-
-  .var-item::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    background: var(--red);
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  /* PORTAFOLIO */
-  #portafolio {
-    background: var(--dark);
-  }
-
-  .portafolio-intro {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: end;
-    margin-bottom: 64px;
-  }
-
-  .portfolio-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2px;
-    background: rgba(255,255,255,0.04);
-  }
-
-  .portfolio-item {
-    background: var(--dark-2);
-    padding: 0;
-    aspect-ratio: 16/9;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: flex-end;
-    cursor: pointer;
-  }
-
-  .portfolio-item:first-child {
-    grid-column: span 2;
-    aspect-ratio: 32/9;
-  }
-
-  .portfolio-bg {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1010 100%);
-  }
-
-  .portfolio-pattern {
-    position: absolute;
-    inset: 0;
-    opacity: 0.15;
-  }
-
-  .portfolio-label {
-    position: relative;
-    padding: 28px 32px;
-    width: 100%;
-    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%);
-    z-index: 2;
-  }
-
-  .portfolio-tag {
-    display: inline-block;
-    padding: 4px 10px;
-    background: var(--red);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-    border-radius: 1px;
-  }
-
-  .portfolio-label h3 {
-    font-family: var(--font-title);
-    font-size: 22px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .portfolio-label p {
-    font-size: 13px;
-    color: rgba(255,255,255,0.5);
-    margin-top: 4px;
-  }
-
-  /* PROCESO */
-  #proceso {
-    background: var(--dark-2);
-  }
-
-  .proceso-steps {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    margin-top: 60px;
-    position: relative;
-  }
-
-  .proceso-steps::before {
-    content: '';
-    position: absolute;
-    top: 28px;
-    left: 10%;
-    right: 10%;
-    height: 1px;
-    background: rgba(255,0,0,0.2);
-    z-index: 0;
-  }
-
-  .step {
-    padding: 0 24px;
-    text-align: center;
-    position: relative;
-    z-index: 1;
-  }
-
-  .step-dot {
-    width: 56px;
-    height: 56px;
-    border: 1px solid rgba(255,0,0,0.3);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 28px;
-    background: var(--dark-2);
-    font-family: var(--font-title);
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--red);
-    transition: background 0.3s, border-color 0.3s;
-  }
-
-  .step:hover .step-dot {
-    background: var(--red);
-    color: var(--white);
-    border-color: var(--red);
-  }
-
-  .step h4 {
-    font-family: var(--font-title);
-    font-size: 16px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
-  }
-
-  .step p {
-    font-size: 13px;
-    font-weight: 300;
-    line-height: 1.7;
-    color: rgba(255,255,255,0.45);
-  }
-
-  /* CONTACTO */
-  #contacto {
-    background: var(--dark);
-  }
-
-  .contacto-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    margin-top: 60px;
-  }
-
-  .contact-info h3 {
-    font-family: var(--font-title);
-    font-size: 28px;
-    font-weight: 700;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-    color: rgba(255,255,255,0.9);
-  }
-
-  .contact-info p {
-    font-size: 15px;
-    font-weight: 300;
-    line-height: 1.8;
-    color: rgba(255,255,255,0.5);
-    margin-bottom: 36px;
-  }
-
-  .contact-detail {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .contact-row {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    padding: 16px 20px;
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 2px;
-  }
-
-  .contact-icon {
-    width: 36px;
-    height: 36px;
-    background: rgba(255,0,0,0.1);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .contact-row a, .contact-row span {
-    font-size: 14px;
-    color: rgba(255,255,255,0.7);
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-
-  .contact-row a:hover { color: var(--red); }
-
-  /* FORM */
-  .contact-form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .form-group label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.4);
-  }
-
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    background: var(--dark-2);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 2px;
-    padding: 13px 16px;
-    font-family: var(--font-body);
-    font-size: 14px;
-    color: var(--white);
-    outline: none;
-    transition: border-color 0.2s;
-    width: 100%;
-    resize: vertical;
-  }
-
-  .form-group input:focus,
-  .form-group select:focus,
-  .form-group textarea:focus {
-    border-color: rgba(255,0,0,0.5);
-  }
-
-  .form-group select option { background: var(--dark-2); }
-
-  .form-group textarea { min-height: 120px; }
-
-  .form-submit {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .lang-toggle {
-    display: flex;
-    gap: 0;
-    margin-left: auto;
-  }
-
-  .lang-btn {
-    padding: 7px 14px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: transparent;
-    color: rgba(255,255,255,0.4);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .lang-btn:first-child { border-radius: 2px 0 0 2px; }
-  .lang-btn:last-child { border-radius: 0 2px 2px 0; border-left: none; }
-  .lang-btn.active { background: var(--red); border-color: var(--red); color: var(--white); }
-
-  /* FOOTER */
-  footer {
-    background: var(--dark-2);
-    border-top: 1px solid rgba(255,255,255,0.06);
-    padding: 48px 5%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 24px;
-  }
-
-  .footer-logo {
-    font-family: var(--font-title);
-    font-weight: 800;
-    font-size: 24px;
-    letter-spacing: 0.06em;
-    color: var(--white);
-    text-decoration: none;
-  }
-
-  .footer-logo span { color: var(--red); }
-
-  .footer-links {
-    display: flex;
-    gap: 32px;
-    list-style: none;
-  }
-
-  .footer-links a {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-
-  .footer-links a:hover { color: var(--red); }
-
-  .footer-copy {
-    font-size: 12px;
-    color: rgba(255,255,255,0.2);
-  }
-
-  /* ANIMATIONS */
-  .fade-up {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.7s, transform 0.7s;
-  }
-
-  .fade-up.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* MOBILE */
-  @media (max-width: 900px) {
-    .nav-links { display: none; }
-    .hero-stats { display: none; }
-
-    .problema-grid,
-    .solucion-header,
-    .variables-content,
-    .portafolio-intro,
-    .contacto-grid { grid-template-columns: 1fr; gap: 40px; }
-
-    .solucion-cards,
-    .portfolio-grid { grid-template-columns: 1fr; }
-
-    .portfolio-item:first-child { grid-column: span 1; aspect-ratio: 16/9; }
-
-    .proceso-steps { grid-template-columns: 1fr 1fr; gap: 40px; }
-    .proceso-steps::before { display: none; }
-
-    .form-row { grid-template-columns: 1fr; }
-
-    footer { flex-direction: column; text-align: center; }
-    .footer-links { flex-wrap: wrap; justify-content: center; }
-
-    .var-count { font-size: 100px; }
-  }
-
-  /* SVG tire illustration */
-  .tire-svg { width: 100%; height: 100%; max-height: 380px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VIZUtire — Gestión predictiva de neumáticos OTR en minería. Detectamos fallas estructurales internas antes de que se conviertan en eventos críticos.">
+  <title>VIZUtire | Gestión Predictiva de Neumáticos OTR</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --red:        #ff0000;
+      --red-dark:   #cc0000;
+      --black:      #0a0a0a;
+      --ink:        #1a1a1a;
+      --ink-mid:    #444444;
+      --ink-soft:   #6b6b6b;
+      --ink-faint:  #999999;
+      --bg:         #ffffff;
+      --bg-off:     #f7f7f5;
+      --bg-light:   #f2f2f0;
+      --border:     #e2e2de;
+      --border-dk:  #c8c8c4;
+      --font-d: 'Barlow Condensed', sans-serif;
+      --font-b: 'Barlow', sans-serif;
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { background:var(--bg); color:var(--ink); font-family:var(--font-b); line-height:1.6; overflow-x:hidden; }
+
+    h1,h2,h3 { font-family:var(--font-d); font-weight:700; text-transform:uppercase; line-height:1.0; color:var(--black); }
+    h1 { font-size:clamp(44px,6vw,84px); font-weight:800; }
+    h2 { font-size:clamp(30px,3.8vw,52px); }
+    h3 { font-size:clamp(17px,1.8vw,21px); }
+    p  { color:var(--ink-soft); font-weight:300; font-size:15px; line-height:1.85; }
+    a  { text-decoration:none; }
+    section { padding:96px 8%; }
+
+    /* LABEL */
+    .label {
+      display:inline-flex; align-items:center; gap:10px;
+      font-size:11px; font-weight:600; letter-spacing:0.22em; text-transform:uppercase;
+      color:var(--red); margin-bottom:16px;
+    }
+    .label::before { content:''; width:24px; height:1px; background:var(--red); }
+
+    /* BUTTONS */
+    .btn {
+      display:inline-block; padding:14px 34px;
+      background:var(--red); color:#fff;
+      font-family:var(--font-b); font-size:13px; font-weight:600;
+      letter-spacing:0.1em; text-transform:uppercase;
+      border-radius:2px; transition:background 0.2s, transform 0.15s;
+    }
+    .btn:hover { background:var(--red-dark); transform:translateY(-2px); }
+
+    .btn-outline {
+      display:inline-block; padding:13px 34px;
+      border:1.5px solid var(--border-dk); color:var(--ink-mid);
+      font-family:var(--font-b); font-size:13px; font-weight:500;
+      letter-spacing:0.1em; text-transform:uppercase;
+      border-radius:2px; transition:border-color 0.2s, color 0.2s;
+    }
+    .btn-outline:hover { border-color:var(--red); color:var(--red); }
+
+    /* ── NAV ── */
+    nav {
+      position:fixed; top:0; left:0; right:0; z-index:99;
+      height:68px; display:flex; align-items:center; justify-content:space-between;
+      padding:0 8%;
+      background:rgba(255,255,255,0.94);
+      backdrop-filter:blur(16px);
+      border-bottom:1px solid var(--border);
+      transition:box-shadow 0.3s;
+    }
+    nav.scrolled { box-shadow:0 1px 20px rgba(0,0,0,0.08); }
+
+    .logo { font-family:var(--font-d); font-size:24px; font-weight:800; letter-spacing:0.08em; color:var(--black); }
+    .logo span { color:var(--red); }
+
+    .nav-links { display:flex; gap:32px; list-style:none; align-items:center; }
+    .nav-links a { font-size:12px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft); transition:color 0.2s; }
+    .nav-links a:hover { color:var(--black); }
+    .nav-cta { padding:9px 20px !important; background:var(--red) !important; color:#fff !important; border-radius:2px; }
+    .nav-cta:hover { background:var(--red-dark) !important; color:#fff !important; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height:100vh; display:flex; align-items:center;
+      padding-top:68px; position:relative; overflow:hidden;
+      background:#fff;
+    }
+
+    /* Diagonal red accent block */
+    .hero::before {
+      content:'';
+      position:absolute;
+      top:0; right:0;
+      width:42%; height:100%;
+      background:var(--bg-off);
+      clip-path:polygon(12% 0, 100% 0, 100% 100%, 0% 100%);
+    }
+
+    .hero-content { position:relative; z-index:2; max-width:680px; }
+
+    .hero h1 { margin-bottom:28px; letter-spacing:-0.01em; }
+    .hero h1 em { font-style:normal; color:var(--red); display:block; }
+    .hero-desc { max-width:460px; font-size:16px; color:var(--ink-mid); font-weight:400; }
+    .hero-btns { display:flex; gap:14px; flex-wrap:wrap; margin-top:36px; }
+
+    /* floating right stats */
+    .hero-stats {
+      position:absolute; right:8%; top:50%; transform:translateY(-50%);
+      z-index:3; display:flex; flex-direction:column; gap:40px; align-items:flex-end;
+    }
+    .hstat-num {
+      font-family:var(--font-d); font-size:54px; font-weight:800; line-height:1; color:var(--black);
+    }
+    .hstat-num span { color:var(--red); }
+    .hstat-label { font-size:10px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-faint); margin-top:4px; text-align:right; }
+
+    /* ── STRIP ── */
+    .strip {
+      background:var(--red); padding:13px 8%;
+      display:flex; gap:36px; overflow:hidden; flex-wrap:nowrap;
+    }
+    .strip-item {
+      font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
+      color:rgba(255,255,255,0.9); white-space:nowrap; flex-shrink:0;
+    }
+    .strip-sep { width:3px; height:3px; background:rgba(255,255,255,0.45); border-radius:50%; flex-shrink:0; align-self:center; }
+
+    /* ── PROBLEMA ── */
+    .problem { background:var(--bg-off); }
+    .problem-layout { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:start; margin-top:56px; }
+
+    .danger-cards { display:flex; flex-direction:column; gap:3px; }
+    .card-danger {
+      display:flex; gap:20px; align-items:flex-start;
+      padding:22px 26px; background:#fff;
+      border-left:3px solid var(--red);
+      transition:box-shadow 0.2s;
+    }
+    .card-danger:hover { box-shadow:0 4px 20px rgba(0,0,0,0.07); }
+    .card-num { font-family:var(--font-d); font-size:12px; font-weight:700; color:var(--red); margin-top:3px; flex-shrink:0; letter-spacing:0.06em; }
+    .card-danger h4 { font-family:var(--font-d); font-size:16px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; color:var(--black); }
+    .card-danger p { font-size:13px; }
+
+    /* ── TECNOLOGÍA ── */
+    .tech-section { background:#fff; }
+    .tech-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); margin-top:56px; border:1px solid var(--border); }
+    .tech-card {
+      background:#fff; padding:40px 32px;
+      position:relative; overflow:hidden; transition:background 0.2s;
+    }
+    .tech-card::after {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      background:var(--red); transform:scaleX(0); transform-origin:left; transition:transform 0.3s;
+    }
+    .tech-card:hover { background:var(--bg-off); }
+    .tech-card:hover::after { transform:scaleX(1); }
+    .tech-abbr {
+      font-family:var(--font-d); font-size:48px; font-weight:800;
+      color:rgba(255,0,0,0.08); line-height:1; margin-bottom:20px;
+    }
+    .tech-card h3 { margin-bottom:12px; color:var(--black); }
+    .tech-card p { font-size:14px; }
+
+    /* ── PROCESO ── */
+    .proceso { background:var(--bg-off); }
+    .process {
+      display:grid; grid-template-columns:repeat(4,1fr);
+      margin-top:64px; position:relative;
+    }
+    .process::before {
+      content:''; position:absolute;
+      top:26px; left:12.5%; right:12.5%; height:1px;
+      background:var(--border-dk);
+    }
+    .step { text-align:center; padding:0 16px; }
+    .step-num {
+      width:52px; height:52px; border-radius:50%; margin:0 auto 24px;
+      display:flex; align-items:center; justify-content:center;
+      border:1.5px solid var(--border-dk); background:#fff;
+      font-family:var(--font-d); font-size:20px; font-weight:800; color:var(--red);
+      transition:background 0.25s, border-color 0.25s, color 0.25s;
+    }
+    .step:hover .step-num { background:var(--red); border-color:var(--red); color:#fff; }
+    .step h3 { font-size:15px; margin-bottom:10px; color:var(--black); }
+    .step p  { font-size:13px; }
+
+    /* ── RESULTADOS ── */
+    .results-section { background:#fff; }
+    .results-layout { display:grid; grid-template-columns:1fr 2fr; gap:80px; align-items:center; margin-top:56px; }
+    .stats { display:flex; flex-direction:column; }
+    .stat { padding:28px 0; border-bottom:1px solid var(--border); }
+    .stat:first-child { border-top:1px solid var(--border); }
+    .stat h3 { font-family:var(--font-d); font-size:42px; font-weight:800; color:var(--red); margin-bottom:6px; }
+    .stat p  { font-size:13px; }
+    .results-text p { margin-bottom:16px; max-width:460px; }
+
+    /* ── VALIDACIÓN ── */
+    .validation { background:var(--bg-off); border-top:1px solid var(--border); }
+    .val-layout { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; }
+    .val-layout h2 { margin-bottom:20px; }
+    .val-items { display:flex; flex-direction:column; gap:12px; }
+    .val-item {
+      display:flex; align-items:center; gap:16px;
+      padding:16px 20px; background:#fff;
+      border:1px solid var(--border); border-radius:2px;
+      transition:border-color 0.2s, box-shadow 0.2s;
+    }
+    .val-item:hover { border-color:var(--red); box-shadow:0 2px 12px rgba(255,0,0,0.06); }
+    .val-dot { width:7px; height:7px; background:var(--red); border-radius:50%; flex-shrink:0; }
+    .val-item p { font-size:14px; color:var(--ink-mid); }
+
+    /* ── CTA ── */
+    .cta-section { background:#fff; }
+    .cta-box {
+      background:var(--black); padding:72px 64px;
+      display:grid; grid-template-columns:1fr auto; gap:56px; align-items:center;
+    }
+    .cta-box h2 { color:#fff; margin-bottom:14px; }
+    .cta-box p  { color:rgba(255,255,255,0.5); max-width:440px; }
+    .cta-box .label { color:rgba(255,0,0,0.8); }
+    .cta-box .label::before { background:rgba(255,0,0,0.8); }
+    .cta-box .btn { background:var(--red); margin-top:0; }
+    .cta-box .btn:hover { background:var(--red-dark); }
+    .cta-box .btn-outline { border-color:rgba(255,255,255,0.25); color:rgba(255,255,255,0.65); margin-top:0; }
+    .cta-box .btn-outline:hover { border-color:var(--red); color:var(--red); }
+    .cta-btns { display:flex; flex-direction:column; gap:12px; align-items:stretch; min-width:200px; }
+    .cta-box a.btn, .cta-box a.btn-outline { text-align:center; }
+
+    /* ── FOOTER ── */
+    footer {
+      background:var(--bg-off); border-top:1px solid var(--border);
+      padding:36px 8%; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;
+    }
+    footer .logo { font-size:20px; }
+    footer ul { display:flex; gap:28px; list-style:none; }
+    footer ul a { font-size:11px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); transition:color 0.2s; }
+    footer ul a:hover { color:var(--red); }
+    footer .copy { font-size:12px; color:var(--ink-faint); }
+
+    /* ── DIVIDER ── */
+    .rule { height:1px; background:var(--border); margin:0 8%; }
+
+    /* ── REVEAL ── */
+    .reveal { opacity:0; transform:translateY(22px); transition:opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.on { opacity:1; transform:none; }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:960px){
+      .nav-links { display:none; }
+      .hero::before { display:none; }
+      .hero-stats { display:none; }
+      .problem-layout,.results-layout,.val-layout { grid-template-columns:1fr; gap:48px; }
+      .tech-grid { grid-template-columns:1fr; }
+      .process { grid-template-columns:1fr 1fr; gap:40px; }
+      .process::before { display:none; }
+      .cta-box { grid-template-columns:1fr; padding:48px 36px; }
+      footer { flex-direction:column; text-align:center; }
+      footer ul { flex-wrap:wrap; justify-content:center; }
+    }
+  </style>
 </head>
 <body>
 
 <!-- NAV -->
-<nav>
-  <a href="#" class="nav-logo">VIZU<span>tire</span></a>
+<nav id="nav">
+  <a href="#" class="logo">VIZU<span>tire</span></a>
   <ul class="nav-links">
-    <li><a href="#problema">El Problema</a></li>
-    <li><a href="#solucion">Solución</a></li>
-    <li><a href="#portafolio">Portafolio</a></li>
+    <li><a href="#problema">Problema</a></li>
+    <li><a href="#tecnologia">Tecnología</a></li>
     <li><a href="#proceso">Proceso</a></li>
+    <li><a href="#resultados">Resultados</a></li>
     <li><a href="#contacto" class="nav-cta">Contactar</a></li>
   </ul>
-  <div class="lang-toggle" style="display:none">
-    <button class="lang-btn active">ES</button>
-    <button class="lang-btn">EN</button>
-  </div>
 </nav>
 
-<!-- HERO -->
-<section id="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-grid-lines"></div>
-
+<!-- ═══ HERO ═══ -->
+<section class="hero" id="inicio">
   <div class="hero-content">
-    <div class="hero-eyebrow">Ingeniería Predictiva OTR</div>
-    <h1 class="hero-title">
-      Cero<br>
-      <em>Reventones.</em>
-      <br>Máxima<br>Disponibilidad.
-    </h1>
-    <p class="hero-desc">
-      Tecnología físico-matemática avanzada para la gestión predictiva de neumáticos fuera de carretera en la Gran Minería Mundial.
-    </p>
-    <div class="hero-actions">
-      <a href="#contacto" class="btn-primary">Solicitar Demostración</a>
-      <a href="#solucion" class="btn-outline">Cómo Funciona</a>
+    <div class="label">Ingeniería OTR — Minería</div>
+    <h1>Gestión<br><em>predictiva</em><br>de neumáticos<br>OTR.</h1>
+    <p class="hero-desc">Detectamos fallas estructurales internas antes de que se conviertan en eventos críticos. Tecnología físico-matemática validada en la Gran Minería Mundial.</p>
+    <div class="hero-btns">
+      <a href="#contacto" class="btn">Solicitar evaluación técnica</a>
+      <a href="#tecnologia" class="btn-outline">Cómo funciona</a>
     </div>
   </div>
 
   <div class="hero-stats">
-    <div class="stat-item">
-      <div class="stat-number">150<span>+</span></div>
-      <div class="stat-label">Variables Operacionales</div>
+    <div>
+      <div class="hstat-num">150<span>+</span></div>
+      <div class="hstat-label">Variables Operacionales</div>
     </div>
-    <div class="stat-item">
-      <div class="stat-number"><span>Alta</span></div>
-      <div class="stat-label">Efectividad en Detección</div>
+    <div>
+      <div class="hstat-num">OTR</div>
+      <div class="hstat-label">Especialización Exclusiva</div>
     </div>
-    <div class="stat-item">
-      <div class="stat-number">OTR</div>
-      <div class="stat-label">Especialización Minera</div>
+    <div>
+      <div class="hstat-num" style="font-size:32px;color:var(--red);">Antofagasta</div>
+      <div class="hstat-label">Chile</div>
     </div>
-  </div>
-
-  <div class="hero-scroll">
-    <div class="scroll-line"></div>
-    Scroll
   </div>
 </section>
 
 <!-- STRIP -->
 <div class="strip">
-  <div class="strip-item">Gran Minería Mundial</div>
-  <div class="strip-dot"></div>
-  <div class="strip-item">Minería a Rajo Abierto</div>
-  <div class="strip-dot"></div>
-  <div class="strip-item">Neumáticos OTR</div>
-  <div class="strip-dot"></div>
-  <div class="strip-item">Inspección Ultrasónica</div>
-  <div class="strip-dot"></div>
-  <div class="strip-item">Diagnóstico Estructural</div>
-  <div class="strip-dot"></div>
-  <div class="strip-item">Recomendaciones Prescriptivas</div>
-  <div class="strip-dot"></div>
-  <div class="strip-item">Antofagasta, Chile</div>
-  <div class="strip-dot"></div>
+  <div class="strip-item">Gran Minería Mundial</div><div class="strip-sep"></div>
+  <div class="strip-item">Rajo Abierto</div><div class="strip-sep"></div>
+  <div class="strip-item">Ultrasonido In Situ</div><div class="strip-sep"></div>
+  <div class="strip-item">Diagnóstico Estructural</div><div class="strip-sep"></div>
+  <div class="strip-item">+150 Variables Operacionales</div><div class="strip-sep"></div>
+  <div class="strip-item">Antofagasta, Chile</div><div class="strip-sep"></div>
   <div class="strip-item">vizutire.com</div>
 </div>
 
-<!-- PROBLEMA -->
-<section id="problema">
-  <div class="section-label">El Problema</div>
-  <div class="problema-grid">
-    <div class="fade-up">
-      <h2 class="section-title">Los reventones<br>cuestan caro.</h2>
-      <p class="section-body">
-        Los reventones de neumáticos OTR son liberaciones descontroladas de energía bajo condiciones de alta carga, temperatura y esfuerzo mecánico. Los métodos tradicionales no detectan las fallas estructurales internas que los provocan — hasta que es demasiado tarde.
-      </p>
+<!-- ═══ PROBLEMA ═══ -->
+<section class="problem" id="problema">
+  <div class="problem-layout">
+    <div class="reveal">
+      <div class="label">El Problema</div>
+      <h2>El riesgo no<br>siempre es<br>visible.</h2>
+      <p style="margin-top:20px; color:var(--ink-mid);">Los métodos tradicionales no detectan las fallas estructurales internas que provocan reventones — liberaciones descontroladas de energía que detienen operaciones y comprometen la seguridad.</p>
     </div>
-    <div class="problema-points fade-up">
-      <div class="problem-point">
-        <div class="problem-icon">01</div>
-        <div class="problem-text">
-          <h4>Fallas Internas Invisibles</h4>
-          <p>Daños estructurales en capas internas que no son detectables mediante inspección visual ni métodos convencionales.</p>
+    <div class="danger-cards reveal">
+      <div class="card-danger">
+        <div class="card-num">01</div>
+        <div>
+          <h4>Fallas internas no detectadas</h4>
+          <p>Daños en capas internas invisibles a la inspección visual y a los métodos convencionales de diagnóstico.</p>
         </div>
       </div>
-      <div class="problem-point">
-        <div class="problem-icon">02</div>
-        <div class="problem-text">
-          <h4>Reventones Inesperados</h4>
-          <p>Eventos críticos que detienen operaciones, dañan equipos y comprometen la seguridad del personal y la continuidad operacional.</p>
+      <div class="card-danger">
+        <div class="card-num">02</div>
+        <div>
+          <h4>Riesgo de eventos críticos</h4>
+          <p>Reventones bajo condiciones de alta carga, temperatura y esfuerzo mecánico que ponen en riesgo equipos y personas.</p>
         </div>
       </div>
-      <div class="problem-point">
-        <div class="problem-icon">03</div>
-        <div class="problem-text">
-          <h4>Costos Operacionales Elevados</h4>
-          <p>Neumáticos OTR son activos de alto valor. Su reemplazo no planificado genera gastos directos e indirectos que impactan la productividad.</p>
+      <div class="card-danger">
+        <div class="card-num">03</div>
+        <div>
+          <h4>Pérdidas operacionales</h4>
+          <p>Costos directos por reemplazo no planificado de neumáticos OTR de alto valor.</p>
+        </div>
+      </div>
+      <div class="card-danger">
+        <div class="card-num">04</div>
+        <div>
+          <h4>Interrupciones operativas</h4>
+          <p>Paradas no programadas que impactan la disponibilidad de flota y la continuidad operacional.</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- SOLUCIÓN -->
-<section id="solucion">
-  <div class="solucion-header">
-    <div class="fade-up">
-      <div class="section-label">Nuestra Solución</div>
-      <h2 class="section-title">Ver lo que<br>no se ve.</h2>
-    </div>
-    <p class="section-body fade-up">
-      VIZUtire integra un modelo físico-matemático propio con inspección ultrasónica in situ, combinando datos operacionales con diagnóstico estructural avanzado para entregar recomendaciones prescriptivas en tiempo real.
-    </p>
-  </div>
+<div class="rule"></div>
 
-  <div class="solucion-cards">
-    <div class="sol-card fade-up">
-      <div class="sol-number">01</div>
-      <h3>Modelo Propio</h3>
-      <p>Modelo físico-matemático desarrollado internamente, calibrado con miles de horas de operación en condiciones reales de alta exigencia minera.</p>
-    </div>
-    <div class="sol-card fade-up">
-      <div class="sol-number">02</div>
+<!-- ═══ TECNOLOGÍA ═══ -->
+<section class="tech-section" id="tecnologia">
+  <div class="reveal">
+    <div class="label">Ingeniería Aplicada</div>
+    <h2>Tecnología de<br>diagnóstico avanzado.</h2>
+  </div>
+  <div class="tech-grid reveal">
+    <div class="tech-card">
+      <div class="tech-abbr">US</div>
       <h3>Ultrasonido In Situ</h3>
-      <p>Inspección ultrasónica directamente en el campo, sin necesidad de retirar el neumático, identificando fallas en capas internas no visibles.</p>
+      <p>Inspección no destructiva directamente en el campo. Detecta daños en capas internas sin necesidad de retirar el neumático, con alta efectividad demostrada en entornos de alta exigencia.</p>
     </div>
-    <div class="sol-card fade-up">
-      <div class="sol-number">03</div>
-      <h3>Datos Operacionales</h3>
-      <p>Análisis de presión, temperatura, carga y velocidad integrado en tiempo real para un diagnóstico completo del estado del neumático.</p>
+    <div class="tech-card">
+      <div class="tech-abbr">FM</div>
+      <h3>Modelo Físico-Matemático</h3>
+      <p>Modelo propio desarrollado sobre más de 150 variables operacionales. Integra presión, temperatura, carga y velocidad para una evaluación completa del estado estructural.</p>
     </div>
-    <div class="sol-card fade-up">
-      <div class="sol-number">04</div>
-      <h3>Recomendaciones Prescriptivas</h3>
-      <p>Acciones concretas y priorizadas que optimizan la seguridad, disponibilidad y vida útil de cada neumático en la flota.</p>
-    </div>
-    <div class="sol-card fade-up">
-      <div class="sol-number">05</div>
-      <h3>Detección Temprana</h3>
-      <p>Alta efectividad demostrada para anticipar fallas críticas antes de que ocurran, reduciendo riesgos y tiempos de detención no planificados.</p>
-    </div>
-    <div class="sol-card fade-up">
-      <div class="sol-number">06</div>
-      <h3>Continuidad Operacional</h3>
-      <p>Reducción tangible de costos operacionales y mejora de la disponibilidad de equipos para operaciones mineras de clase mundial.</p>
+    <div class="tech-card">
+      <div class="tech-abbr">AA</div>
+      <h3>Analítica Avanzada</h3>
+      <p>Procesamiento inteligente de datos para entregar recomendaciones prescriptivas que optimizan la seguridad, disponibilidad y vida útil de cada neumático en la flota.</p>
     </div>
   </div>
 </section>
 
-<!-- VARIABLES -->
-<section id="variables">
-  <div class="variables-content">
-    <div class="fade-up">
-      <div class="var-count">150</div>
-      <div class="var-subtitle">Variables<br>Operacionales</div>
+<div class="rule"></div>
+
+<!-- ═══ PROCESO ═══ -->
+<section class="proceso" id="proceso">
+  <div class="reveal" style="text-align:center;">
+    <div class="label" style="justify-content:center;">Metodología</div>
+    <h2>Cómo funciona.</h2>
+  </div>
+  <div class="process reveal">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Inspección</h3>
+      <p>Visita a terreno con equipos de ultrasonido y sensores. Captura del estado actual de cada neumático.</p>
     </div>
-    <div class="fade-up">
-      <div class="section-label">Tecnología</div>
-      <h2 class="section-title" style="margin-bottom:28px;">Análisis<br>Multivariable.</h2>
-      <div class="var-list">
-        <div class="var-item">Presión del neumático</div>
-        <div class="var-item">Temperatura superficial</div>
-        <div class="var-item">Carga por eje</div>
-        <div class="var-item">Velocidad operacional</div>
-        <div class="var-item">Estado de la banda</div>
-        <div class="var-item">Perfil de desgaste</div>
-        <div class="var-item">Integridad estructural</div>
-        <div class="var-item">Historial de eventos</div>
-        <div class="var-item">Condiciones de terreno</div>
-        <div class="var-item">Ciclo de vida total</div>
-        <div class="var-item">Esfuerzo mecánico</div>
-        <div class="var-item">Diagnóstico ultrasónico</div>
-      </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Modelado</h3>
+      <p>Procesamiento con el modelo físico-matemático propio. Integración de variables operacionales e historial.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Diagnóstico</h3>
+      <p>Identificación precisa de fallas internas. Evaluación del riesgo de reventón por unidad inspeccionada.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h3>Recomendación</h3>
+      <p>Acciones prescriptivas priorizadas para maximizar la vida útil, disponibilidad y seguridad operacional.</p>
     </div>
   </div>
 </section>
 
-<!-- PORTAFOLIO -->
-<section id="portafolio">
-  <div class="portafolio-intro">
-    <div class="fade-up">
-      <div class="section-label">Portafolio</div>
-      <h2 class="section-title">Validado en<br>campo real.</h2>
-    </div>
-    <p class="section-body fade-up">
-      Nuestra tecnología ha sido validada en entornos de alta exigencia, incluyendo operaciones de minería a rajo abierto con flotas de camiones de gran tonelaje.
-    </p>
-  </div>
+<div class="rule"></div>
 
-  <div class="portfolio-grid fade-up">
-    <div class="portfolio-item">
-      <div class="portfolio-bg"></div>
-      <svg class="portfolio-pattern" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <pattern id="grid1" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,0,0,0.3)" stroke-width="0.5"/>
-          </pattern>
-        </defs>
-        <rect width="800" height="200" fill="url(#grid1)"/>
-        <circle cx="400" cy="100" r="80" fill="none" stroke="rgba(255,0,0,0.15)" stroke-width="1"/>
-        <circle cx="400" cy="100" r="50" fill="none" stroke="rgba(255,0,0,0.2)" stroke-width="1"/>
-        <circle cx="400" cy="100" r="20" fill="rgba(255,0,0,0.1)"/>
-      </svg>
-      <div class="portfolio-label">
-        <div class="portfolio-tag">Caso de Uso Principal</div>
-        <h3>Flotilla OTR — Minería a Rajo Abierto</h3>
-        <p>Camiones de gran tonelaje, operación 24/7, condiciones extremas de terreno y carga</p>
+<!-- ═══ RESULTADOS ═══ -->
+<section class="results-section" id="resultados">
+  <div class="results-layout">
+    <div class="stats reveal">
+      <div class="stat">
+        <h3>+ Vida Útil</h3>
+        <p>Extensión del ciclo del neumático mediante gestión predictiva</p>
+      </div>
+      <div class="stat">
+        <h3>– Riesgo</h3>
+        <p>Reducción significativa de fallas críticas y reventones</p>
+      </div>
+      <div class="stat">
+        <h3>+ Disponibilidad</h3>
+        <p>Mayor continuidad operativa y reducción de paradas imprevistas</p>
       </div>
     </div>
-
-    <div class="portfolio-item">
-      <div class="portfolio-bg" style="background: linear-gradient(135deg, #0a1a1a 0%, #102020 100%);"></div>
-      <svg class="portfolio-pattern" viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <pattern id="dot1" width="20" height="20" patternUnits="userSpaceOnUse">
-            <circle cx="10" cy="10" r="1" fill="rgba(255,0,0,0.25)"/>
-          </pattern>
-        </defs>
-        <rect width="400" height="225" fill="url(#dot1)"/>
-        <line x1="0" y1="112" x2="400" y2="112" stroke="rgba(255,0,0,0.15)" stroke-width="1"/>
-        <polyline points="40,180 100,120 160,150 220,80 280,110 340,60 380,90" fill="none" stroke="rgba(255,0,0,0.4)" stroke-width="1.5"/>
-      </svg>
-      <div class="portfolio-label">
-        <div class="portfolio-tag">Monitoreo</div>
-        <h3>Gestión Predictiva Continua</h3>
-        <p>Dashboard de seguimiento y alertas tempranas</p>
-      </div>
-    </div>
-
-    <div class="portfolio-item">
-      <div class="portfolio-bg" style="background: linear-gradient(135deg, #1a1000 0%, #2a1a00 100%);"></div>
-      <svg class="portfolio-pattern" viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <pattern id="diag1" width="30" height="30" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="30" x2="30" y2="0" stroke="rgba(255,100,0,0.2)" stroke-width="0.5"/>
-          </pattern>
-        </defs>
-        <rect width="400" height="225" fill="url(#diag1)"/>
-      </svg>
-      <div class="portfolio-label">
-        <div class="portfolio-tag">Inspección</div>
-        <h3>Diagnóstico Ultrasónico In Situ</h3>
-        <p>Análisis sin desmontaje del neumático</p>
-      </div>
+    <div class="results-text reveal">
+      <div class="label">Impacto en la Operación</div>
+      <h2>Resultados<br>concretos para<br>su operación.</h2>
+      <p style="margin-top:20px;">La combinación de datos operacionales con diagnóstico estructural permite anticipar fallas antes de que ocurran, reduciendo costos y maximizando la disponibilidad de equipos.</p>
+      <p>Validado en entornos reales de alta exigencia, VIZUtire ha demostrado alta efectividad en la detección temprana de daños, permitiendo a las operaciones mineras anticiparse a fallas críticas.</p>
     </div>
   </div>
 </section>
 
-<!-- PROCESO -->
-<section id="proceso">
-  <div class="fade-up" style="text-align:center;margin-bottom:0;">
-    <div class="section-label" style="justify-content:center;">Nuestro Proceso</div>
-    <h2 class="section-title" style="text-align:center;">De la Inspección<br>a la Acción.</h2>
-  </div>
-
-  <div class="proceso-steps">
-    <div class="step fade-up">
-      <div class="step-dot">1</div>
-      <h4>Inspección</h4>
-      <p>Visita a terreno con equipos de ultrasonido y sensores para capturar el estado actual de cada neumático en la flota.</p>
+<!-- ═══ VALIDACIÓN ═══ -->
+<section class="validation">
+  <div class="val-layout">
+    <div class="reveal">
+      <div class="label">Validación</div>
+      <h2>Validado en<br>condiciones<br>reales.</h2>
+      <p style="margin-top:20px;color:var(--ink-mid);">Tecnología probada en entornos de alta exigencia operacional en minería a rajo abierto, con flotas de camiones de gran tonelaje bajo operación continua 24/7.</p>
     </div>
-    <div class="step fade-up">
-      <div class="step-dot">2</div>
-      <h4>Análisis</h4>
-      <p>Procesamiento de datos mediante el modelo físico-matemático propio, integrando variables operacionales e historial del neumático.</p>
-    </div>
-    <div class="step fade-up">
-      <div class="step-dot">3</div>
-      <h4>Diagnóstico</h4>
-      <p>Identificación precisa de fallas internas y evaluación del riesgo de reventón para cada unidad inspeccionada.</p>
-    </div>
-    <div class="step fade-up">
-      <div class="step-dot">4</div>
-      <h4>Recomendación</h4>
-      <p>Entrega de acciones prescriptivas priorizadas para maximizar la vida útil, disponibilidad y seguridad operacional.</p>
+    <div class="val-items reveal">
+      <div class="val-item"><div class="val-dot"></div><p>Alta efectividad en detección temprana de daños estructurales</p></div>
+      <div class="val-item"><div class="val-dot"></div><p>Operaciones mineras a rajo abierto de clase mundial</p></div>
+      <div class="val-item"><div class="val-dot"></div><p>Flotas de camiones OTR de gran tonelaje</p></div>
+      <div class="val-item"><div class="val-dot"></div><p>Condiciones extremas de carga, temperatura y terreno</p></div>
+      <div class="val-item"><div class="val-dot"></div><p>Reducción comprobada de costos operacionales</p></div>
     </div>
   </div>
 </section>
 
-<!-- CONTACTO -->
-<section id="contacto">
-  <div class="section-label">Contacto</div>
-  <h2 class="section-title" style="max-width:600px;">¿Listo para<br>anticipar fallas?</h2>
-
-  <div class="contacto-grid">
-    <div class="contact-info fade-up">
-      <h3>Hablemos de<br>su operación.</h3>
-      <p>Trabajamos directamente con las principales operaciones mineras a rajo abierto del mundo. Contáctenos para evaluar cómo VIZUtire puede integrarse a su flota OTR.</p>
-      <div class="contact-detail">
-        <div class="contact-row">
-          <div class="contact-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff0000" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-            </svg>
-          </div>
-          <span>Antofagasta, Chile</span>
-        </div>
-        <div class="contact-row">
-          <div class="contact-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff0000" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-          </div>
-          <a href="https://www.vizutire.com" target="_blank">www.vizutire.com</a>
-        </div>
-      </div>
+<!-- ═══ CTA ═══ -->
+<section class="cta-section" id="contacto">
+  <div class="cta-box reveal">
+    <div>
+      <div class="label">Contacto</div>
+      <h2>Optimice su<br>operación hoy.</h2>
+      <p>Solicite una evaluación técnica para su flota OTR. Nuestro equipo en Antofagasta está listo para analizar su operación.</p>
+      <p style="margin-top:14px;"><a href="https://www.vizutire.com" style="color:rgba(255,255,255,0.45);font-size:13px;font-weight:400;letter-spacing:0.04em;">www.vizutire.com</a></p>
     </div>
-
-    <div class="fade-up">
-      <form class="contact-form" onsubmit="handleSubmit(event)">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nombre</label>
-            <input type="text" placeholder="Juan Pérez" required>
-          </div>
-          <div class="form-group">
-            <label>Empresa</label>
-            <input type="text" placeholder="Minera Ejemplo S.A." required>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" placeholder="juan@empresa.com" required>
-          </div>
-          <div class="form-group">
-            <label>Teléfono</label>
-            <input type="tel" placeholder="+56 9 0000 0000">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Tipo de Operación</label>
-          <select>
-            <option value="">Seleccione...</option>
-            <option>Minería a Rajo Abierto</option>
-            <option>Minería Subterránea</option>
-            <option>Contratista Minero</option>
-            <option>Otro</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Mensaje</label>
-          <textarea placeholder="Cuéntenos sobre su flota OTR y los desafíos que enfrenta..."></textarea>
-        </div>
-        <div class="form-submit">
-          <button type="submit" class="btn-primary" style="border:none;cursor:pointer;">Enviar Mensaje</button>
-        </div>
-      </form>
+    <div class="cta-btns">
+      <a href="mailto:contacto@vizutire.com" class="btn">Solicitar Evaluación</a>
+      <a href="https://www.vizutire.com" class="btn-outline">Visitar Sitio Web</a>
     </div>
   </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
-  <a href="#" class="footer-logo">VIZU<span>tire</span></a>
-  <ul class="footer-links">
-    <li><a href="#problema">El Problema</a></li>
-    <li><a href="#solucion">Solución</a></li>
-    <li><a href="#portafolio">Portafolio</a></li>
+  <a href="#" class="logo">VIZU<span>tire</span></a>
+  <ul>
+    <li><a href="#problema">Problema</a></li>
+    <li><a href="#tecnologia">Tecnología</a></li>
     <li><a href="#proceso">Proceso</a></li>
+    <li><a href="#resultados">Resultados</a></li>
     <li><a href="#contacto">Contacto</a></li>
   </ul>
-  <div class="footer-copy">© 2026 VIZUtire. Antofagasta, Chile.</div>
+  <div class="copy">© 2026 VIZUtire — Antofagasta, Chile</div>
 </footer>
 
 <script>
-  // Intersection observer for fade-up
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (entry.isIntersecting) {
-        setTimeout(() => {
-          entry.target.classList.add('visible');
-        }, 100);
-        observer.unobserve(entry.target);
-      }
-    });
+  // Reveal on scroll
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target); } });
   }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
-
-  // Nav scroll effect
+  // Nav shadow on scroll
+  const nav = document.getElementById('nav');
   window.addEventListener('scroll', () => {
-    const nav = document.querySelector('nav');
-    if (window.scrollY > 60) {
-      nav.style.background = 'rgba(14,14,14,0.98)';
-    } else {
-      nav.style.background = 'rgba(14,14,14,0.92)';
-    }
-  });
-
-  // Form submit
-  function handleSubmit(e) {
-    e.preventDefault();
-    const btn = e.target.querySelector('[type=submit]');
-    btn.textContent = '✓ Mensaje Enviado';
-    btn.style.background = '#333';
-    btn.disabled = true;
-  }
-
-  // Language toggle (placeholder)
-  document.querySelectorAll('.lang-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-    });
+    nav.classList.toggle('scrolled', window.scrollY > 40);
   });
 </script>
 </body>
