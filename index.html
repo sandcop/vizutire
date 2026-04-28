@@ -3,268 +3,356 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="VIZUtire — Gestión predictiva de neumáticos OTR en minería. Detectamos fallas estructurales internas antes de que se conviertan en eventos críticos.">
-  <title>VIZUtire | Gestión Predictiva de Neumáticos OTR</title>
-
+  <meta name="description" content="VIZUtire — Detección temprana de fallas estructurales en neumáticos OTR. Sistema de diagnóstico industrial para minería.">
+  <title>VIZUtire | Sistema de Diagnóstico OTR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --red:        #ff0000;
-      --red-dark:   #cc0000;
-      --black:      #0a0a0a;
-      --ink:        #1a1a1a;
-      --ink-mid:    #444444;
-      --ink-soft:   #6b6b6b;
-      --ink-faint:  #999999;
-      --bg:         #ffffff;
-      --bg-off:     #f7f7f5;
-      --bg-light:   #f2f2f0;
-      --border:     #e2e2de;
-      --border-dk:  #c8c8c4;
-      --font-d: 'Barlow Condensed', sans-serif;
-      --font-b: 'Barlow', sans-serif;
+      --bg:         #0A0A0A;
+      --bg-1:       #111111;
+      --bg-2:       #181818;
+      --bg-3:       #1E1E1E;
+      --red:        #FF0000;
+      --red-dim:    rgba(255,0,0,0.2);
+      --red-trace:  rgba(255,0,0,0.06);
+      --white:      #FFFFFF;
+      --g1:         #DDDDDD;
+      --g2:         #888888;
+      --g3:         #444444;
+      --g4:         #2A2A2A;
+      --border:     rgba(255,255,255,0.07);
+      --border2:    rgba(255,255,255,0.12);
+      --border-r:   rgba(255,0,0,0.25);
+      --glow:       0 0 30px rgba(255,0,0,0.3),0 0 60px rgba(255,0,0,0.1);
+      --fh:         'Space Grotesk', sans-serif;
+      --fm:         'JetBrains Mono', monospace;
     }
 
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     html { scroll-behavior:smooth; }
-    body { background:var(--bg); color:var(--ink); font-family:var(--font-b); line-height:1.6; overflow-x:hidden; }
+    body { background:var(--bg); color:var(--g1); font-family:var(--fh); line-height:1.6; overflow-x:hidden; }
+    a { text-decoration:none; }
 
-    h1,h2,h3 { font-family:var(--font-d); font-weight:700; text-transform:uppercase; line-height:1.0; color:var(--black); }
-    h1 { font-size:clamp(44px,6vw,84px); font-weight:800; }
-    h2 { font-size:clamp(30px,3.8vw,52px); }
-    h3 { font-size:clamp(17px,1.8vw,21px); }
-    p  { color:var(--ink-soft); font-weight:300; font-size:15px; line-height:1.85; }
-    a  { text-decoration:none; }
-    section { padding:96px 8%; }
+    h1 { font-size:clamp(34px,5vw,72px); font-weight:700; line-height:1.0; letter-spacing:-0.02em; color:var(--white); }
+    h2 { font-size:clamp(26px,3.5vw,52px); font-weight:700; line-height:1.05; letter-spacing:-0.01em; color:var(--white); }
+    h3 { font-size:clamp(14px,1.4vw,17px); font-weight:600; color:var(--white); }
+    p  { color:var(--g2); font-size:15px; line-height:1.8; }
 
-    /* LABEL */
-    .label {
+    .wrap { width:100%; max-width:1280px; margin:0 auto; padding:0 6%; }
+    section { padding:100px 0; }
+
+    /* ── COMPONENTS ── */
+    .sys-alert {
       display:inline-flex; align-items:center; gap:10px;
-      font-size:11px; font-weight:600; letter-spacing:0.22em; text-transform:uppercase;
-      color:var(--red); margin-bottom:16px;
+      padding:6px 14px; border:1px solid var(--border-r);
+      background:rgba(255,0,0,0.05);
+      font-family:var(--fm); font-size:10px; font-weight:700;
+      letter-spacing:0.2em; text-transform:uppercase; color:var(--red);
+      margin-bottom:22px;
     }
-    .label::before { content:''; width:24px; height:1px; background:var(--red); }
+    .blink { width:6px; height:6px; border-radius:50%; background:var(--red); animation:blink 1.2s infinite; flex-shrink:0; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
 
-    /* BUTTONS */
-    .btn {
-      display:inline-block; padding:14px 34px;
-      background:var(--red); color:#fff;
-      font-family:var(--font-b); font-size:13px; font-weight:600;
-      letter-spacing:0.1em; text-transform:uppercase;
-      border-radius:2px; transition:background 0.2s, transform 0.15s;
+    .sys-label {
+      font-family:var(--fm); font-size:10px; font-weight:500;
+      letter-spacing:0.18em; text-transform:uppercase; color:var(--g3);
+      margin-bottom:14px; display:block;
     }
-    .btn:hover { background:var(--red-dark); transform:translateY(-2px); }
 
-    .btn-outline {
-      display:inline-block; padding:13px 34px;
-      border:1.5px solid var(--border-dk); color:var(--ink-mid);
-      font-family:var(--font-b); font-size:13px; font-weight:500;
-      letter-spacing:0.1em; text-transform:uppercase;
-      border-radius:2px; transition:border-color 0.2s, color 0.2s;
+    .btn-p {
+      display:inline-flex; align-items:center; gap:10px;
+      padding:15px 32px; background:var(--red); color:#fff;
+      font-family:var(--fh); font-size:13px; font-weight:600;
+      letter-spacing:0.08em; text-transform:uppercase;
+      border:none; cursor:pointer; position:relative; overflow:hidden;
+      transition:box-shadow .2s, transform .15s;
     }
-    .btn-outline:hover { border-color:var(--red); color:var(--red); }
+    .btn-p::before { content:''; position:absolute; inset:0; background:rgba(255,255,255,0.1); transform:translateX(-100%); transition:transform .3s; }
+    .btn-p:hover::before { transform:translateX(0); }
+    .btn-p:hover { box-shadow:var(--glow); transform:translateY(-1px); }
+
+    .btn-g {
+      display:inline-flex; align-items:center; gap:10px;
+      padding:14px 32px; background:transparent; color:var(--g2);
+      font-family:var(--fh); font-size:13px; font-weight:500;
+      letter-spacing:0.08em; text-transform:uppercase;
+      border:1px solid var(--border2); cursor:pointer;
+      transition:border-color .2s, color .2s;
+    }
+    .btn-g:hover { border-color:var(--red); color:var(--white); }
+
+    /* ── GLOBAL GRID BG ── */
+    body::before {
+      content:''; position:fixed; top:0; left:0; width:100%; height:100%;
+      pointer-events:none; z-index:0;
+      background-image:
+        linear-gradient(rgba(255,0,0,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,0,0,0.025) 1px, transparent 1px);
+      background-size:64px 64px;
+    }
 
     /* ── NAV ── */
     nav {
-      position:fixed; top:0; left:0; right:0; z-index:99;
-      height:68px; display:flex; align-items:center; justify-content:space-between;
-      padding:0 8%;
-      background:rgba(255,255,255,0.94);
-      backdrop-filter:blur(16px);
+      position:fixed; top:0; left:0; right:0; z-index:200;
+      height:64px; display:flex; align-items:center; padding:0 6%;
+      background:rgba(10,10,10,0.92); backdrop-filter:blur(20px);
       border-bottom:1px solid var(--border);
-      transition:box-shadow 0.3s;
+      transition:border-color .3s;
     }
-    nav.scrolled { box-shadow:0 1px 20px rgba(0,0,0,0.08); }
+    nav.scrolled { border-bottom-color:rgba(255,0,0,0.2); }
 
-    .logo { font-family:var(--font-d); font-size:24px; font-weight:800; letter-spacing:0.08em; color:var(--black); }
-    .logo span { color:var(--red); }
+    .nav-in { width:100%; max-width:1280px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; }
+    .logo { font-family:var(--fm); font-size:18px; font-weight:700; letter-spacing:0.12em; color:var(--white); }
+    .logo .r { color:var(--red); }
 
     .nav-links { display:flex; gap:32px; list-style:none; align-items:center; }
-    .nav-links a { font-size:12px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft); transition:color 0.2s; }
-    .nav-links a:hover { color:var(--black); }
-    .nav-cta { padding:9px 20px !important; background:var(--red) !important; color:#fff !important; border-radius:2px; }
-    .nav-cta:hover { background:var(--red-dark) !important; color:#fff !important; }
+    .nav-links a {
+      font-family:var(--fm); font-size:11px; font-weight:500;
+      letter-spacing:0.14em; text-transform:uppercase; color:var(--g3);
+      transition:color .2s; padding:3px 0; border-bottom:1px solid transparent;
+    }
+    .nav-links a:hover { color:var(--white); border-bottom-color:var(--red); }
+    .nav-cta { padding:7px 16px !important; background:var(--red) !important; color:#fff !important; border-bottom:none !important; }
+    .nav-cta:hover { opacity:.9; }
+
+    .lang-btn {
+      font-family:var(--fm); font-size:10px; font-weight:700;
+      letter-spacing:0.16em; color:var(--g3);
+      border:1px solid var(--g4); padding:5px 10px;
+      background:transparent; cursor:pointer;
+      transition:color .2s, border-color .2s;
+    }
+    .lang-btn:hover { color:var(--red); border-color:var(--red); }
 
     /* ── HERO ── */
-    .hero {
-      min-height:100vh; display:flex; align-items:center;
-      padding-top:68px; position:relative; overflow:hidden;
-      background:#fff;
+    .hero { padding:64px 0 0; min-height:100vh; position:relative; overflow:hidden; display:flex; align-items:center; }
+    #hero-canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+
+    .hero .wrap {
+      display:grid; grid-template-columns:1fr 1fr;
+      align-items:center; gap:64px;
+      position:relative; z-index:2;
+      padding-top:80px; padding-bottom:80px;
     }
 
-    /* Diagonal red accent block */
-    .hero::before {
-      content:'';
-      position:absolute;
-      top:0; right:0;
-      width:42%; height:100%;
-      background:var(--bg-off);
-      clip-path:polygon(12% 0, 100% 0, 100% 100%, 0% 100%);
+    .hero-desc { font-size:16px; color:var(--g2); line-height:1.8; max-width:440px; margin-bottom:36px; }
+    .hero-btns { display:flex; gap:14px; flex-wrap:wrap; }
+
+    .hero-visual { display:flex; align-items:center; justify-content:center; position:relative; }
+
+    .tire-wrap { position:relative; width:380px; height:380px; display:flex; align-items:center; justify-content:center; }
+    .tire-glow {
+      position:absolute; width:280px; height:280px; border-radius:50%;
+      background:radial-gradient(circle, rgba(255,0,0,0.14) 0%, transparent 70%);
+      animation:pglow 3s ease-in-out infinite;
+    }
+    @keyframes pglow { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.1);opacity:1} }
+
+    .tire-svg { position:relative; z-index:1; width:340px; height:340px; }
+
+    .hud-panel {
+      position:absolute; top:20px; right:0;
+      font-family:var(--fm); font-size:9px; letter-spacing:0.12em;
+      text-transform:uppercase; line-height:2.2; text-align:right;
+    }
+    .hud-panel .hud-r { color:var(--red); }
+    .hud-panel .hud-d { color:var(--g3); }
+
+    /* ── TICKER ── */
+    .ticker {
+      background:var(--bg-1); border-top:1px solid var(--border-r);
+      border-bottom:1px solid var(--border); padding:10px 0; overflow:hidden; position:relative; z-index:10;
+    }
+    .ticker-track { display:flex; animation:tick 28s linear infinite; white-space:nowrap; }
+    .ticker-item {
+      display:inline-flex; align-items:center; gap:8px; padding:0 28px; flex-shrink:0;
+      font-family:var(--fm); font-size:10px; font-weight:500;
+      letter-spacing:0.16em; text-transform:uppercase; color:var(--g3);
+    }
+    .ticker-item .tdot { width:3px; height:3px; background:var(--red); border-radius:50%; }
+    @keyframes tick { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+    /* ── SECTION HEADER ── */
+    .sec-hd { margin-bottom:64px; }
+
+    /* ── SISTEMA ── */
+    .sistema { background:var(--bg); border-top:1px solid var(--border); }
+
+    .flow-grid {
+      display:grid; grid-template-columns:repeat(4,1fr);
+      gap:0; position:relative;
+    }
+    .flow-grid::before {
+      content:''; position:absolute;
+      top:60px; left:12.5%; right:12.5%; height:1px;
+      background:linear-gradient(90deg, transparent, var(--border-r) 15%, var(--border-r) 85%, transparent);
+    }
+    .flow-dot {
+      position:absolute; top:57px; left:12.5%;
+      width:6px; height:6px; margin-left:-3px; border-radius:50%;
+      background:var(--red); box-shadow:0 0 8px var(--red);
+      animation:fdot 3.5s ease-in-out infinite;
+    }
+    @keyframes fdot {
+      0%   { left:12.5%;  opacity:1; }
+      85%  { left:87.5%;  opacity:1; }
+      100% { left:87.5%;  opacity:0; }
     }
 
-    .hero-content { position:relative; z-index:2; max-width:680px; }
+    .node { padding:0 24px 32px; border-left:1px solid var(--border); }
+    .node:first-child { border-left:none; }
+    .node-idx {
+      font-family:var(--fm); font-size:9px; font-weight:700;
+      letter-spacing:0.18em; color:var(--g3); display:block;
+      padding-top:24px; margin-bottom:26px;
+    }
+    .node-icon {
+      width:52px; height:52px; border:1px solid var(--border-r);
+      display:flex; align-items:center; justify-content:center;
+      margin-bottom:22px; background:rgba(255,0,0,0.03);
+      position:relative; transition:box-shadow .3s;
+    }
+    .node-icon::after { content:''; position:absolute; inset:-1px; border:1px solid var(--red); opacity:0; transition:opacity .3s; }
+    .node:hover .node-icon { box-shadow:0 0 20px rgba(255,0,0,0.2); }
+    .node:hover .node-icon::after { opacity:1; }
+    .node-icon svg { width:22px; height:22px; }
 
-    .hero h1 { margin-bottom:28px; letter-spacing:-0.01em; }
-    .hero h1 em { font-style:normal; color:var(--red); display:block; }
-    .hero-desc { max-width:460px; font-size:16px; color:var(--ink-mid); font-weight:400; }
-    .hero-btns { display:flex; gap:14px; flex-wrap:wrap; margin-top:36px; }
-
-    /* floating right stats */
-    .hero-stats {
-      position:absolute; right:8%; top:50%; transform:translateY(-50%);
-      z-index:3; display:flex; flex-direction:column; gap:40px; align-items:flex-end;
+    .node h3 { font-size:13px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:12px; }
+    .node p  { font-size:13px; color:var(--g2); line-height:1.7; }
+    .node-tag {
+      margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
+      font-family:var(--fm); font-size:9px; letter-spacing:0.12em;
+      text-transform:uppercase; color:var(--g3);
     }
-    .hstat-num {
-      font-family:var(--font-d); font-size:54px; font-weight:800; line-height:1; color:var(--black);
-    }
-    .hstat-num span { color:var(--red); }
-    .hstat-label { font-size:10px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-faint); margin-top:4px; text-align:right; }
-
-    /* ── STRIP ── */
-    .strip {
-      background:var(--red); padding:13px 8%;
-      display:flex; gap:36px; overflow:hidden; flex-wrap:nowrap;
-    }
-    .strip-item {
-      font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
-      color:rgba(255,255,255,0.9); white-space:nowrap; flex-shrink:0;
-    }
-    .strip-sep { width:3px; height:3px; background:rgba(255,255,255,0.45); border-radius:50%; flex-shrink:0; align-self:center; }
 
     /* ── PROBLEMA ── */
-    .problem { background:var(--bg-off); }
-    .problem-layout { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:start; margin-top:56px; }
+    .problema { background:var(--bg-1); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
 
-    .danger-cards { display:flex; flex-direction:column; gap:3px; }
-    .card-danger {
-      display:flex; gap:20px; align-items:flex-start;
-      padding:22px 26px; background:#fff;
-      border-left:3px solid var(--red);
-      transition:box-shadow 0.2s;
+    .warn-badge {
+      display:inline-flex; align-items:center; gap:12px;
+      padding:8px 18px; margin-bottom:28px;
+      border:1px solid rgba(255,180,0,0.35);
+      background:rgba(255,180,0,0.04);
+      font-family:var(--fm); font-size:10px; font-weight:700;
+      letter-spacing:0.2em; text-transform:uppercase; color:#FFA500;
     }
-    .card-danger:hover { box-shadow:0 4px 20px rgba(0,0,0,0.07); }
-    .card-num { font-family:var(--font-d); font-size:12px; font-weight:700; color:var(--red); margin-top:3px; flex-shrink:0; letter-spacing:0.06em; }
-    .card-danger h4 { font-family:var(--font-d); font-size:16px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; color:var(--black); }
-    .card-danger p { font-size:13px; }
 
-    /* ── TECNOLOGÍA ── */
-    .tech-section { background:#fff; }
-    .tech-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); margin-top:56px; border:1px solid var(--border); }
-    .tech-card {
-      background:#fff; padding:40px 32px;
-      position:relative; overflow:hidden; transition:background 0.2s;
-    }
-    .tech-card::after {
-      content:''; position:absolute; top:0; left:0; right:0; height:3px;
-      background:var(--red); transform:scaleX(0); transform-origin:left; transition:transform 0.3s;
-    }
-    .tech-card:hover { background:var(--bg-off); }
-    .tech-card:hover::after { transform:scaleX(1); }
-    .tech-abbr {
-      font-family:var(--font-d); font-size:48px; font-weight:800;
-      color:rgba(255,0,0,0.08); line-height:1; margin-bottom:20px;
-    }
-    .tech-card h3 { margin-bottom:12px; color:var(--black); }
-    .tech-card p { font-size:14px; }
+    .prob-layout { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:start; }
 
-    /* ── PROCESO ── */
-    .proceso { background:var(--bg-off); }
-    .process {
-      display:grid; grid-template-columns:repeat(4,1fr);
-      margin-top:64px; position:relative;
+    .prob-stats {
+      display:grid; grid-template-columns:1fr 1fr; gap:2px;
+      background:var(--border); border:1px solid var(--border); margin-top:36px;
     }
-    .process::before {
-      content:''; position:absolute;
-      top:26px; left:12.5%; right:12.5%; height:1px;
-      background:var(--border-dk);
+    .pstat { background:var(--bg-2); padding:24px 20px; }
+    .pstat-num { font-family:var(--fm); font-size:30px; font-weight:700; color:var(--red); line-height:1; margin-bottom:8px; }
+    .pstat-lbl { font-size:12px; color:var(--g2); }
+
+    .fail-list { display:flex; flex-direction:column; gap:2px; }
+    .fail-item {
+      display:grid; grid-template-columns:auto 1fr; gap:20px; align-items:start;
+      padding:20px 24px; background:var(--bg-2); border:1px solid var(--border);
+      border-left:2px solid var(--red); transition:background .2s;
     }
-    .step { text-align:center; padding:0 16px; }
-    .step-num {
-      width:52px; height:52px; border-radius:50%; margin:0 auto 24px;
-      display:flex; align-items:center; justify-content:center;
-      border:1.5px solid var(--border-dk); background:#fff;
-      font-family:var(--font-d); font-size:20px; font-weight:800; color:var(--red);
-      transition:background 0.25s, border-color 0.25s, color 0.25s;
-    }
-    .step:hover .step-num { background:var(--red); border-color:var(--red); color:#fff; }
-    .step h3 { font-size:15px; margin-bottom:10px; color:var(--black); }
-    .step p  { font-size:13px; }
+    .fail-item:hover { background:var(--bg-3); }
+    .fail-n { font-family:var(--fm); font-size:11px; font-weight:700; color:var(--red); padding-top:2px; }
+    .fail-item h4 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--white); margin-bottom:6px; }
+    .fail-item p  { font-size:12px; color:var(--g2); line-height:1.6; }
 
     /* ── RESULTADOS ── */
-    .results-section { background:#fff; }
-    .results-layout { display:grid; grid-template-columns:1fr 2fr; gap:80px; align-items:center; margin-top:56px; }
-    .stats { display:flex; flex-direction:column; }
-    .stat { padding:28px 0; border-bottom:1px solid var(--border); }
-    .stat:first-child { border-top:1px solid var(--border); }
-    .stat h3 { font-family:var(--font-d); font-size:42px; font-weight:800; color:var(--red); margin-bottom:6px; }
-    .stat p  { font-size:13px; }
-    .results-text p { margin-bottom:16px; max-width:460px; }
+    .resultados { background:var(--bg); }
 
-    /* ── VALIDACIÓN ── */
-    .validation { background:var(--bg-off); border-top:1px solid var(--border); }
-    .val-layout { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; }
-    .val-layout h2 { margin-bottom:20px; }
-    .val-items { display:flex; flex-direction:column; gap:12px; }
-    .val-item {
-      display:flex; align-items:center; gap:16px;
-      padding:16px 20px; background:#fff;
-      border:1px solid var(--border); border-radius:2px;
-      transition:border-color 0.2s, box-shadow 0.2s;
+    .dashboard { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; background:var(--border); border:1px solid var(--border); margin-top:56px; }
+    .dash-panel { background:var(--bg-1); padding:40px 36px; position:relative; overflow:hidden; transition:background .2s; }
+    .dash-panel:hover { background:var(--bg-2); }
+    .dash-panel::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:var(--red); transform:scaleX(0); transform-origin:left; transition:transform .4s; }
+    .dash-panel:hover::before { transform:scaleX(1); }
+
+    .d-label {
+      font-family:var(--fm); font-size:9px; font-weight:700;
+      letter-spacing:0.2em; text-transform:uppercase; color:var(--g3);
+      margin-bottom:24px; display:flex; align-items:center; gap:6px;
     }
-    .val-item:hover { border-color:var(--red); box-shadow:0 2px 12px rgba(255,0,0,0.06); }
-    .val-dot { width:7px; height:7px; background:var(--red); border-radius:50%; flex-shrink:0; }
-    .val-item p { font-size:14px; color:var(--ink-mid); }
+    .d-label::before { content:'['; }
+    .d-label::after  { content:']'; }
+
+    .d-metric { font-family:var(--fm); font-size:clamp(36px,4vw,52px); font-weight:700; color:var(--white); line-height:1; margin-bottom:16px; }
+    .d-metric .ra { color:var(--red); }
+    .d-desc { font-size:13px; color:var(--g2); line-height:1.6; }
+    .d-status { margin-top:24px; font-family:var(--fm); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--g3); display:flex; align-items:center; gap:8px; }
+    .d-dot { width:6px; height:6px; border-radius:50%; background:#00CC44; box-shadow:0 0 6px #00CC44; animation:blink 2s infinite; }
+
+    /* ── VALIDACION ── */
+    .validacion { background:var(--bg-1); border-top:1px solid var(--border); }
+
+    .val-block { position:relative; overflow:hidden; border:1px solid var(--border); margin-top:48px; }
+    .val-img { width:100%; height:480px; object-fit:cover; filter:brightness(0.25) grayscale(0.3); }
+    .val-ov { position:absolute; inset:0; display:flex; align-items:center; padding:0 7%; }
+    .val-ov-in { display:grid; grid-template-columns:1fr 1fr; gap:80px; width:100%; align-items:center; }
+    .val-ov h2 { color:var(--white); margin-bottom:18px; }
+    .val-ov p { color:rgba(255,255,255,0.55); font-size:15px; }
+    .val-badge { font-family:var(--fm); font-size:10px; letter-spacing:0.2em; color:rgba(255,0,0,0.9); text-transform:uppercase; margin-bottom:14px; }
+
+    .val-checks { display:flex; flex-direction:column; gap:10px; }
+    .val-check {
+      display:flex; align-items:center; gap:14px; padding:14px 20px;
+      background:rgba(0,0,0,0.65); border:1px solid rgba(255,255,255,0.08);
+      backdrop-filter:blur(8px);
+    }
+    .vc-dot { width:6px; height:6px; border-radius:50%; background:var(--red); flex-shrink:0; box-shadow:0 0 8px var(--red); }
+    .val-check span { font-size:13px; color:rgba(255,255,255,0.8); }
 
     /* ── CTA ── */
-    .cta-section { background:#fff; }
-    .cta-box {
-      background:var(--black); padding:72px 64px;
-      display:grid; grid-template-columns:1fr auto; gap:56px; align-items:center;
+    .cta-sec { background:var(--bg); padding:120px 0; border-top:1px solid var(--border); position:relative; overflow:hidden; }
+    .cta-sec::before {
+      content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      width:700px; height:700px; border-radius:50%;
+      background:radial-gradient(circle, rgba(255,0,0,0.05) 0%, transparent 65%);
+      pointer-events:none;
     }
-    .cta-box h2 { color:#fff; margin-bottom:14px; }
-    .cta-box p  { color:rgba(255,255,255,0.5); max-width:440px; }
-    .cta-box .label { color:rgba(255,0,0,0.8); }
-    .cta-box .label::before { background:rgba(255,0,0,0.8); }
-    .cta-box .btn { background:var(--red); margin-top:0; }
-    .cta-box .btn:hover { background:var(--red-dark); }
-    .cta-box .btn-outline { border-color:rgba(255,255,255,0.25); color:rgba(255,255,255,0.65); margin-top:0; }
-    .cta-box .btn-outline:hover { border-color:var(--red); color:var(--red); }
-    .cta-btns { display:flex; flex-direction:column; gap:12px; align-items:stretch; min-width:200px; }
-    .cta-box a.btn, .cta-box a.btn-outline { text-align:center; }
+    .cta-in { text-align:center; position:relative; z-index:1; }
+    .cta-in .sys-alert { margin:0 auto 28px; }
+    .cta-in h2 { font-size:clamp(28px,4vw,58px); margin-bottom:20px; }
+    .cta-in > p { font-size:17px; color:var(--g2); max-width:560px; margin:0 auto 40px; }
+    .cta-btns { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+    .cta-sub { margin-top:48px; font-family:var(--fm); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--g3); }
 
     /* ── FOOTER ── */
-    footer {
-      background:var(--bg-off); border-top:1px solid var(--border);
-      padding:36px 8%; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;
-    }
-    footer .logo { font-size:20px; }
-    footer ul { display:flex; gap:28px; list-style:none; }
-    footer ul a { font-size:11px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); transition:color 0.2s; }
+    footer { background:var(--bg-1); border-top:1px solid var(--border); padding:32px 6%; }
+    .foot-in { max-width:1280px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+    footer ul { display:flex; gap:24px; list-style:none; flex-wrap:wrap; }
+    footer ul a { font-family:var(--fm); font-size:10px; font-weight:500; letter-spacing:0.14em; text-transform:uppercase; color:var(--g3); transition:color .2s; }
     footer ul a:hover { color:var(--red); }
-    footer .copy { font-size:12px; color:var(--ink-faint); }
-
-    /* ── DIVIDER ── */
-    .rule { height:1px; background:var(--border); margin:0 8%; }
+    .foot-copy { font-family:var(--fm); font-size:10px; color:var(--g3); letter-spacing:0.1em; }
 
     /* ── REVEAL ── */
-    .reveal { opacity:0; transform:translateY(22px); transition:opacity 0.6s ease, transform 0.6s ease; }
+    .reveal { opacity:0; transform:translateY(26px); transition:opacity .7s ease, transform .7s ease; }
     .reveal.on { opacity:1; transform:none; }
+    .d1 { transition-delay:.1s; }
+    .d2 { transition-delay:.2s; }
+    .d3 { transition-delay:.3s; }
+    .d4 { transition-delay:.4s; }
 
     /* ── RESPONSIVE ── */
-    @media(max-width:960px){
+    @media(max-width:1024px) {
+      .hero .wrap { grid-template-columns:1fr; padding-top:60px; padding-bottom:60px; }
+      .tire-wrap { width:280px; height:280px; }
+      .tire-svg { width:260px; height:260px; }
+      .flow-grid { grid-template-columns:1fr 1fr; }
+      .flow-grid::before, .flow-dot { display:none; }
+      .node { padding:20px; border-left:none; border-top:1px solid var(--border); }
+      .node:first-child { border-top:none; }
+      .prob-layout { grid-template-columns:1fr; gap:48px; }
+      .dashboard { grid-template-columns:1fr; }
+      .val-ov-in { grid-template-columns:1fr; }
+      .val-img { height:640px; }
+    }
+    @media(max-width:768px) {
       .nav-links { display:none; }
-      .hero::before { display:none; }
-      .hero-stats { display:none; }
-      .problem-layout,.results-layout,.val-layout { grid-template-columns:1fr; gap:48px; }
-      .tech-grid { grid-template-columns:1fr; }
-      .process { grid-template-columns:1fr 1fr; gap:40px; }
-      .process::before { display:none; }
-      .cta-box { grid-template-columns:1fr; padding:48px 36px; }
-      footer { flex-direction:column; text-align:center; }
-      footer ul { flex-wrap:wrap; justify-content:center; }
+      section { padding:72px 0; }
+      .flow-grid { grid-template-columns:1fr; }
+      .hero-visual { display:none; }
     }
   </style>
 </head>
@@ -272,242 +360,598 @@
 
 <!-- NAV -->
 <nav id="nav">
-  <a href="#" class="logo">VIZU<span>tire</span></a>
-  <ul class="nav-links">
-    <li><a href="#problema">Problema</a></li>
-    <li><a href="#tecnologia">Tecnología</a></li>
-    <li><a href="#proceso">Proceso</a></li>
-    <li><a href="#resultados">Resultados</a></li>
-    <li><a href="#contacto" class="nav-cta">Contactar</a></li>
-  </ul>
+  <div class="nav-in">
+    <a href="#" class="logo">VIZU<span class="r">TIRE</span></a>
+    <ul class="nav-links">
+      <li><a href="#sistema"    data-i18n="nav.sistema">Sistema</a></li>
+      <li><a href="#problema"   data-i18n="nav.problema">Problema</a></li>
+      <li><a href="#resultados" data-i18n="nav.resultados">Resultados</a></li>
+      <li><a href="#validacion" data-i18n="nav.validacion">Validación</a></li>
+      <li><a href="#contacto" class="nav-cta" data-i18n="nav.cta">Evaluación Técnica</a></li>
+      <li><button class="lang-btn" id="lang-btn">EN</button></li>
+    </ul>
+  </div>
 </nav>
 
 <!-- ═══ HERO ═══ -->
 <section class="hero" id="inicio">
-  <div class="hero-content">
-    <div class="label">Ingeniería OTR — Minería</div>
-    <h1>Gestión<br><em>predictiva</em><br>de neumáticos<br>OTR.</h1>
-    <p class="hero-desc">Detectamos fallas estructurales internas antes de que se conviertan en eventos críticos. Tecnología físico-matemática validada en la Gran Minería Mundial.</p>
-    <div class="hero-btns">
-      <a href="#contacto" class="btn">Solicitar evaluación técnica</a>
-      <a href="#tecnologia" class="btn-outline">Cómo funciona</a>
-    </div>
-  </div>
+  <canvas id="hero-canvas"></canvas>
+  <div class="wrap">
 
-  <div class="hero-stats">
-    <div>
-      <div class="hstat-num">150<span>+</span></div>
-      <div class="hstat-label">Variables Operacionales</div>
+    <div class="hero-content">
+      <div class="sys-alert">
+        <span class="blink"></span>
+        <span data-i18n="hero.badge">ALERTA SISTÉMICA</span>
+      </div>
+      <p style="font-family:var(--fm);font-size:11px;letter-spacing:0.18em;color:var(--g3);text-transform:uppercase;margin-bottom:22px;" data-i18n="hero.sub">Eventos críticos no comienzan en la superficie</p>
+      <h1>
+        <span data-i18n="hero.h1a">Detección</span><br>
+        <span data-i18n="hero.h1b" style="color:var(--red);">temprana</span><br>
+        <span data-i18n="hero.h1c">de fallas</span><br>
+        <span data-i18n="hero.h1d">estructurales</span>
+      </h1>
+      <p style="font-family:var(--fm);font-size:clamp(18px,2.5vw,28px);color:var(--g3);margin-top:8px;letter-spacing:0.06em;">OTR</p>
+      <p class="hero-desc" style="margin-top:28px;" data-i18n="hero.desc">
+        Identificamos daños internos en neumáticos fuera de carretera antes del evento crítico. Modelo físico-matemático de 150+ variables. Validado en Gran Minería Mundial.
+      </p>
+      <div class="hero-btns">
+        <a href="#contacto" class="btn-p" data-i18n="hero.cta">Solicitar evaluación técnica</a>
+        <a href="#sistema"  class="btn-g" data-i18n="hero.ctag">Ver sistema →</a>
+      </div>
     </div>
-    <div>
-      <div class="hstat-num">OTR</div>
-      <div class="hstat-label">Especialización Exclusiva</div>
+
+    <div class="hero-visual">
+      <div class="tire-wrap">
+        <div class="tire-glow"></div>
+        <svg class="tire-svg" viewBox="0 0 340 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Outer boundary -->
+          <circle cx="170" cy="170" r="166" fill="none" stroke="rgba(255,0,0,0.12)" stroke-width="1"/>
+          <!-- Tread rubber -->
+          <circle cx="170" cy="170" r="162" fill="#141414"/>
+          <circle cx="170" cy="170" r="156" fill="#181818" stroke="rgba(255,0,0,0.08)" stroke-width="0.5"/>
+          <!-- Belt layer 1 (dashed) -->
+          <circle cx="170" cy="170" r="148" fill="none" stroke="rgba(255,0,0,0.3)" stroke-width="1" stroke-dasharray="10 5"/>
+          <!-- Belt layer 2 -->
+          <circle cx="170" cy="170" r="140" fill="#131313" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+          <!-- Carcass ply -->
+          <circle cx="170" cy="170" r="130" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+          <circle cx="170" cy="170" r="122" fill="#0f0f0f" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+          <!-- Inner liner -->
+          <circle cx="170" cy="170" r="112" fill="none" stroke="rgba(255,0,0,0.12)" stroke-width="1"/>
+          <!-- Air cavity -->
+          <circle cx="170" cy="170" r="106" fill="#0A0A0A"/>
+          <!-- Rim bead -->
+          <circle cx="170" cy="170" r="98"  fill="#111111" stroke="rgba(255,0,0,0.18)" stroke-width="1"/>
+          <circle cx="170" cy="170" r="84"  fill="#0A0A0A" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+          <!-- Rim disc -->
+          <circle cx="170" cy="170" r="70"  fill="#141414" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+          <circle cx="170" cy="170" r="56"  fill="#0A0A0A"/>
+
+          <!-- Layer labels (technical) -->
+          <text x="176" y="20"  fill="rgba(255,0,0,0.35)" font-size="6" font-family="JetBrains Mono,monospace" letter-spacing="1">TREAD</text>
+          <text x="176" y="35"  fill="rgba(255,255,255,0.15)" font-size="6" font-family="JetBrains Mono,monospace" letter-spacing="1">BELT</text>
+          <text x="176" y="50"  fill="rgba(255,255,255,0.1)" font-size="6" font-family="JetBrains Mono,monospace" letter-spacing="1">CARCASS</text>
+
+          <!-- Annotation line -->
+          <line x1="8" y1="170" x2="36" y2="170" stroke="rgba(255,0,0,0.18)" stroke-width="0.5" stroke-dasharray="2 3"/>
+          <text x="6" y="166" fill="rgba(255,0,0,0.4)" font-size="6.5" font-family="JetBrains Mono,monospace">ø63"</text>
+          <line x1="14" y1="122" x2="14" y2="218" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+          <line x1="10" y1="122" x2="20" y2="122" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+          <line x1="10" y1="218" x2="20" y2="218" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+
+          <!-- Structural flaw 1 (top-right) -->
+          <path d="M 203 38 L 222 55 L 228 47" stroke="#FF0000" stroke-width="1.5" stroke-linecap="round" opacity="0.85"/>
+          <circle cx="204" cy="39" r="3.5" fill="#FF0000">
+            <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.8s" repeatCount="indefinite"/>
+          </circle>
+
+          <!-- Structural flaw 2 (right) -->
+          <path d="M 302 125 L 316 142 L 322 134" stroke="#FF0000" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+          <circle cx="303" cy="126" r="3" fill="#FF0000">
+            <animate attributeName="opacity" values="0.7;0.15;0.7" dur="2.4s" repeatCount="indefinite"/>
+          </circle>
+
+          <!-- Structural flaw 3 (bottom) -->
+          <path d="M 258 284 L 276 271 L 271 263" stroke="#FF0000" stroke-width="1.5" stroke-linecap="round" opacity="0.75"/>
+          <circle cx="259" cy="285" r="3" fill="#FF0000">
+            <animate attributeName="opacity" values="0.75;0.1;0.75" dur="2.1s" repeatCount="indefinite"/>
+          </circle>
+
+          <!-- Separation crack indicator -->
+          <path d="M 138 28 Q 145 36 142 44" stroke="rgba(255,100,0,0.6)" stroke-width="1" stroke-linecap="round" fill="none"/>
+
+          <!-- Scanning beam (rotating) -->
+          <g style="transform-origin:170px 170px">
+            <line x1="170" y1="170" x2="170" y2="8" stroke="rgba(255,0,0,0.45)" stroke-width="1"/>
+            <line x1="170" y1="170" x2="170" y2="8" stroke="rgba(255,0,0,0.15)" stroke-width="10"/>
+            <animateTransform attributeName="transform" type="rotate" from="0 170 170" to="360 170 170" dur="6s" repeatCount="indefinite"/>
+          </g>
+
+          <!-- Crosshair center -->
+          <line x1="160" y1="170" x2="180" y2="170" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+          <line x1="170" y1="160" x2="170" y2="180" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+          <circle cx="170" cy="170" r="2.5" fill="rgba(255,0,0,0.5)"/>
+          <circle cx="170" cy="170" r="6" fill="none" stroke="rgba(255,0,0,0.2)" stroke-width="0.5"/>
+        </svg>
+
+        <!-- HUD readout -->
+        <div class="hud-panel">
+          <div class="hud-r">SYS: ACTIVE</div>
+          <div class="hud-r">SCAN: RUNNING</div>
+          <div class="hud-d">MODE: DIAG</div>
+          <div class="hud-d">FREQ: 2.4 MHz</div>
+          <div class="hud-d">UNIT: OTR-63"</div>
+        </div>
+      </div>
     </div>
-    <div>
-      <div class="hstat-num" style="font-size:32px;color:var(--red);">Antofagasta</div>
-      <div class="hstat-label">Chile</div>
-    </div>
+
   </div>
 </section>
 
-<!-- STRIP -->
-<div class="strip">
-  <div class="strip-item">Gran Minería Mundial</div><div class="strip-sep"></div>
-  <div class="strip-item">Rajo Abierto</div><div class="strip-sep"></div>
-  <div class="strip-item">Ultrasonido In Situ</div><div class="strip-sep"></div>
-  <div class="strip-item">Diagnóstico Estructural</div><div class="strip-sep"></div>
-  <div class="strip-item">+150 Variables Operacionales</div><div class="strip-sep"></div>
-  <div class="strip-item">Antofagasta, Chile</div><div class="strip-sep"></div>
-  <div class="strip-item">vizutire.com</div>
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-track" id="ticker"></div>
 </div>
 
+<!-- ═══ SISTEMA ═══ -->
+<section class="sistema" id="sistema">
+  <div class="wrap">
+    <div class="sec-hd reveal">
+      <span class="sys-label" data-i18n="sis.label">Sistema de diagnóstico — Flujo operacional</span>
+      <h2 data-i18n="sis.title">Captura. Modela.<br>Diagnostica. Actúa.</h2>
+    </div>
+
+    <div class="flow-grid">
+      <div class="flow-dot"></div>
+
+      <div class="node reveal d1">
+        <span class="node-idx">01 — CAPTURA</span>
+        <div class="node-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,0,0,0.7)" stroke-width="1.5">
+            <circle cx="12" cy="12" r="9"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="12" cy="12" r="1" fill="rgba(255,0,0,0.7)" stroke="none"/>
+          </svg>
+        </div>
+        <h3 data-i18n="sis.n1.t">Ultrasonido In Situ</h3>
+        <p data-i18n="sis.n1.d">Inspección no destructiva en terreno. Señales ultrasónicas capturan el estado interno de cada capa estructural del neumático.</p>
+        <div class="node-tag" data-i18n="sis.n1.g">2.4 MHz · No invasivo · In-field</div>
+      </div>
+
+      <div class="node reveal d2">
+        <span class="node-idx">02 — MODELADO</span>
+        <div class="node-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,0,0,0.7)" stroke-width="1.5">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+          </svg>
+        </div>
+        <h3 data-i18n="sis.n2.t">Modelo Físico-Matemático</h3>
+        <p data-i18n="sis.n2.d">Procesamiento con modelo propio. Integra más de 150 variables operacionales: presión, temperatura, carga por eje y velocidad.</p>
+        <div class="node-tag" data-i18n="sis.n2.g">150+ variables · Modelo propio · Validado</div>
+      </div>
+
+      <div class="node reveal d3">
+        <span class="node-idx">03 — DIAGNÓSTICO</span>
+        <div class="node-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,0,0,0.7)" stroke-width="1.5">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+        <h3 data-i18n="sis.n3.t">Diagnóstico Estructural</h3>
+        <p data-i18n="sis.n3.d">Identificación precisa de fallas internas invisibles. Evaluación del riesgo de reventón por unidad con nivel de criticidad.</p>
+        <div class="node-tag" data-i18n="sis.n3.g">Fallas internas · Riesgo por unidad · Criticidad</div>
+      </div>
+
+      <div class="node reveal d4">
+        <span class="node-idx">04 — ACCIÓN</span>
+        <div class="node-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,0,0,0.7)" stroke-width="1.5">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <h3 data-i18n="sis.n4.t">Recomendación Prescriptiva</h3>
+        <p data-i18n="sis.n4.d">Acciones priorizadas por criticidad. Maximiza vida útil, disponibilidad y seguridad. Diagnóstico entregado en menos de 48 horas.</p>
+        <div class="node-tag" data-i18n="sis.n4.g">Prescriptivo · Entrega 48h · Priorizado</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ PROBLEMA ═══ -->
-<section class="problem" id="problema">
-  <div class="problem-layout">
-    <div class="reveal">
-      <div class="label">El Problema</div>
-      <h2>El riesgo no<br>siempre es<br>visible.</h2>
-      <p style="margin-top:20px; color:var(--ink-mid);">Los métodos tradicionales no detectan las fallas estructurales internas que provocan reventones — liberaciones descontroladas de energía que detienen operaciones y comprometen la seguridad.</p>
-    </div>
-    <div class="danger-cards reveal">
-      <div class="card-danger">
-        <div class="card-num">01</div>
-        <div>
-          <h4>Fallas internas no detectadas</h4>
-          <p>Daños en capas internas invisibles a la inspección visual y a los métodos convencionales de diagnóstico.</p>
+<section class="problema" id="problema">
+  <div class="wrap">
+    <div class="prob-layout">
+
+      <div class="reveal">
+        <div class="warn-badge">
+          <span>⚠</span>
+          <span data-i18n="prob.badge">STRUCTURAL FAILURE DETECTED</span>
+        </div>
+        <h2 data-i18n="prob.title">Liberación de energía<br>no controlada.</h2>
+        <p style="margin-top:20px;max-width:420px;" data-i18n="prob.desc">
+          El 80% de las fallas estructurales en neumáticos OTR son internas e indetectables visualmente. El reventón es el resultado — no el inicio del problema.
+        </p>
+        <div class="prob-stats">
+          <div class="pstat">
+            <div class="pstat-num" data-cnt="80" data-sfx="%">0%</div>
+            <div class="pstat-lbl" data-i18n="prob.s1">Fallas de origen interno</div>
+          </div>
+          <div class="pstat">
+            <div class="pstat-num" data-cnt="250" data-pfx="$" data-sfx="K">$0K</div>
+            <div class="pstat-lbl" data-i18n="prob.s2">Costo por evento — USD</div>
+          </div>
         </div>
       </div>
-      <div class="card-danger">
-        <div class="card-num">02</div>
-        <div>
-          <h4>Riesgo de eventos críticos</h4>
-          <p>Reventones bajo condiciones de alta carga, temperatura y esfuerzo mecánico que ponen en riesgo equipos y personas.</p>
+
+      <div class="fail-list reveal">
+        <div class="fail-item">
+          <div class="fail-n">01</div>
+          <div>
+            <h4 data-i18n="prob.f1t">Fallas internas no detectadas</h4>
+            <p data-i18n="prob.f1d">Separación de capas, cortes de carcasa, daño en cinturones: invisibles a inspección visual y métodos convencionales.</p>
+          </div>
+        </div>
+        <div class="fail-item">
+          <div class="fail-n">02</div>
+          <div>
+            <h4 data-i18n="prob.f2t">Eventos de alta energía</h4>
+            <p data-i18n="prob.f2d">Reventones bajo alta carga, temperatura y esfuerzo mecánico. Daño a equipos de alto valor y riesgo para operadores.</p>
+          </div>
+        </div>
+        <div class="fail-item">
+          <div class="fail-n">03</div>
+          <div>
+            <h4 data-i18n="prob.f3t">Pérdida de continuidad operacional</h4>
+            <p data-i18n="prob.f3d">Paradas no programadas que impactan disponibilidad de flota. Costo total de propiedad fuera de control.</p>
+          </div>
+        </div>
+        <div class="fail-item">
+          <div class="fail-n">04</div>
+          <div>
+            <h4 data-i18n="prob.f4t">Métodos actuales insuficientes</h4>
+            <p data-i18n="prob.f4d">Inspección visual, presión y temperatura: datos superficiales que no capturan el estado estructural interno.</p>
+          </div>
         </div>
       </div>
-      <div class="card-danger">
-        <div class="card-num">03</div>
-        <div>
-          <h4>Pérdidas operacionales</h4>
-          <p>Costos directos por reemplazo no planificado de neumáticos OTR de alto valor.</p>
-        </div>
-      </div>
-      <div class="card-danger">
-        <div class="card-num">04</div>
-        <div>
-          <h4>Interrupciones operativas</h4>
-          <p>Paradas no programadas que impactan la disponibilidad de flota y la continuidad operacional.</p>
-        </div>
-      </div>
+
     </div>
   </div>
 </section>
-
-<div class="rule"></div>
-
-<!-- ═══ TECNOLOGÍA ═══ -->
-<section class="tech-section" id="tecnologia">
-  <div class="reveal">
-    <div class="label">Ingeniería Aplicada</div>
-    <h2>Tecnología de<br>diagnóstico avanzado.</h2>
-  </div>
-  <div class="tech-grid reveal">
-    <div class="tech-card">
-      <div class="tech-abbr">US</div>
-      <h3>Ultrasonido In Situ</h3>
-      <p>Inspección no destructiva directamente en el campo. Detecta daños en capas internas sin necesidad de retirar el neumático, con alta efectividad demostrada en entornos de alta exigencia.</p>
-    </div>
-    <div class="tech-card">
-      <div class="tech-abbr">FM</div>
-      <h3>Modelo Físico-Matemático</h3>
-      <p>Modelo propio desarrollado sobre más de 150 variables operacionales. Integra presión, temperatura, carga y velocidad para una evaluación completa del estado estructural.</p>
-    </div>
-    <div class="tech-card">
-      <div class="tech-abbr">AA</div>
-      <h3>Analítica Avanzada</h3>
-      <p>Procesamiento inteligente de datos para entregar recomendaciones prescriptivas que optimizan la seguridad, disponibilidad y vida útil de cada neumático en la flota.</p>
-    </div>
-  </div>
-</section>
-
-<div class="rule"></div>
-
-<!-- ═══ PROCESO ═══ -->
-<section class="proceso" id="proceso">
-  <div class="reveal" style="text-align:center;">
-    <div class="label" style="justify-content:center;">Metodología</div>
-    <h2>Cómo funciona.</h2>
-  </div>
-  <div class="process reveal">
-    <div class="step">
-      <div class="step-num">1</div>
-      <h3>Inspección</h3>
-      <p>Visita a terreno con equipos de ultrasonido y sensores. Captura del estado actual de cada neumático.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <h3>Modelado</h3>
-      <p>Procesamiento con el modelo físico-matemático propio. Integración de variables operacionales e historial.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <h3>Diagnóstico</h3>
-      <p>Identificación precisa de fallas internas. Evaluación del riesgo de reventón por unidad inspeccionada.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <h3>Recomendación</h3>
-      <p>Acciones prescriptivas priorizadas para maximizar la vida útil, disponibilidad y seguridad operacional.</p>
-    </div>
-  </div>
-</section>
-
-<div class="rule"></div>
 
 <!-- ═══ RESULTADOS ═══ -->
-<section class="results-section" id="resultados">
-  <div class="results-layout">
-    <div class="stats reveal">
-      <div class="stat">
-        <h3>+ Vida Útil</h3>
-        <p>Extensión del ciclo del neumático mediante gestión predictiva</p>
-      </div>
-      <div class="stat">
-        <h3>– Riesgo</h3>
-        <p>Reducción significativa de fallas críticas y reventones</p>
-      </div>
-      <div class="stat">
-        <h3>+ Disponibilidad</h3>
-        <p>Mayor continuidad operativa y reducción de paradas imprevistas</p>
-      </div>
+<section class="resultados" id="resultados">
+  <div class="wrap">
+    <div class="sec-hd reveal">
+      <span class="sys-label" data-i18n="res.label">Impacto operacional — Datos verificados</span>
+      <h2 data-i18n="res.title">Indicadores de sistema.</h2>
     </div>
-    <div class="results-text reveal">
-      <div class="label">Impacto en la Operación</div>
-      <h2>Resultados<br>concretos para<br>su operación.</h2>
-      <p style="margin-top:20px;">La combinación de datos operacionales con diagnóstico estructural permite anticipar fallas antes de que ocurran, reduciendo costos y maximizando la disponibilidad de equipos.</p>
-      <p>Validado en entornos reales de alta exigencia, VIZUtire ha demostrado alta efectividad en la detección temprana de daños, permitiendo a las operaciones mineras anticiparse a fallas críticas.</p>
+    <div class="dashboard">
+      <div class="dash-panel reveal d1">
+        <div class="d-label" data-i18n="res.m1l">VIDA ÚTIL</div>
+        <div class="d-metric">
+          <span class="ra" data-cnt="700" data-pfx="+">0</span><span class="ra">h</span>
+        </div>
+        <p class="d-desc" data-i18n="res.m1d">Extensión de vida útil adicional por neumático OTR con diagnóstico preventivo continuo.</p>
+        <div class="d-status"><span class="d-dot"></span><span data-i18n="res.m1s">Validado en operación</span></div>
+      </div>
+      <div class="dash-panel reveal d2">
+        <div class="d-label" data-i18n="res.m2l">EVENTOS CRÍTICOS</div>
+        <div class="d-metric" style="font-size:clamp(22px,2.8vw,32px);letter-spacing:0.02em;">
+          <span class="ra" data-i18n="res.m2v">OBJETIVO: 0</span>
+        </div>
+        <p class="d-desc" data-i18n="res.m2d">Objetivo operacional de reventones no planificados en flota monitoreada por VIZUtire.</p>
+        <div class="d-status"><span class="d-dot"></span><span data-i18n="res.m2s">Meta alcanzable</span></div>
+      </div>
+      <div class="dash-panel reveal d3">
+        <div class="d-label" data-i18n="res.m3l">REDUCCIÓN COSTOS</div>
+        <div class="d-metric">
+          <span class="ra" data-cnt="35" data-pfx="-">0</span><span class="ra">%</span>
+        </div>
+        <p class="d-desc" data-i18n="res.m3d">Reducción en costos de reemplazo no planificado de neumáticos en operaciones monitoreadas.</p>
+        <div class="d-status"><span class="d-dot"></span><span data-i18n="res.m3s">ROI positivo &lt; 6 meses</span></div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ═══ VALIDACIÓN ═══ -->
-<section class="validation">
-  <div class="val-layout">
-    <div class="reveal">
-      <div class="label">Validación</div>
-      <h2>Validado en<br>condiciones<br>reales.</h2>
-      <p style="margin-top:20px;color:var(--ink-mid);">Tecnología probada en entornos de alta exigencia operacional en minería a rajo abierto, con flotas de camiones de gran tonelaje bajo operación continua 24/7.</p>
+<!-- ═══ VALIDACION ═══ -->
+<section class="validacion" id="validacion">
+  <div class="wrap">
+    <div class="sec-hd reveal">
+      <span class="sys-label" data-i18n="val.label">Evidencia — Operación real</span>
+      <h2 data-i18n="val.title">Validado en condiciones<br>extremas.</h2>
     </div>
-    <div class="val-items reveal">
-      <div class="val-item"><div class="val-dot"></div><p>Alta efectividad en detección temprana de daños estructurales</p></div>
-      <div class="val-item"><div class="val-dot"></div><p>Operaciones mineras a rajo abierto de clase mundial</p></div>
-      <div class="val-item"><div class="val-dot"></div><p>Flotas de camiones OTR de gran tonelaje</p></div>
-      <div class="val-item"><div class="val-dot"></div><p>Condiciones extremas de carga, temperatura y terreno</p></div>
-      <div class="val-item"><div class="val-dot"></div><p>Reducción comprobada de costos operacionales</p></div>
+    <div class="val-block reveal">
+      <img class="val-img"
+        src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1600"
+        alt="Mining truck OTR operation">
+      <div class="val-ov">
+        <div class="val-ov-in">
+          <div>
+            <p class="val-badge" data-i18n="val.badge">VALIDADO EN OPERACIÓN 24/7</p>
+            <h2 style="font-size:clamp(22px,3vw,42px);" data-i18n="val.h2">Gran Minería.<br>Rajo abierto.<br>Alta exigencia.</h2>
+            <p style="margin-top:14px;" data-i18n="val.desc">Tecnología probada en flotas de camiones CAEX de 400 toneladas bajo operación continua en condiciones extremas.</p>
+          </div>
+          <div class="val-checks">
+            <div class="val-check"><div class="vc-dot"></div><span data-i18n="val.c1">Alta efectividad en detección estructural temprana</span></div>
+            <div class="val-check"><div class="vc-dot"></div><span data-i18n="val.c2">Operaciones de clase mundial — Norte de Chile</span></div>
+            <div class="val-check"><div class="vc-dot"></div><span data-i18n="val.c3">Flotas CAEX de 400 ton bajo operación continua</span></div>
+            <div class="val-check"><div class="vc-dot"></div><span data-i18n="val.c4">Condiciones extremas: temperatura, carga y terreno</span></div>
+            <div class="val-check"><div class="vc-dot"></div><span data-i18n="val.c5">Reducción comprobada de costos operacionales</span></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ═══ CTA ═══ -->
-<section class="cta-section" id="contacto">
-  <div class="cta-box reveal">
-    <div>
-      <div class="label">Contacto</div>
-      <h2>Optimice su<br>operación hoy.</h2>
-      <p>Solicite una evaluación técnica para su flota OTR. Nuestro equipo en Antofagasta está listo para analizar su operación.</p>
-      <p style="margin-top:14px;"><a href="https://www.vizutire.com" style="color:rgba(255,255,255,0.45);font-size:13px;font-weight:400;letter-spacing:0.04em;">www.vizutire.com</a></p>
-    </div>
-    <div class="cta-btns">
-      <a href="mailto:contacto@vizutire.com" class="btn">Solicitar Evaluación</a>
-      <a href="https://www.vizutire.com" class="btn-outline">Visitar Sitio Web</a>
+<section class="cta-sec" id="contacto">
+  <div class="wrap">
+    <div class="cta-in reveal">
+      <div class="sys-alert">
+        <span class="blink"></span>
+        <span data-i18n="cta.badge">SISTEMA LISTO PARA DIAGNÓSTICO</span>
+      </div>
+      <h2 data-i18n="cta.title">Reduce el riesgo estructural<br>antes del evento.</h2>
+      <p data-i18n="cta.desc">Solicite una evaluación técnica para su flota OTR. Nuestro equipo en Antofagasta analiza su operación y entrega diagnóstico en 48 horas.</p>
+      <div class="cta-btns">
+        <a href="mailto:contacto@vizutire.com" class="btn-p" data-i18n="cta.b1">Solicitar evaluación técnica</a>
+        <a href="#sistema" class="btn-g" data-i18n="cta.b2">Ver sistema completo</a>
+      </div>
+      <div class="cta-sub">
+        <span data-i18n="cta.sub">Antofagasta, Chile · vizutire.com · contacto@vizutire.com</span>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
-  <a href="#" class="logo">VIZU<span>tire</span></a>
-  <ul>
-    <li><a href="#problema">Problema</a></li>
-    <li><a href="#tecnologia">Tecnología</a></li>
-    <li><a href="#proceso">Proceso</a></li>
-    <li><a href="#resultados">Resultados</a></li>
-    <li><a href="#contacto">Contacto</a></li>
-  </ul>
-  <div class="copy">© 2026 VIZUtire — Antofagasta, Chile</div>
+  <div class="foot-in">
+    <a href="#" class="logo">VIZU<span class="r">TIRE</span></a>
+    <ul>
+      <li><a href="#sistema"    data-i18n="nav.sistema">Sistema</a></li>
+      <li><a href="#problema"   data-i18n="nav.problema">Problema</a></li>
+      <li><a href="#resultados" data-i18n="nav.resultados">Resultados</a></li>
+      <li><a href="#contacto"   data-i18n="ft.contact">Contacto</a></li>
+    </ul>
+    <div class="foot-copy">© 2026 VIZUtire — Antofagasta, Chile</div>
+  </div>
 </footer>
 
 <script>
-  // Reveal on scroll
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target); } });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+/* ── TRANSLATIONS ── */
+const T = {
+  es: {
+    'nav.sistema':'Sistema','nav.problema':'Problema','nav.resultados':'Resultados',
+    'nav.validacion':'Validación','nav.cta':'Evaluación Técnica','ft.contact':'Contacto',
+    'hero.badge':'ALERTA SISTÉMICA',
+    'hero.sub':'Eventos críticos no comienzan en la superficie',
+    'hero.h1a':'Detección','hero.h1b':'temprana','hero.h1c':'de fallas','hero.h1d':'estructurales',
+    'hero.desc':'Identificamos daños internos en neumáticos fuera de carretera antes del evento crítico. Modelo físico-matemático de 150+ variables. Validado en Gran Minería Mundial.',
+    'hero.cta':'Solicitar evaluación técnica','hero.ctag':'Ver sistema →',
+    'sis.label':'Sistema de diagnóstico — Flujo operacional',
+    'sis.title':'Captura. Modela.<br>Diagnostica. Actúa.',
+    'sis.n1.t':'Ultrasonido In Situ',
+    'sis.n1.d':'Inspección no destructiva en terreno. Señales ultrasónicas capturan el estado interno de cada capa estructural del neumático.',
+    'sis.n1.g':'2.4 MHz · No invasivo · In-field',
+    'sis.n2.t':'Modelo Físico-Matemático',
+    'sis.n2.d':'Procesamiento con modelo propio. Integra más de 150 variables operacionales: presión, temperatura, carga por eje y velocidad.',
+    'sis.n2.g':'150+ variables · Modelo propio · Validado',
+    'sis.n3.t':'Diagnóstico Estructural',
+    'sis.n3.d':'Identificación precisa de fallas internas invisibles. Evaluación del riesgo de reventón por unidad con nivel de criticidad.',
+    'sis.n3.g':'Fallas internas · Riesgo por unidad · Criticidad',
+    'sis.n4.t':'Recomendación Prescriptiva',
+    'sis.n4.d':'Acciones priorizadas por criticidad. Maximiza vida útil, disponibilidad y seguridad. Diagnóstico entregado en menos de 48 horas.',
+    'sis.n4.g':'Prescriptivo · Entrega 48h · Priorizado',
+    'prob.badge':'STRUCTURAL FAILURE DETECTED',
+    'prob.title':'Liberación de energía<br>no controlada.',
+    'prob.desc':'El 80% de las fallas estructurales en neumáticos OTR son internas e indetectables visualmente. El reventón es el resultado — no el inicio del problema.',
+    'prob.s1':'Fallas de origen interno','prob.s2':'Costo por evento — USD',
+    'prob.f1t':'Fallas internas no detectadas',
+    'prob.f1d':'Separación de capas, cortes de carcasa, daño en cinturones: invisibles a inspección visual y métodos convencionales.',
+    'prob.f2t':'Eventos de alta energía',
+    'prob.f2d':'Reventones bajo alta carga, temperatura y esfuerzo mecánico. Daño a equipos de alto valor y riesgo para operadores.',
+    'prob.f3t':'Pérdida de continuidad operacional',
+    'prob.f3d':'Paradas no programadas que impactan disponibilidad de flota. Costo total de propiedad fuera de control.',
+    'prob.f4t':'Métodos actuales insuficientes',
+    'prob.f4d':'Inspección visual, presión y temperatura: datos superficiales que no capturan el estado estructural interno.',
+    'res.label':'Impacto operacional — Datos verificados',
+    'res.title':'Indicadores de sistema.',
+    'res.m1l':'VIDA ÚTIL','res.m1d':'Extensión de vida útil adicional por neumático OTR con diagnóstico preventivo continuo.','res.m1s':'Validado en operación',
+    'res.m2l':'EVENTOS CRÍTICOS','res.m2v':'OBJETIVO: 0','res.m2d':'Objetivo operacional de reventones no planificados en flota monitoreada por VIZUtire.','res.m2s':'Meta alcanzable',
+    'res.m3l':'REDUCCIÓN COSTOS','res.m3d':'Reducción en costos de reemplazo no planificado de neumáticos en operaciones monitoreadas.','res.m3s':'ROI positivo < 6 meses',
+    'val.label':'Evidencia — Operación real',
+    'val.title':'Validado en condiciones<br>extremas.',
+    'val.badge':'VALIDADO EN OPERACIÓN 24/7',
+    'val.h2':'Gran Minería.<br>Rajo abierto.<br>Alta exigencia.',
+    'val.desc':'Tecnología probada en flotas de camiones CAEX de 400 toneladas bajo operación continua en condiciones extremas.',
+    'val.c1':'Alta efectividad en detección estructural temprana',
+    'val.c2':'Operaciones de clase mundial — Norte de Chile',
+    'val.c3':'Flotas CAEX de 400 ton bajo operación continua',
+    'val.c4':'Condiciones extremas: temperatura, carga y terreno',
+    'val.c5':'Reducción comprobada de costos operacionales',
+    'cta.badge':'SISTEMA LISTO PARA DIAGNÓSTICO',
+    'cta.title':'Reduce el riesgo estructural<br>antes del evento.',
+    'cta.desc':'Solicite una evaluación técnica para su flota OTR. Nuestro equipo en Antofagasta analiza su operación y entrega diagnóstico en 48 horas.',
+    'cta.b1':'Solicitar evaluación técnica','cta.b2':'Ver sistema completo',
+    'cta.sub':'Antofagasta, Chile · vizutire.com · contacto@vizutire.com',
+  },
+  en: {
+    'nav.sistema':'System','nav.problema':'Problem','nav.resultados':'Results',
+    'nav.validacion':'Validation','nav.cta':'Technical Assessment','ft.contact':'Contact',
+    'hero.badge':'SYSTEM ALERT',
+    'hero.sub':'Critical events do not begin at the surface',
+    'hero.h1a':'Early','hero.h1b':'detection','hero.h1c':'of structural','hero.h1d':'failures',
+    'hero.desc':'We identify internal damage in off-road tires before the critical event. Physico-mathematical model with 150+ variables. Validated in World-Class Mining operations.',
+    'hero.cta':'Request technical assessment','hero.ctag':'See system →',
+    'sis.label':'Diagnostic system — Operational flow',
+    'sis.title':'Capture. Model.<br>Diagnose. Act.',
+    'sis.n1.t':'In-Situ Ultrasound',
+    'sis.n1.d':'Non-destructive field inspection. Ultrasonic signals capture the internal state of each structural layer of the tire.',
+    'sis.n1.g':'2.4 MHz · Non-invasive · In-field',
+    'sis.n2.t':'Physico-Mathematical Model',
+    'sis.n2.d':'Processing with proprietary model. Integrates over 150 operational variables: pressure, temperature, axle load and speed.',
+    'sis.n2.g':'150+ variables · Proprietary model · Validated',
+    'sis.n3.t':'Structural Diagnosis',
+    'sis.n3.d':'Precise identification of invisible internal failures. Blowout risk assessment per unit with criticality level.',
+    'sis.n3.g':'Internal failures · Risk per unit · Criticality',
+    'sis.n4.t':'Prescriptive Recommendation',
+    'sis.n4.d':'Actions prioritized by criticality. Maximizes service life, availability and safety. Diagnosis delivered in under 48 hours.',
+    'sis.n4.g':'Prescriptive · 48h delivery · Prioritized',
+    'prob.badge':'STRUCTURAL FAILURE DETECTED',
+    'prob.title':'Uncontrolled<br>energy release.',
+    'prob.desc':'80% of structural failures in OTR tires are internal and undetectable visually. The blowout is the result — not the beginning of the problem.',
+    'prob.s1':'Internal-origin failures','prob.s2':'Cost per critical event — USD',
+    'prob.f1t':'Undetected internal failures',
+    'prob.f1d':'Ply separation, carcass cuts, belt damage: invisible to visual inspection and conventional diagnostic methods.',
+    'prob.f2t':'High-energy events',
+    'prob.f2d':'Blowouts under high load, temperature and mechanical stress. Damage to high-value equipment and risk to operators.',
+    'prob.f3t':'Operational continuity loss',
+    'prob.f3d':'Unplanned stops impacting fleet availability. Total cost of ownership out of control.',
+    'prob.f4t':'Insufficient current methods',
+    'prob.f4d':'Visual inspection, pressure and temperature: surface data that does not capture the internal structural state.',
+    'res.label':'Operational impact — Verified data',
+    'res.title':'System indicators.',
+    'res.m1l':'SERVICE LIFE','res.m1d':'Additional service life extension per OTR tire with continuous preventive diagnostics.','res.m1s':'Validated in operation',
+    'res.m2l':'CRITICAL EVENTS','res.m2v':'TARGET: 0','res.m2d':'Operational target for unplanned blowouts in fleet monitored by VIZUtire.','res.m2s':'Achievable target',
+    'res.m3l':'COST REDUCTION','res.m3d':'Reduction in unplanned tire replacement costs in monitored operations.','res.m3s':'Positive ROI < 6 months',
+    'val.label':'Evidence — Real operation',
+    'val.title':'Validated under<br>extreme conditions.',
+    'val.badge':'VALIDATED IN 24/7 OPERATION',
+    'val.h2':'World-Class Mining.<br>Open pit.<br>High demand.',
+    'val.desc':'Technology proven in 400-ton CAEX truck fleets under continuous operation in extreme conditions.',
+    'val.c1':'High effectiveness in early structural detection',
+    'val.c2':'World-class operations — Northern Chile',
+    'val.c3':'400-ton CAEX fleets under continuous operation',
+    'val.c4':'Extreme conditions: temperature, load and terrain',
+    'val.c5':'Proven reduction of operational costs',
+    'cta.badge':'SYSTEM READY FOR DIAGNOSIS',
+    'cta.title':'Reduce structural risk<br>before the event.',
+    'cta.desc':'Request a technical assessment for your OTR fleet. Our team in Antofagasta analyzes your operation and delivers diagnosis in 48 hours.',
+    'cta.b1':'Request technical assessment','cta.b2':'See full system',
+    'cta.sub':'Antofagasta, Chile · vizutire.com · contacto@vizutire.com',
+  }
+};
 
-  // Nav shadow on scroll
-  const nav = document.getElementById('nav');
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 40);
+let lang = 'es';
+function setLang(l) {
+  lang = l;
+  const d = T[l];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = d[el.dataset.i18n];
+    if (v !== undefined) el.innerHTML = v;
   });
+  document.getElementById('lang-btn').textContent = l === 'es' ? 'EN' : 'ES';
+  document.documentElement.lang = l;
+}
+document.getElementById('lang-btn').addEventListener('click', () => setLang(lang === 'es' ? 'en' : 'es'));
+
+/* ── TICKER ── */
+const tickItems = [
+  'Gran Minería Mundial','Rajo Abierto','Ultrasonido In Situ',
+  'Diagnóstico Estructural','150+ Variables','Detección Temprana',
+  'Antofagasta · Chile','OTR Tire Diagnostics','Non-Destructive Testing','Physico-Mathematical Model'
+];
+const all = [...tickItems,...tickItems];
+document.getElementById('ticker').innerHTML =
+  all.map(t => `<span class="ticker-item"><span class="tdot"></span>${t}</span>`).join('');
+
+/* ── CANVAS PARTICLES ── */
+const cv = document.getElementById('hero-canvas');
+const cx = cv.getContext('2d');
+let pts = [];
+
+function resizeCv() { cv.width = cv.offsetWidth; cv.height = cv.offsetHeight; }
+
+class Pt {
+  constructor() { this.init(); }
+  init() {
+    this.x  = Math.random() * cv.width;
+    this.y  = Math.random() * cv.height;
+    this.vx = (Math.random() - 0.5) * 0.35;
+    this.vy = (Math.random() - 0.5) * 0.35;
+    this.r  = Math.random() * 1.4 + 0.4;
+    this.a  = Math.random() * 0.35 + 0.08;
+    this.life = this.ml = Math.random() * 220 + 80;
+  }
+  tick() {
+    this.x += this.vx; this.y += this.vy; this.life--;
+    if (this.life <= 0 || this.x < 0 || this.x > cv.width || this.y < 0 || this.y > cv.height) this.init();
+  }
+  draw() {
+    cx.beginPath();
+    cx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    cx.fillStyle = `rgba(255,0,0,${this.a * (this.life / this.ml)})`;
+    cx.fill();
+  }
+}
+
+function lines() {
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < 90) {
+        cx.beginPath();
+        cx.moveTo(pts[i].x, pts[i].y);
+        cx.lineTo(pts[j].x, pts[j].y);
+        cx.strokeStyle = `rgba(255,0,0,${0.05 * (1 - d/90)})`;
+        cx.lineWidth = 0.5;
+        cx.stroke();
+      }
+    }
+  }
+}
+
+function loop() {
+  cx.clearRect(0, 0, cv.width, cv.height);
+  lines();
+  pts.forEach(p => { p.tick(); p.draw(); });
+  requestAnimationFrame(loop);
+}
+
+resizeCv();
+pts = Array.from({length: 70}, () => new Pt());
+loop();
+window.addEventListener('resize', () => { resizeCv(); pts.forEach(p => p.init()); });
+
+/* ── SCROLL REVEAL ── */
+const ro = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('on'); ro.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => ro.observe(el));
+
+/* ── NAV SCROLL ── */
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 40));
+
+/* ── COUNTERS ── */
+function counter(el, end, pfx, sfx) {
+  const dur = 1600, t0 = Date.now();
+  const run = () => {
+    const p = Math.min((Date.now() - t0) / dur, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.textContent = (pfx||'') + Math.round(e * end) + (sfx||'');
+    if (p < 1) requestAnimationFrame(run);
+  };
+  requestAnimationFrame(run);
+}
+
+const co = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    const v = parseInt(el.dataset.cnt);
+    if (!isNaN(v)) counter(el, v, el.dataset.pfx || '', el.dataset.sfx || '');
+    co.unobserve(el);
+  });
+}, { threshold: 0.6 });
+document.querySelectorAll('[data-cnt]').forEach(el => co.observe(el));
 </script>
 </body>
 </html>
