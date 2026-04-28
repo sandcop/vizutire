@@ -180,49 +180,79 @@
     /* ── SISTEMA ── */
     .sistema { background:var(--bg); border-top:1px solid var(--border); }
 
-    .flow-grid {
-      display:grid; grid-template-columns:repeat(4,1fr);
-      gap:0; position:relative;
+    /* Status bar */
+    .sys-status-bar {
+      display:flex; align-items:center; gap:28px; flex-wrap:wrap;
+      padding:14px 0 44px; border-bottom:1px solid var(--border); margin-bottom:52px;
     }
-    .flow-grid::before {
-      content:''; position:absolute;
-      top:60px; left:12.5%; right:12.5%; height:1px;
-      background:linear-gradient(90deg, transparent, var(--border-r) 15%, var(--border-r) 85%, transparent);
-    }
-    .flow-dot {
-      position:absolute; top:57px; left:12.5%;
-      width:6px; height:6px; margin-left:-3px; border-radius:50%;
-      background:var(--red); box-shadow:0 0 8px var(--red);
-      animation:fdot 3.5s ease-in-out infinite;
-    }
-    @keyframes fdot {
-      0%   { left:12.5%;  opacity:1; }
-      85%  { left:87.5%;  opacity:1; }
-      100% { left:87.5%;  opacity:0; }
-    }
+    .ssb-item { display:flex; align-items:center; gap:10px; font-family:var(--fm); font-size:10px; letter-spacing:0.16em; text-transform:uppercase; }
+    .ssb-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+    .ssb-dot.green { background:#00CC44; box-shadow:0 0 6px #00CC44; animation:blink 2s infinite; }
+    .ssb-dot.red   { background:var(--red); box-shadow:0 0 6px var(--red); animation:blink 1.4s infinite; }
+    .ssb-dot.amber { background:#FFA500; box-shadow:0 0 6px #FFA500; animation:blink 2.6s infinite; }
+    .ssb-label { color:var(--g3); }
+    .ssb-val   { color:var(--white); font-weight:700; margin-left:4px; }
 
-    .node { padding:0 24px 32px; border-left:1px solid var(--border); }
-    .node:first-child { border-left:none; }
-    .node-idx {
-      font-family:var(--fm); font-size:9px; font-weight:700;
-      letter-spacing:0.18em; color:var(--g3); display:block;
-      padding-top:24px; margin-bottom:26px;
-    }
-    .node-icon {
-      width:52px; height:52px; border:1px solid var(--border-r);
-      display:flex; align-items:center; justify-content:center;
-      margin-bottom:22px; background:rgba(255,0,0,0.03);
-      position:relative; transition:box-shadow .3s;
-    }
-    .node-icon::after { content:''; position:absolute; inset:-1px; border:1px solid var(--red); opacity:0; transition:opacity .3s; }
-    .node:hover .node-icon { box-shadow:0 0 20px rgba(255,0,0,0.2); }
-    .node:hover .node-icon::after { opacity:1; }
-    .node-icon svg { width:22px; height:22px; }
+    /* Flex flow */
+    .flow { display:flex; align-items:stretch; }
 
-    .node h3 { font-size:13px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:12px; }
-    .node p  { font-size:13px; color:var(--g2); line-height:1.7; }
+    /* Connector line */
+    .line {
+      flex:1; display:flex; align-items:center;
+      position:relative; min-width:28px;
+    }
+    .line::before {
+      content:''; display:block; width:100%; height:1px;
+      background:linear-gradient(90deg, var(--red), rgba(255,0,0,0.35), var(--red));
+      animation:lpulse 2.2s ease-in-out infinite;
+    }
+    @keyframes lpulse { 0%,100%{opacity:0.25} 50%{opacity:0.9} }
+
+    /* Packet dot moving along line */
+    .line::after {
+      content:''; position:absolute; top:50%; transform:translateY(-50%);
+      width:5px; height:5px; border-radius:50%;
+      background:var(--red); box-shadow:0 0 10px var(--red), 0 0 20px rgba(255,0,0,0.4);
+      animation:packet 2.4s linear infinite;
+    }
+    .line:nth-of-type(2)::after { animation-delay:0s; }
+    .line:nth-of-type(4)::after { animation-delay:0.8s; }
+    .line:nth-of-type(6)::after { animation-delay:1.6s; }
+    @keyframes packet { 0%{left:0;opacity:0} 6%{opacity:1} 94%{opacity:1} 100%{left:100%;opacity:0} }
+
+    /* Node card */
+    .node {
+      background:var(--bg-1); border:1px solid var(--border);
+      padding:28px 24px; width:210px; flex-shrink:0;
+      position:relative; transition:border-color .3s, box-shadow .3s;
+      cursor:default;
+    }
+    .node::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:2px;
+      background:var(--red); transform:scaleX(0); transform-origin:left;
+      transition:transform .35s ease;
+    }
+    .node:hover { border-color:var(--red); box-shadow:0 0 24px rgba(255,0,0,0.12); }
+    .node:hover::before { transform:scaleX(1); }
+
+    .node-corner {
+      position:absolute; top:14px; right:14px;
+      width:5px; height:5px; border-radius:50%; background:var(--g4);
+      transition:background .3s, box-shadow .3s;
+    }
+    .node:hover .node-corner { background:var(--red); box-shadow:0 0 6px var(--red); }
+
+    .node-num {
+      font-family:var(--fm); font-size:11px; font-weight:700;
+      color:var(--red); letter-spacing:0.2em; display:block; margin-bottom:16px;
+    }
+    .node h3 {
+      font-size:12px; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.1em; color:var(--white); margin-bottom:10px; line-height:1.3;
+    }
+    .node p { font-size:12px; color:var(--g2); line-height:1.65; }
     .node-tag {
-      margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
+      margin-top:16px; padding-top:12px; border-top:1px solid var(--border);
       font-family:var(--fm); font-size:9px; letter-spacing:0.12em;
       text-transform:uppercase; color:var(--g3);
     }
@@ -339,10 +369,11 @@
       .hero .wrap { grid-template-columns:1fr; padding-top:60px; padding-bottom:60px; }
       .tire-wrap { width:280px; height:280px; }
       .tire-svg { width:260px; height:260px; }
-      .flow-grid { grid-template-columns:1fr 1fr; }
-      .flow-grid::before, .flow-dot { display:none; }
-      .node { padding:20px; border-left:none; border-top:1px solid var(--border); }
-      .node:first-child { border-top:none; }
+      .flow { flex-direction:column; }
+      .line { flex:none; height:36px; min-width:auto; width:100%; align-items:center; justify-content:center; }
+      .line::before { width:1px; height:100%; background:linear-gradient(180deg, var(--red), rgba(255,0,0,0.35), var(--red)); }
+      .line::after { display:none; }
+      .node { width:100%; }
       .prob-layout { grid-template-columns:1fr; gap:48px; }
       .dashboard { grid-template-columns:1fr; }
       .val-ov-in { grid-template-columns:1fr; }
@@ -351,7 +382,8 @@
     @media(max-width:768px) {
       .nav-links { display:none; }
       section { padding:72px 0; }
-      .flow-grid { grid-template-columns:1fr; }
+      .sys-status-bar { gap:16px; }
+      .ssb-item:last-of-type { display:none; }
       .hero-visual { display:none; }
     }
   </style>
@@ -496,66 +528,79 @@
 <!-- ═══ SISTEMA ═══ -->
 <section class="sistema" id="sistema">
   <div class="wrap">
+
     <div class="sec-hd reveal">
-      <span class="sys-label" data-i18n="sis.label">Sistema de diagnóstico — Flujo operacional</span>
-      <h2 data-i18n="sis.title">Captura. Modela.<br>Diagnostica. Actúa.</h2>
+      <span class="sys-label" data-i18n="sis.label">SISTEMA DE DIAGNÓSTICO OPERACIONAL</span>
+      <h2>
+        <span data-i18n="sis.h2a">Evento crítico</span>
+        <span style="color:var(--red);font-family:var(--fm);"> ≠ </span>
+        <span data-i18n="sis.h2b">falla visible.</span>
+      </h2>
+      <p style="margin-top:16px;max-width:520px;font-size:15px;" data-i18n="sis.sub">Captura y análisis de fallas estructurales en tiempo real. Cuatro etapas con modelo físico-matemático propio.</p>
     </div>
 
-    <div class="flow-grid">
-      <div class="flow-dot"></div>
+    <!-- Status bar -->
+    <div class="sys-status-bar reveal">
+      <div class="ssb-item">
+        <span class="ssb-dot green"></span>
+        <span class="ssb-label" data-i18n="sis.sb1l">ESTADO</span>
+        <span class="ssb-val" data-i18n="sis.sb1v">OPERATIVO</span>
+      </div>
+      <div class="ssb-item">
+        <span class="ssb-dot red"></span>
+        <span class="ssb-label" data-i18n="sis.sb2l">PROTOCOLO</span>
+        <span class="ssb-val" data-i18n="sis.sb2v">ACTIVO</span>
+      </div>
+      <div class="ssb-item">
+        <span class="ssb-dot amber"></span>
+        <span class="ssb-label" data-i18n="sis.sb3l">MODO</span>
+        <span class="ssb-val" data-i18n="sis.sb3v">DIAGNÓSTICO</span>
+      </div>
+      <div style="flex:1;"></div>
+      <div style="font-family:var(--fm);font-size:9px;color:var(--g3);letter-spacing:0.12em;" data-i18n="sis.sbr">VIZUtire v2.4 · OTR STRUCTURAL ENGINE</div>
+    </div>
 
-      <div class="node reveal d1">
-        <span class="node-idx">01 — CAPTURA</span>
-        <div class="node-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,0,0,0.7)" stroke-width="1.5">
-            <circle cx="12" cy="12" r="9"/>
-            <circle cx="12" cy="12" r="5"/>
-            <circle cx="12" cy="12" r="1" fill="rgba(255,0,0,0.7)" stroke="none"/>
-          </svg>
-        </div>
-        <h3 data-i18n="sis.n1.t">Ultrasonido In Situ</h3>
-        <p data-i18n="sis.n1.d">Inspección no destructiva en terreno. Señales ultrasónicas capturan el estado interno de cada capa estructural del neumático.</p>
-        <div class="node-tag" data-i18n="sis.n1.g">2.4 MHz · No invasivo · In-field</div>
+    <!-- Flow -->
+    <div class="flow reveal">
+
+      <div class="node">
+        <span class="node-corner"></span>
+        <span class="node-num">01</span>
+        <h3 data-i18n="sis.n1.t">CAPTURA</h3>
+        <p data-i18n="sis.n1.d">Ultrasonido in situ. Señales capturan el estado interno de cada capa estructural del neumático en campo.</p>
+        <div class="node-tag" data-i18n="sis.n1.g">2.4 MHz · No invasivo</div>
       </div>
 
-      <div class="node reveal d2">
-        <span class="node-idx">02 — MODELADO</span>
-        <div class="node-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,0,0,0.7)" stroke-width="1.5">
-            <rect x="3" y="3" width="7" height="7"/>
-            <rect x="14" y="3" width="7" height="7"/>
-            <rect x="3" y="14" width="7" height="7"/>
-            <rect x="14" y="14" width="7" height="7"/>
-          </svg>
-        </div>
-        <h3 data-i18n="sis.n2.t">Modelo Físico-Matemático</h3>
-        <p data-i18n="sis.n2.d">Procesamiento con modelo propio. Integra más de 150 variables operacionales: presión, temperatura, carga por eje y velocidad.</p>
-        <div class="node-tag" data-i18n="sis.n2.g">150+ variables · Modelo propio · Validado</div>
+      <div class="line"></div>
+
+      <div class="node">
+        <span class="node-corner"></span>
+        <span class="node-num">02</span>
+        <h3 data-i18n="sis.n2.t">MODELADO</h3>
+        <p data-i18n="sis.n2.d">Modelo físico-matemático propio. +150 variables operacionales: presión, temperatura, carga, velocidad.</p>
+        <div class="node-tag" data-i18n="sis.n2.g">150+ variables · Validado</div>
       </div>
 
-      <div class="node reveal d3">
-        <span class="node-idx">03 — DIAGNÓSTICO</span>
-        <div class="node-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,0,0,0.7)" stroke-width="1.5">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-        </div>
-        <h3 data-i18n="sis.n3.t">Diagnóstico Estructural</h3>
-        <p data-i18n="sis.n3.d">Identificación precisa de fallas internas invisibles. Evaluación del riesgo de reventón por unidad con nivel de criticidad.</p>
-        <div class="node-tag" data-i18n="sis.n3.g">Fallas internas · Riesgo por unidad · Criticidad</div>
+      <div class="line"></div>
+
+      <div class="node">
+        <span class="node-corner"></span>
+        <span class="node-num">03</span>
+        <h3 data-i18n="sis.n3.t">DIAGNÓSTICO</h3>
+        <p data-i18n="sis.n3.d">Fallas internas invisibles identificadas. Riesgo de reventón evaluado por unidad con nivel de criticidad.</p>
+        <div class="node-tag" data-i18n="sis.n3.g">Riesgo por unidad · Criticidad</div>
       </div>
 
-      <div class="node reveal d4">
-        <span class="node-idx">04 — ACCIÓN</span>
-        <div class="node-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,0,0,0.7)" stroke-width="1.5">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
-        </div>
-        <h3 data-i18n="sis.n4.t">Recomendación Prescriptiva</h3>
-        <p data-i18n="sis.n4.d">Acciones priorizadas por criticidad. Maximiza vida útil, disponibilidad y seguridad. Diagnóstico entregado en menos de 48 horas.</p>
-        <div class="node-tag" data-i18n="sis.n4.g">Prescriptivo · Entrega 48h · Priorizado</div>
+      <div class="line"></div>
+
+      <div class="node">
+        <span class="node-corner"></span>
+        <span class="node-num">04</span>
+        <h3 data-i18n="sis.n4.t">ACCIÓN</h3>
+        <p data-i18n="sis.n4.d">Recomendación prescriptiva priorizada por criticidad. Diagnóstico entregado en menos de 48 horas.</p>
+        <div class="node-tag" data-i18n="sis.n4.g">Prescriptivo · 48h</div>
       </div>
+
     </div>
   </div>
 </section>
@@ -734,20 +779,25 @@ const T = {
     'hero.h1a':'Detección','hero.h1b':'temprana','hero.h1c':'de fallas','hero.h1d':'estructurales',
     'hero.desc':'Identificamos daños internos en neumáticos fuera de carretera antes del evento crítico. Modelo físico-matemático de 150+ variables. Validado en Gran Minería Mundial.',
     'hero.cta':'Solicitar evaluación técnica','hero.ctag':'Ver sistema →',
-    'sis.label':'Sistema de diagnóstico — Flujo operacional',
-    'sis.title':'Captura. Modela.<br>Diagnostica. Actúa.',
-    'sis.n1.t':'Ultrasonido In Situ',
-    'sis.n1.d':'Inspección no destructiva en terreno. Señales ultrasónicas capturan el estado interno de cada capa estructural del neumático.',
-    'sis.n1.g':'2.4 MHz · No invasivo · In-field',
-    'sis.n2.t':'Modelo Físico-Matemático',
-    'sis.n2.d':'Procesamiento con modelo propio. Integra más de 150 variables operacionales: presión, temperatura, carga por eje y velocidad.',
-    'sis.n2.g':'150+ variables · Modelo propio · Validado',
-    'sis.n3.t':'Diagnóstico Estructural',
-    'sis.n3.d':'Identificación precisa de fallas internas invisibles. Evaluación del riesgo de reventón por unidad con nivel de criticidad.',
-    'sis.n3.g':'Fallas internas · Riesgo por unidad · Criticidad',
-    'sis.n4.t':'Recomendación Prescriptiva',
-    'sis.n4.d':'Acciones priorizadas por criticidad. Maximiza vida útil, disponibilidad y seguridad. Diagnóstico entregado en menos de 48 horas.',
-    'sis.n4.g':'Prescriptivo · Entrega 48h · Priorizado',
+    'sis.label':'SISTEMA DE DIAGNÓSTICO OPERACIONAL',
+    'sis.h2a':'Evento crítico','sis.h2b':'falla visible.',
+    'sis.sub':'Captura y análisis de fallas estructurales en tiempo real. Cuatro etapas con modelo físico-matemático propio.',
+    'sis.sb1l':'ESTADO','sis.sb1v':'OPERATIVO',
+    'sis.sb2l':'PROTOCOLO','sis.sb2v':'ACTIVO',
+    'sis.sb3l':'MODO','sis.sb3v':'DIAGNÓSTICO',
+    'sis.sbr':'VIZUtire v2.4 · OTR STRUCTURAL ENGINE',
+    'sis.n1.t':'CAPTURA',
+    'sis.n1.d':'Ultrasonido in situ. Señales capturan el estado interno de cada capa estructural del neumático en campo.',
+    'sis.n1.g':'2.4 MHz · No invasivo',
+    'sis.n2.t':'MODELADO',
+    'sis.n2.d':'Modelo físico-matemático propio. +150 variables operacionales: presión, temperatura, carga, velocidad.',
+    'sis.n2.g':'150+ variables · Validado',
+    'sis.n3.t':'DIAGNÓSTICO',
+    'sis.n3.d':'Fallas internas invisibles identificadas. Riesgo de reventón evaluado por unidad con nivel de criticidad.',
+    'sis.n3.g':'Riesgo por unidad · Criticidad',
+    'sis.n4.t':'ACCIÓN',
+    'sis.n4.d':'Recomendación prescriptiva priorizada por criticidad. Diagnóstico entregado en menos de 48 horas.',
+    'sis.n4.g':'Prescriptivo · 48h',
     'prob.badge':'STRUCTURAL FAILURE DETECTED',
     'prob.title':'Liberación de energía<br>no controlada.',
     'prob.desc':'El 80% de las fallas estructurales en neumáticos OTR son internas e indetectables visualmente. El reventón es el resultado — no el inicio del problema.',
@@ -789,20 +839,25 @@ const T = {
     'hero.h1a':'Early','hero.h1b':'detection','hero.h1c':'of structural','hero.h1d':'failures',
     'hero.desc':'We identify internal damage in off-road tires before the critical event. Physico-mathematical model with 150+ variables. Validated in World-Class Mining operations.',
     'hero.cta':'Request technical assessment','hero.ctag':'See system →',
-    'sis.label':'Diagnostic system — Operational flow',
-    'sis.title':'Capture. Model.<br>Diagnose. Act.',
-    'sis.n1.t':'In-Situ Ultrasound',
-    'sis.n1.d':'Non-destructive field inspection. Ultrasonic signals capture the internal state of each structural layer of the tire.',
-    'sis.n1.g':'2.4 MHz · Non-invasive · In-field',
-    'sis.n2.t':'Physico-Mathematical Model',
-    'sis.n2.d':'Processing with proprietary model. Integrates over 150 operational variables: pressure, temperature, axle load and speed.',
-    'sis.n2.g':'150+ variables · Proprietary model · Validated',
-    'sis.n3.t':'Structural Diagnosis',
-    'sis.n3.d':'Precise identification of invisible internal failures. Blowout risk assessment per unit with criticality level.',
-    'sis.n3.g':'Internal failures · Risk per unit · Criticality',
-    'sis.n4.t':'Prescriptive Recommendation',
-    'sis.n4.d':'Actions prioritized by criticality. Maximizes service life, availability and safety. Diagnosis delivered in under 48 hours.',
-    'sis.n4.g':'Prescriptive · 48h delivery · Prioritized',
+    'sis.label':'OPERATIONAL DIAGNOSTIC SYSTEM',
+    'sis.h2a':'Critical event','sis.h2b':'visible failure.',
+    'sis.sub':'Real-time structural failure capture and analysis. Four-stage process with proprietary physico-mathematical model.',
+    'sis.sb1l':'STATUS','sis.sb1v':'OPERATIONAL',
+    'sis.sb2l':'PROTOCOL','sis.sb2v':'ACTIVE',
+    'sis.sb3l':'MODE','sis.sb3v':'DIAGNOSTIC',
+    'sis.sbr':'VIZUtire v2.4 · OTR STRUCTURAL ENGINE',
+    'sis.n1.t':'CAPTURE',
+    'sis.n1.d':'In-situ ultrasound. Signals capture the internal state of each structural layer of the tire in the field.',
+    'sis.n1.g':'2.4 MHz · Non-invasive',
+    'sis.n2.t':'MODELING',
+    'sis.n2.d':'Proprietary physico-mathematical model. 150+ operational variables: pressure, temperature, load, speed.',
+    'sis.n2.g':'150+ variables · Validated',
+    'sis.n3.t':'DIAGNOSIS',
+    'sis.n3.d':'Invisible internal failures identified. Blowout risk assessed per unit with criticality level.',
+    'sis.n3.g':'Risk per unit · Criticality',
+    'sis.n4.t':'ACTION',
+    'sis.n4.d':'Prescriptive recommendation prioritized by criticality. Diagnosis delivered in under 48 hours.',
+    'sis.n4.g':'Prescriptive · 48h',
     'prob.badge':'STRUCTURAL FAILURE DETECTED',
     'prob.title':'Uncontrolled<br>energy release.',
     'prob.desc':'80% of structural failures in OTR tires are internal and undetectable visually. The blowout is the result — not the beginning of the problem.',
