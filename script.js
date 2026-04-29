@@ -258,7 +258,7 @@ window.addEventListener('scroll', () => {
 
   /* Mark all animatable elements */
   const selectors = [
-    '.sec-hd', '.sys-status-bar', '.sis-node', '.flow .node',
+    '.sec-hd', '.sys-status-bar', '.flow .node',
     '.prob-layout > *', '.fail-item',
     '.sol-card', '.rector-block',
     '.dash-panel', '.val-block', '.val-check',
@@ -282,7 +282,7 @@ window.addEventListener('scroll', () => {
   if (heroVisual) heroVisual.classList.add('anim-up', 'd2');
 
   /* Stagger within grids */
-  ['.testi-grid', '.sol-grid', '.dashboard', '.flow', '.sis-cards'].forEach(grid => {
+  ['.testi-grid', '.sol-grid', '.dashboard', '.flow'].forEach(grid => {
     const el = document.querySelector(grid);
     if (!el) return;
     [...el.children].forEach((child, i) => {
@@ -330,6 +330,31 @@ window.addEventListener('scroll', () => {
   }, { threshold: 0.5 });
 
   document.querySelectorAll('[data-cnt]').forEach(el => io.observe(el));
+})();
+
+/* ── SISTEMA CARDS SCROLL VISIBILITY ── */
+(function initSisCards() {
+  const nodes = document.querySelectorAll('.sis-node');
+  if (!nodes.length) return;
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      const el = e.target;
+      if (e.isIntersecting) {
+        el.classList.add('sis-active');
+        el.classList.remove('sis-past');
+      } else {
+        el.classList.remove('sis-active');
+        if (e.boundingClientRect.top < 0) {
+          el.classList.add('sis-past');
+        } else {
+          el.classList.remove('sis-past');
+        }
+      }
+    });
+  }, { rootMargin: '-12% 0px -12% 0px', threshold: 0 });
+
+  nodes.forEach(n => io.observe(n));
 })();
 
 /* ── HERO PARALLAX (no GSAP required) ── */

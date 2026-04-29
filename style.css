@@ -473,10 +473,18 @@ nav#nav.menu-open .nav-menu-btn .bl:last-child  { transform:rotate(-45deg) trans
   background:#07090d; border-radius:14px;
 }
 .sistema-radar-frame { width:100%; height:100%; border:none; display:block; }
-.sis-cards { display:flex; flex-direction:column; gap:16px; padding-top:4px; }
-.sis-node { width:100%; }
-/* Slide-from-right entrance for sis-nodes */
-.js-ready .sis-node.anim-up { transform:translateX(28px); }
+.sis-cards { display:flex; flex-direction:column; gap:0; }
+.sis-node {
+  width:100%; padding-bottom:52px;
+  opacity:0; transform:translateY(30px);
+  transition:opacity .65s var(--ease-out), transform .65s var(--ease-out);
+}
+.sis-node:last-child { padding-bottom:0; }
+.sis-node.sis-active { opacity:1; transform:none; }
+.sis-node.sis-past {
+  opacity:0; transform:translateY(-22px);
+  transition-duration:.35s; transition-timing-function:var(--ease);
+}
 
 /* ── CÓMO FUNCIONA ── */
 .como-funciona { background:var(--bg-2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
