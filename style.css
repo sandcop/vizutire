@@ -580,6 +580,45 @@ nav#nav.menu-open .nav-menu-btn .bl:last-child  { transform:rotate(-45deg) trans
 .testi-metric { font-family:var(--fm); font-size:20px; font-weight:700; color:var(--red); text-align:right; white-space:nowrap; flex-shrink:0; line-height:1.1; }
 .testi-metric small { font-size:9px; font-weight:400; color:var(--ink-3); display:block; letter-spacing:0.08em; margin-top:3px; }
 
+/* ── CLIENTS MARQUEE (testimonios) ── */
+.clients-marquee {
+  width:100%; margin-top:48px;
+  background:var(--bg-2); border-radius:12px;
+  padding:20px 28px; border:1px solid var(--border);
+  display:flex; align-items:center; gap:28px; overflow:hidden;
+}
+.clients-marquee-label {
+  flex:0 0 auto; font-size:18px; font-weight:500;
+  letter-spacing:-0.01em; color:var(--ink); white-space:nowrap;
+}
+.marquee-track-wrap {
+  flex:1 1 0; min-width:0; position:relative;
+  overflow:hidden; height:48px;
+  -webkit-mask-image:linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+  mask-image:linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+}
+.marquee-track {
+  position:absolute; top:0; left:0; height:100%;
+  display:flex; align-items:center; gap:56px;
+  animation:marqueeScroll 28s linear infinite;
+  will-change:transform;
+}
+@keyframes marqueeScroll {
+  from { transform:translateX(0); }
+  to   { transform:translateX(calc(-100% / 3)); }
+}
+.marquee-track:hover { animation-play-state:paused; }
+.marquee-logo { flex:0 0 auto; height:38px; display:flex; align-items:center; }
+.marquee-logo img {
+  height:100%; width:auto; object-fit:contain;
+  filter:grayscale(0.08); user-select:none;
+  -webkit-user-drag:none;
+}
+@media(max-width:600px) {
+  .clients-marquee { flex-direction:column; align-items:stretch; gap:14px; padding:16px; }
+  .clients-marquee-label { font-size:15px; }
+}
+
 /* ── PRICING ── */
 .pricing { background:var(--bg); border-top:1px solid var(--border); }
 .pricing-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border:1px solid var(--border); margin-top:64px; }
