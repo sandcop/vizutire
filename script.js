@@ -260,6 +260,7 @@ window.addEventListener('scroll', () => {
   const selectors = [
     '.sec-hd', '.sys-status-bar', '.flow .node',
     '.prob-layout > *', '.fail-item',
+    '.sol-card', '.rector-block',
     '.dash-panel', '.val-block', '.val-check',
     '.testi-card', '.price-card',
     '.faq-side', '.faq-item',
