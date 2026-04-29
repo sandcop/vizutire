@@ -23,7 +23,7 @@
       <li><a href="#sistema"     data-i18n="nav.sistema">Sistema</a></li>
       <li><a href="#resultados"  data-i18n="nav.resultados">Resultados</a></li>
       <li><a href="#testimonios" data-i18n="nav.testimonios">Clientes</a></li>
-      <li><a href="#pricing"     data-i18n="nav.pricing">Planes</a></li>
+      <li><a href="#historia"    data-i18n="nav.historia">Historia</a></li>
       <li><a href="#faq"         data-i18n="nav.faq">FAQ</a></li>
     </ul>
     <div class="nav-right">
@@ -39,7 +39,7 @@
       <li><a href="#sistema"     data-i18n="nav.sistema">Sistema</a></li>
       <li><a href="#resultados"  data-i18n="nav.resultados">Resultados</a></li>
       <li><a href="#testimonios" data-i18n="nav.testimonios">Clientes</a></li>
-      <li><a href="#pricing"     data-i18n="nav.pricing">Planes</a></li>
+      <li><a href="#historia"    data-i18n="nav.historia">Historia</a></li>
       <li><a href="#faq"         data-i18n="nav.faq">FAQ</a></li>
       <li><a href="#contacto" class="mnav-cta" data-i18n="nav.cta">Evaluación Técnica</a></li>
     </ul>
@@ -149,6 +149,12 @@
       <span class="ssb-version" data-i18n="sis.sbr">VIZUtire v2.4 · OTR STRUCTURAL ENGINE</span>
     </div>
 
+    <div class="sistema-radar reveal">
+      <iframe src="animaciones/neumatico radar2/Radar Ultrasonico Neumatico.html"
+        class="sistema-radar-frame" title="Escáner ultrasónico OTR"
+        loading="lazy" scrolling="no" frameborder="0"></iframe>
+    </div>
+
     <div class="flow reveal">
       <div class="node">
         <span class="node-corner"></span>
@@ -256,24 +262,30 @@
 
     <div class="sol-grid">
       <div class="sol-card">
-        <span class="sol-label">Ultrasonidos</span>
-        <p class="sol-desc">Detección y evaluación de discontinuidades internas.</p>
         <div class="sol-img">
           <img src="imagenes/ChatGPT Image 28 abr 2026, 23_12_32.png" alt="Inspección ultrasónica OTR" loading="lazy">
         </div>
-      </div>
-      <div class="sol-card">
-        <span class="sol-label">Análisis tensional</span>
-        <p class="sol-desc">Relación entre operación y respuesta estructural del neumático.</p>
-        <div class="sol-img">
-          <img src="imagenes/ChatGPT Image 28 abr 2026, 23_17_25.png" alt="Análisis tensional neumático OTR" loading="lazy">
+        <div class="sol-card-body">
+          <span class="sol-label">Ultrasonidos</span>
+          <p class="sol-desc">Detección y evaluación de discontinuidades internas.</p>
         </div>
       </div>
       <div class="sol-card">
-        <span class="sol-label">IA / Analítica</span>
-        <p class="sol-desc">Priorización de riesgo, tendencia y recomendación operativa.</p>
+        <div class="sol-img">
+          <img src="imagenes/ChatGPT Image 28 abr 2026, 23_17_25.png" alt="Análisis tensional neumático OTR" loading="lazy">
+        </div>
+        <div class="sol-card-body">
+          <span class="sol-label">Análisis tensional</span>
+          <p class="sol-desc">Relación entre operación y respuesta estructural del neumático.</p>
+        </div>
+      </div>
+      <div class="sol-card">
         <div class="sol-img">
           <img src="imagenes/ChatGPT Image 28 abr 2026, 23_20_06.png" alt="Analítica predictiva" loading="lazy">
+        </div>
+        <div class="sol-card-body">
+          <span class="sol-label">IA / Analítica</span>
+          <p class="sol-desc">Priorización de riesgo, tendencia y recomendación operativa.</p>
         </div>
       </div>
     </div>
@@ -362,6 +374,16 @@
         <div class="d-status"><span class="d-dot"></span><span data-i18n="res.m3s">ROI positivo &lt; 6 meses</span></div>
       </div>
     </div>
+    <div class="clients-strip reveal">
+      <span class="clients-label">Clientes · Validaciones</span>
+      <div class="clients-logos">
+        <span class="client-logo">BHP</span>
+        <span class="client-logo">CODELCO</span>
+        <span class="client-logo">Antofagasta<br>Minerals</span>
+        <span class="client-logo">Anglo<br>American</span>
+        <span class="client-logo">3M</span>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -444,58 +466,18 @@
   </div>
 </section>
 
-<!-- ═══ PRICING ═══ -->
-<section class="pricing" id="pricing">
+<!-- ═══ HISTORIA ═══ -->
+<section class="historia" id="historia">
   <div class="wrap">
     <div class="sec-hd reveal">
-      <span class="sys-label" data-i18n="pri.label">Planes de servicio — Seleccione su nivel</span>
-      <h2 data-i18n="pri.title">Desde la evaluación inicial<br>hasta integración OEM.</h2>
+      <span class="eyebrow">Historia</span>
+      <h2>Evolución con hitos verificables.</h2>
+      <p style="margin-top:16px;max-width:560px;font-size:16px;">Investigación, protección tecnológica, pilotos, validación y escalamiento.</p>
     </div>
-    <div class="pricing-grid">
-
-      <div class="price-card reveal d1">
-        <div class="pc-tier" data-i18n="pri.t1">Evaluación</div>
-        <h3 data-i18n="pri.h1">Diagnóstico por Neumático</h3>
-        <p class="pc-desc" data-i18n="pri.d1">Evaluación estructural por unidad. Ideal para pruebas piloto o inspecciones puntuales en flota existente.</p>
-        <div class="pc-tag" data-i18n="pri.tag1">Pago por unidad</div>
-        <ul class="pc-features">
-          <li data-i18n="pri.f1a">Inspección ultrasónica in situ</li>
-          <li data-i18n="pri.f1b">Diagnóstico por unidad inspeccionada</li>
-          <li data-i18n="pri.f1c">Reporte estructural entregado en 48h</li>
-          <li data-i18n="pri.f1d">Recomendación de acción por neumático</li>
-        </ul>
-        <div class="pc-cta"><a href="#contacto" class="btn-g" data-i18n="pri.b1">Solicitar cotización</a></div>
-      </div>
-
-      <div class="price-card featured reveal d2">
-        <div class="pc-tier" data-i18n="pri.t2">Operacional</div>
-        <h3 data-i18n="pri.h2">Monitoreo de Flota</h3>
-        <p class="pc-desc" data-i18n="pri.d2">Monitoreo continuo de toda la flota OTR. Ciclos periódicos de inspección con dashboard de estado por unidad.</p>
-        <div class="pc-tag" data-i18n="pri.tag2">Suscripción mensual</div>
-        <ul class="pc-features">
-          <li data-i18n="pri.f2a">Cobertura total de flota OTR</li>
-          <li data-i18n="pri.f2b">Ciclos de inspección programados</li>
-          <li data-i18n="pri.f2c">Dashboard de riesgo por unidad</li>
-          <li data-i18n="pri.f2d">Alertas tempranas y priorización</li>
-          <li data-i18n="pri.f2e">Soporte técnico dedicado</li>
-        </ul>
-        <div class="pc-cta"><a href="#contacto" class="btn-g" data-i18n="pri.b2">Contactar equipo</a></div>
-      </div>
-
-      <div class="price-card reveal d3">
-        <div class="pc-tier" data-i18n="pri.t3">Enterprise</div>
-        <h3 data-i18n="pri.h3">Integración OEM / API</h3>
-        <p class="pc-desc" data-i18n="pri.d3">Integración del modelo VIZUtire en sistemas del fabricante o plataformas de gestión de activos. Para OEM y operaciones tier-1.</p>
-        <div class="pc-tag" data-i18n="pri.tag3">Proyecto a medida</div>
-        <ul class="pc-features">
-          <li data-i18n="pri.f3a">Integración API con sistemas propios</li>
-          <li data-i18n="pri.f3b">Licenciamiento del modelo FM</li>
-          <li data-i18n="pri.f3c">Co-desarrollo técnico con fabricante</li>
-          <li data-i18n="pri.f3d">SLA garantizado y equipo dedicado</li>
-        </ul>
-        <div class="pc-cta"><a href="#contacto" class="btn-g" data-i18n="pri.b3">Hablar con ventas</a></div>
-      </div>
-
+    <div class="historia-frame-wrap reveal">
+      <iframe src="animaciones/mapa de hitos/Mapa de Hitos.html"
+        class="historia-frame" title="Mapa de Hitos VIZUtire"
+        loading="lazy" scrolling="no" frameborder="0"></iframe>
     </div>
   </div>
 </section>
@@ -584,7 +566,7 @@
       <li><a href="#sistema"     data-i18n="nav.sistema">Sistema</a></li>
       <li><a href="#resultados"  data-i18n="nav.resultados">Resultados</a></li>
       <li><a href="#testimonios" data-i18n="nav.testimonios">Clientes</a></li>
-      <li><a href="#pricing"     data-i18n="nav.pricing">Planes</a></li>
+      <li><a href="#historia"    data-i18n="nav.historia">Historia</a></li>
       <li><a href="#faq"         data-i18n="nav.faq">FAQ</a></li>
       <li><a href="#contacto"    data-i18n="ft.contact">Contacto</a></li>
     </ul>

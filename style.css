@@ -410,7 +410,7 @@ nav#nav.menu-open .nav-menu-btn .bl:last-child  { transform:rotate(-45deg) trans
   gap:1px; background:var(--border); border:1px solid var(--border);
 }
 .sol-card {
-  background:var(--bg-1); padding:28px 26px;
+  background:var(--bg-1); padding:0;
   position:relative; overflow:hidden; display:flex; flex-direction:column;
   transition:box-shadow .3s var(--ease), transform .3s var(--ease);
   cursor:default; box-shadow:var(--sh-s);
@@ -428,15 +428,19 @@ nav#nav.menu-open .nav-menu-btn .bl:last-child  { transform:rotate(-45deg) trans
 }
 .sol-desc { font-size:13px; color:var(--ink-2); line-height:1.68; }
 .sol-img {
-  margin-top:22px; border-radius:4px; overflow:hidden;
-  border:1px solid var(--border); background:var(--bg-2);
+  overflow:hidden; height:240px; flex-shrink:0;
+  background:var(--bg-2); position:relative;
 }
 .sol-img img {
-  width:100%; height:180px; object-fit:cover; display:block;
-  filter:brightness(0.9) grayscale(0.05);
-  transition:transform .5s var(--ease-out), filter .5s var(--ease-out);
+  width:100%; height:100%; object-fit:cover; display:block;
+  transform:scale(1.07);
+  filter:brightness(0.88) grayscale(0.08);
+  transition:transform .7s var(--ease-out), filter .6s var(--ease-out);
 }
-.sol-card:hover .sol-img img { transform:scale(1.04); filter:brightness(1); }
+.sol-card:hover .sol-img img { transform:scale(1.0); filter:brightness(1); }
+.sol-card-body {
+  padding:26px 24px; border-top:1px solid var(--border); flex:1;
+}
 .rector-block {
   border:1px solid var(--border); border-top:none;
   background:var(--dark); padding:36px 44px;
@@ -455,6 +459,21 @@ nav#nav.menu-open .nav-menu-btn .bl:last-child  { transform:rotate(-45deg) trans
   line-height:1.78; max-width:860px; position:relative; z-index:1;
 }
 .rector-block > p strong { color:#fff; font-weight:600; }
+
+/* ── SISTEMA RADAR ── */
+.sistema-radar {
+  margin:0 auto 56px;
+  border:1px solid var(--border);
+  overflow:hidden;
+  background:#07090d;
+  width:min(580px, 100%);
+  aspect-ratio:1/1;
+}
+.sistema-radar-frame { width:100%; height:100%; border:none; display:block; }
+/* node stacking entrance for SISTEMA flow */
+.js-ready .sistema .flow .node.anim-up {
+  transform:translateX(-14px) translateY(22px) scale(0.94);
+}
 
 /* ── CÓMO FUNCIONA ── */
 .como-funciona { background:var(--bg-2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
@@ -487,6 +506,37 @@ nav#nav.menu-open .nav-menu-btn .bl:last-child  { transform:rotate(-45deg) trans
 .d-desc { font-size:14px; color:rgba(255,255,255,0.55); line-height:1.7; }
 .d-status { margin-top:22px; font-family:var(--fm); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.3); display:flex; align-items:center; gap:8px; }
 .d-dot { width:6px; height:6px; border-radius:50%; background:#22C55E; animation:dotBlink 2s infinite; }
+
+/* ── CLIENTS STRIP (inside resultados dark section) ── */
+.clients-strip {
+  margin-top:64px; padding-top:40px;
+  border-top:1px solid rgba(255,255,255,0.07);
+}
+.clients-label {
+  font-family:var(--fm); font-size:9px; font-weight:500;
+  letter-spacing:0.2em; text-transform:uppercase;
+  color:rgba(255,255,255,0.28);
+  display:block; margin-bottom:32px; text-align:center;
+}
+.clients-logos {
+  display:flex; align-items:center; justify-content:center;
+  gap:48px; flex-wrap:wrap;
+}
+.client-logo {
+  font-family:var(--fm); font-size:11px; font-weight:700;
+  letter-spacing:0.12em; text-transform:uppercase;
+  color:rgba(255,255,255,0.22); line-height:1.35; text-align:center;
+  transition:color .3s var(--ease);
+}
+.client-logo:hover { color:rgba(255,255,255,0.55); }
+
+/* ── HISTORIA ── */
+.historia { background:var(--bg); border-top:1px solid var(--border); }
+.historia-frame-wrap {
+  border:1px solid var(--border); overflow:hidden;
+  background:var(--bg); border-radius:4px;
+}
+.historia-frame { width:100%; height:900px; border:none; display:block; }
 
 /* ── VALIDACION ── */
 .validacion { background:var(--bg-2); border-top:1px solid var(--border); }
@@ -630,4 +680,7 @@ footer ul a:hover { color:var(--red); }
   .rector-block { padding:24px 20px; }
   .prob-layout { grid-template-columns:1fr; gap:40px; }
   .prob-stats { grid-template-columns:1fr; }
+  .historia-frame { height:640px; }
+  .clients-logos { gap:28px; }
+  .client-logo { font-size:10px; }
 }

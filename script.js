@@ -7,8 +7,8 @@
 const T = {
   es: {
     'nav.sistema':'Sistema','nav.resultados':'Resultados',
-    'nav.testimonios':'Clientes','nav.faq':'FAQ',
-    'nav.pricing':'Planes','nav.cta':'Evaluación Técnica','ft.contact':'Contacto',
+    'nav.testimonios':'Clientes','nav.historia':'Historia','nav.faq':'FAQ',
+    'nav.cta':'Evaluación Técnica','ft.contact':'Contacto',
     'hero.label':'Diagnóstico Estructural · OTR Mining',
     'hero.h1a':'Diagnóstico predictivo',
     'hero.h1b':'de fallas estructurales',
@@ -72,8 +72,8 @@ const T = {
     'cta.sub':'Antofagasta, Chile · vizutire.com · contacto@vizutire.com',
   },
   en: {
-    'nav.sistema':'System','nav.resultados':'Results','nav.testimonios':'Clients','nav.faq':'FAQ',
-    'nav.pricing':'Plans','nav.cta':'Technical Assessment','ft.contact':'Contact',
+    'nav.sistema':'System','nav.resultados':'Results','nav.testimonios':'Clients','nav.historia':'History','nav.faq':'FAQ',
+    'nav.cta':'Technical Assessment','ft.contact':'Contact',
     'hero.label':'Structural Diagnostics · OTR Mining',
     'hero.h1a':'Predictive diagnostics','hero.h1b':'for structural failures','hero.h1c':'in OTR tires.',
     'hero.desc':'We identify internal damage before the critical event. Physico-mathematical model with 150+ variables. Validated in World-Class Mining. Delivered in 48 hours.',
@@ -262,7 +262,7 @@ window.addEventListener('scroll', () => {
     '.prob-layout > *', '.fail-item',
     '.sol-card', '.rector-block',
     '.dash-panel', '.val-block', '.val-check',
-    '.testi-card', '.price-card',
+    '.testi-card', '.clients-strip',
     '.faq-side', '.faq-item',
     '.cta-inner'
   ];
@@ -282,7 +282,7 @@ window.addEventListener('scroll', () => {
   if (heroVisual) heroVisual.classList.add('anim-up', 'd2');
 
   /* Stagger within grids */
-  ['.testi-grid', '.pricing-grid', '.dashboard', '.flow'].forEach(grid => {
+  ['.testi-grid', '.sol-grid', '.dashboard', '.flow'].forEach(grid => {
     const el = document.querySelector(grid);
     if (!el) return;
     [...el.children].forEach((child, i) => {

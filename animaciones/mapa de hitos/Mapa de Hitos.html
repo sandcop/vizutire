@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mapa de Hitos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: oklch(0.99 0.005 90);
+    --ink: oklch(0.20 0.01 250);
+    --ink-soft: oklch(0.45 0.01 250);
+    --line-active: #ef3b3b;
+    --line-active-2: #f56a6a;
+    --line-idle: #3a3a3a;
+    --pin-active: #ef3b3b;
+    --pin-idle: #2c2c2c;
+    --card: #ffffff;
+    --card-border: oklch(0.92 0.005 250);
+    --shadow-sm: 0 1px 2px rgba(20,20,30,.04), 0 2px 6px rgba(20,20,30,.05);
+    --shadow-md: 0 4px 14px rgba(20,20,30,.08), 0 12px 28px rgba(20,20,30,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, oklch(0.97 0.02 25 / .35), transparent 60%),
+      radial-gradient(1000px 500px at 90% 110%, oklch(0.96 0.015 250 / .35), transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+  }
+  header.hero {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 24px; margin-bottom: 36px;
+    flex-wrap: wrap;
+  }
+  .hero h1 {
+    font-size: 40px; line-height: 1.05; letter-spacing: -0.02em;
+    margin: 0 0 8px; font-weight: 800;
+  }
+  .hero .sub {
+    font-size: 15px; color: var(--ink-soft); max-width: 560px; line-height: 1.5;
+  }
+  .hero .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--line-active); margin-bottom: 10px; font-weight: 500;
+  }
+  .controls {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 999px; padding: 6px; box-shadow: var(--shadow-sm);
+  }
+  .ctrl-btn {
+    appearance: none; border: 0; background: transparent;
+    width: 38px; height: 38px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--ink); transition: background .15s;
+  }
+  .ctrl-btn:hover { background: oklch(0.95 0.01 250); }
+  .ctrl-btn.primary { background: var(--ink); color: #fff; width: auto; padding: 0 16px; gap: 8px; font-weight: 500; font-size: 13px;}
+  .ctrl-btn.primary:hover { background: oklch(0.30 0.01 250); }
+  .progress-pill {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--ink-soft); padding: 0 12px 0 6px;
+    letter-spacing: .04em;
+  }
+  .stage {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    padding: 32px 24px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  .stage::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(oklch(0.94 0.005 250 / .4) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.94 0.005 250 / .4) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: -1px -1px;
+    pointer-events: none;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 90%);
+  }
+  .timeline-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1280 / 720;
+    min-height: 560px;
+    padding: 0 8px;
+  }
+  .timeline-wrap svg.tl {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    overflow: visible;
+  }
+  /* Pins */
+  .pin {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 30px; height: 38px;
+    pointer-events: auto;
+    cursor: pointer;
+    opacity: 0;
+    z-index: 3;
+  }
+  .pin.shown { animation: pinDrop .55s cubic-bezier(.2,.8,.2,1.2) forwards; }
+  @keyframes pinDrop {
+    0% { opacity: 0; transform: translate(-50%, calc(-50% - 18px)) scale(.6); }
+    60% { opacity: 1; transform: translate(-50%, calc(-50% + 4px)) scale(1.05); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  .pin svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 5px rgba(20,20,30,.22)); }
+  .pin .num {
+    position: absolute; left: 0; right: 0;
+    text-align: center; color: #fff; font-weight: 700;
+    font-size: 13px; line-height: 1;
+    font-family: 'Inter', sans-serif;
+    pointer-events: none;
+  }
+
+  /* dot on the line for years */
+  .yeardot {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--pin-active);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    opacity: 0;
+    transition: opacity .3s, transform .3s;
+  }
+  .yeardot.shown { opacity: 1; }
+  .yeardot.idle { background: var(--pin-idle); }
+
+  .yearlabel {
+    position: absolute;
+    transform: translate(-50%, 0);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    opacity: 0;
+    transition: opacity .4s;
+    white-space: nowrap;
+  }
+  .yearlabel.shown { opacity: 1; }
+  .yearlabel.muted { color: var(--ink-soft); font-weight: 400; }
+
+  /* Cards (content stacks anchored on a stop) */
+  .card {
+    position: absolute;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    opacity: 0;
+    transition: opacity .5s ease, transform .5s cubic-bezier(.2,.8,.2,1);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .card.up   { transform: translate(-50%, 8px); }
+  .card.down { transform: translate(-50%, -8px); }
+  .card.shown { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .card-label {
+    font-size: 13.5px; line-height: 1.35; color: var(--ink); font-weight: 500;
+    white-space: pre-line;
+  }
+  .logo-box {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 96px; min-height: 48px; padding: 8px 14px;
+    border: 1px dashed oklch(0.78 0.01 250);
+    border-radius: 8px;
+    background:
+      repeating-linear-gradient(45deg,
+        oklch(0.97 0.005 250) 0 6px,
+        oklch(0.95 0.005 250) 6px 12px);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: .03em;
+    color: oklch(0.35 0.01 250);
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.25;
+    white-space: pre-line;
+    max-width: 100%;
+  }
+  .logo-box.tall { min-height: 60px; }
+  .logo-box.wide { min-width: 150px; }
+  /* 2x2 logo grid for clusters like Servicios */
+  .logos-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 240px;
+  }
+  .logos-grid .logo-box { min-width: 0; width: 100%; }
+
+  .legend {
+    margin-top: 24px;
+    display: flex; gap: 22px; flex-wrap: wrap;
+    align-items: center; justify-content: center;
+    color: var(--ink-soft); font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: .04em;
+  }
+  .legend .sw {
+    display: inline-block; width: 22px; height: 3px; border-radius: 2px;
+    vertical-align: middle; margin-right: 8px;
+  }
+  .legend .sw.active { background: var(--line-active); }
+  .legend .sw.idle   { background: var(--line-idle); }
+
+  footer.note {
+    text-align: center; color: var(--ink-soft); font-size: 12px;
+    margin-top: 28px; line-height: 1.5;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Replay bar at bottom */
+  .scrub {
+    position: relative;
+    margin-top: 18px;
+    height: 4px; border-radius: 999px;
+    background: oklch(0.93 0.005 250);
+    overflow: hidden;
+  }
+  .scrub-fill {
+    position: absolute; top: 0; left: 0; bottom: 0;
+    width: 0%;
+    background: linear-gradient(90deg, var(--line-active), var(--line-active-2));
+    transition: width .12s linear;
+  }
+
+  @media (max-width: 880px) {
+    .hero h1 { font-size: 30px; }
+    .timeline-wrap { min-height: 480px; }
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="application/json" id="milestones-data">
+  {
+    "stops": [
+      { "year": "2007", "active": true,  "label": "Convenio UCN",            "title": "Inicio de Investigación",     "logo": "Universidad Católica del Norte", "logoStyle": "tall", "side": "up", "pin": 1 },
+      { "year": "2010", "active": false, "label": null,                      "title": "Fabricación Prototipo",       "logo": "CORE — Consejo Regional",        "logoStyle": "wide", "side": "down", "pin": 2 },
+      { "year": "2011", "active": true,  "label": "Patente en 6 países.",   "title": null,                          "logo": null,                              "logoStyle": null,   "side": "up", "pin": 3 },
+      { "year": "2012", "active": false, "label": null,                      "title": "Gestión Innovación",           "logo": "CORFO — Empaquetamiento",         "logoStyle": "wide", "side": "up",   "pin": 4, "secondLogo": null },
+      { "year": "2013", "active": true,  "label": null,                      "title": null,                          "logo": "3M",                              "logoStyle": null,   "side": "up", "pin": 5, "extraTopLogos": ["CORFO Empaquetamiento"] },
+      { "year": "2015", "active": false, "label": null,                      "title": null,                          "logo": "Avonni — Premio Nacional Innovación", "logoStyle": "wide", "side": "down", "pin": 6 },
+      { "year": "2018", "active": true,  "label": "Servicios",              "title": null,                          "logo": null,                              "logoStyle": null,   "side": "up", "pin": null, "topLogos": ["BHP", "CODELCO", "Antofagasta Minerals", "AngloAmerican"] },
+      { "year": "2021", "active": true,  "label": null,                      "title": null,                          "logo": null,                              "logoStyle": null,   "side": "up", "pin": 7 },
+      { "year": "2023 →", "active": true, "label": null,                    "title": null,                          "logo": "Avonni — Premio Nacional Innovación", "logoStyle": "wide", "side": "up",   "pin": 8, "pinSide": "down" }
+    ]
+  }
+  </script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

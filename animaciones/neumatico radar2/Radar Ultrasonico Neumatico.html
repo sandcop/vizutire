@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Escáner Digital — OTR</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #07090d;
+    --scan: oklch(0.85 0.16 195);
+    --scan-soft: oklch(0.85 0.16 195 / 0.35);
+    --warn: oklch(0.82 0.16 70);
+    --crit: oklch(0.68 0.23 25);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);min-height:100vh;overflow:hidden}
+  body{
+    background:
+      radial-gradient(ellipse at center, oklch(0.16 0.025 240) 0%, oklch(0.08 0.018 240) 70%, #04060a 100%);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+    color:#fff;
+  }
+
+  .scene{
+    position:relative;
+    width:min(760px, 94vw);
+    aspect-ratio:1/1;
+  }
+
+  /* ── Tire base layer (the photo) ─────────── */
+  .tire{
+    position:absolute;inset:6%;
+    background-image:url('assets/tire-otr-cutout.png');
+    background-size:contain;background-repeat:no-repeat;background-position:center;
+    z-index:2;
+    filter: drop-shadow(0 30px 40px rgba(0,0,0,0.55));
+  }
+
+  /* ── Wireframe overlay built from the tire silhouette ─── */
+  /* This is the scanned-mesh look: lines + dots constrained to the tire shape via mask */
+  .mesh{
+    position:absolute;inset:6%;
+    z-index:3;
+    -webkit-mask-image:url('assets/tire-otr-cutout.png');
+            mask-image:url('assets/tire-otr-cutout.png');
+    -webkit-mask-size:contain; mask-size:contain;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    -webkit-mask-position:center; mask-position:center;
+    pointer-events:none;
+  }
+  .mesh-grid{
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(var(--scan-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--scan-soft) 1px, transparent 1px);
+    background-size: 22px 22px;
+    opacity:.0;
+    transition: opacity .6s ease;
+  }
+  .mesh-dots{
+    position:absolute;inset:0;
+    background-image:
+      radial-gradient(var(--scan) 0.9px, transparent 1.4px);
+    background-size: 14px 14px;
+    background-position: 0 0;
+    opacity:0;
+    transition: opacity .6s ease;
+  }
+  .mesh.lit .mesh-grid{ opacity:.55 }
+  .mesh.lit .mesh-dots{ opacity:.85 }
+
+  /* ── Scan beam (vertical line that sweeps left → right) ── */
+  .beam-wrap{
+    position:absolute;inset:6%;
+    z-index:4;pointer-events:none;
+    -webkit-mask-image:url('assets/tire-otr-cutout.png');
+            mask-image:url('assets/tire-otr-cutout.png');
+    -webkit-mask-size:contain; mask-size:contain;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    -webkit-mask-position:center; mask-position:center;
+  }
+  .beam{
+    position:absolute;top:0;bottom:0;left:0;
+    width:140px;
+    transform: translateX(-200px);
+    background:linear-gradient(90deg,
+      transparent 0%,
+      oklch(0.85 0.16 195 / 0.0) 20%,
+      oklch(0.85 0.16 195 / 0.18) 70%,
+      oklch(0.85 0.16 195 / 0.55) 96%,
+      oklch(0.95 0.10 195 / 0.95) 100%);
+    animation: beamSweep 5.2s cubic-bezier(.5,0,.5,1) infinite;
+  }
+  .beam-line{
+    position:absolute;top:0;bottom:0;left:0;
+    width:2px;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      var(--scan) 8%,
+      oklch(0.97 0.08 195) 50%,
+      var(--scan) 92%,
+      transparent 100%);
+    box-shadow: 0 0 18px var(--scan), 0 0 36px var(--scan-soft);
+    transform: translateX(-200px);
+    animation: beamLineSweep 5.2s cubic-bezier(.5,0,.5,1) infinite;
+  }
+  @keyframes beamSweep{
+    0%   {transform: translateX(-200px); opacity:.0}
+    8%   {opacity:1}
+    92%  {opacity:1}
+    100% {transform: translateX(120%); opacity:0}
+  }
+  @keyframes beamLineSweep{
+    0%   {transform: translateX(-200px); opacity:.0}
+    8%   {opacity:1}
+    92%  {opacity:1}
+    100% {transform: translateX(120%); opacity:0}
+  }
+
+  /* trail of accumulated scanlines once beam has passed */
+  .scanlines{
+    position:absolute;inset:6%;
+    z-index:3;pointer-events:none;
+    -webkit-mask-image:url('assets/tire-otr-cutout.png');
+            mask-image:url('assets/tire-otr-cutout.png');
+    -webkit-mask-size:contain; mask-size:contain;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    -webkit-mask-position:center; mask-position:center;
+    background-image: repeating-linear-gradient(
+      0deg,
+      oklch(0.85 0.16 195 / 0.13) 0 1px,
+      transparent 1px 4px
+    );
+    opacity:0;
+    transition: opacity .8s ease;
+  }
+  .scanlines.lit{ opacity:.7 }
+
+  /* ── Defect plotting ────────────── */
+  .defects{
+    position:absolute;inset:0;
+    z-index:6;pointer-events:none;
+  }
+  .defect{
+    position:absolute;
+    transform:translate(-50%,-50%);
+    --c: var(--warn);
+    opacity:0;
+    transition: opacity .35s ease;
+  }
+  .defect.crit{ --c: var(--crit) }
+  .defect.show{ opacity:1 }
+
+  .defect .target{
+    width:32px;height:32px;
+    position:relative;
+    transform: translate(-50%,-50%);
+    left:50%;top:50%;
+  }
+  /* Crosshair square brackets */
+  .defect .target::before,
+  .defect .target::after{
+    content:"";position:absolute;width:10px;height:10px;
+    border:1.5px solid var(--c);
+  }
+  .defect .target::before{
+    top:0;left:0;border-right:none;border-bottom:none;
+  }
+  .defect .target::after{
+    bottom:0;right:0;border-left:none;border-top:none;
+  }
+  .defect .target i{
+    position:absolute;width:10px;height:10px;
+  }
+  .defect .target i:nth-child(1){
+    top:0;right:0;border:1.5px solid var(--c);border-left:none;border-bottom:none;
+  }
+  .defect .target i:nth-child(2){
+    bottom:0;left:0;border:1.5px solid var(--c);border-right:none;border-top:none;
+  }
+  .defect .target i:nth-child(3){
+    /* center pixel */
+    left:50%;top:50%;width:3px;height:3px;
+    background:var(--c);
+    box-shadow:0 0 10px var(--c);
+    transform:translate(-50%,-50%);
+    animation: pixBlink 1.4s ease-in-out infinite;
+  }
+  @keyframes pixBlink{
+    0%,100%{opacity:.6}
+    50%{opacity:1}
+  }
+  .defect.show .target::before{ animation: bracketIn .35s ease both }
+  .defect.show .target::after { animation: bracketIn .35s ease .05s both }
+  .defect.show .target i:nth-child(1){ animation: bracketIn .35s ease .05s both }
+  .defect.show .target i:nth-child(2){ animation: bracketIn .35s ease both }
+  @keyframes bracketIn{
+    from{transform: scale(2.2); opacity:0}
+    to  {transform: scale(1);   opacity:1}
+  }
+
+  .defect .label{
+    position:absolute;
+    top:-14px;left:32px;
+    white-space:nowrap;
+    font-size:10px;letter-spacing:.14em;
+    color:var(--c);
+    text-transform:uppercase;
+    line-height:1.5;
+    background: oklch(0.10 0.02 240 / 0.92);
+    border: 1px solid color-mix(in oklch, var(--c), transparent 55%);
+    border-radius: 3px;
+    padding: 6px 10px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 4px 18px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.3) inset;
+    opacity:0;
+    transform: translateX(-6px);
+    pointer-events:none;
+  }
+  /* Loop: each label fades in, holds, fades out, then waits.
+     Total cycle = 12s. Hold = 3.2s for comfortable reading. */
+  #scene.reveal-labels .defect.show .label{
+    animation: labelLoop 12s ease-in-out infinite;
+    animation-delay: var(--delay, 0ms);
+  }
+  @keyframes labelLoop{
+    0%   { opacity:0; transform: translateX(-6px) }
+    4%   { opacity:1; transform: translateX(0) }
+    30%  { opacity:1; transform: translateX(0) }
+    36%  { opacity:0; transform: translateX(-6px) }
+    100% { opacity:0; transform: translateX(-6px) }
+  }
+  #scene.reveal-labels .defect.left.show .label{
+    animation: labelLoopLeft 12s ease-in-out infinite;
+    animation-delay: var(--delay, 0ms);
+  }
+  @keyframes labelLoopLeft{
+    0%   { opacity:0; transform: translateX(6px) }
+    4%   { opacity:1; transform: translateX(0) }
+    30%  { opacity:1; transform: translateX(0) }
+    36%  { opacity:0; transform: translateX(6px) }
+    100% { opacity:0; transform: translateX(6px) }
+  }
+  .defect .label::before{
+    content:"";
+    position:absolute;left:-12px;top:50%;
+    width:12px;height:1px;
+    background:var(--c);
+    box-shadow:0 0 6px var(--c);
+  }
+  .defect .label small{
+    display:block;
+    font-size:9px;
+    color:rgba(255,255,255,.6);
+    letter-spacing:.1em;
+    margin-top:2px;
+  }
+  .defect.left .label{
+    left:auto;right:32px;
+    text-align:right;
+  }
+  .defect.left .label::before{
+    left:auto;right:-12px;
+  }
+  #scene.reveal-labels .defect.left.show .label{
+    transform: translateX(0);
+  }
+  .defect.left .label{
+    transform: translateX(6px);
+  }
+
+  /* ── HUD readouts (minimal, bottom-left and bottom-right) ── */
+  .hud{
+    position:absolute;
+    bottom:0;left:0;right:0;
+    display:flex;justify-content:space-between;
+    padding:0 4%;
+    font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color: rgba(255,255,255,.45);
+    z-index:7;
+  }
+  .hud b{color:var(--scan);font-weight:500}
+  .hud .live::before{
+    content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+    background:var(--scan);box-shadow:0 0 8px var(--scan);
+    margin-right:6px;vertical-align:1px;
+    animation: liveBlink 1.2s infinite;
+  }
+  @keyframes liveBlink{
+    0%,60%{opacity:1} 80%{opacity:.2} 100%{opacity:1}
+  }
+
+  .hud-top{
+    position:absolute;top:0;left:0;right:0;
+    display:flex;justify-content:space-between;
+    padding:0 4%;
+    font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color: rgba(255,255,255,.45);
+    z-index:7;
+  }
+</style>
+</head>
+<body>
+
+<div class="scene" id="scene">
+
+  <div class="hud-top">
+    <span>NEUMÁTICO · OTR 26.5R25</span>
+    <span class="live">SCAN 2.25 MHz</span>
+  </div>
+
+  <!-- Tire photo -->
+  <div class="tire"></div>
+
+  <!-- Wireframe mesh constrained to tire silhouette -->
+  <div class="mesh" id="mesh">
+    <div class="mesh-grid"></div>
+    <div class="mesh-dots"></div>
+  </div>
+
+  <!-- Persistent scanlines that build up after beam passes -->
+  <div class="scanlines" id="scanlines"></div>
+
+  <!-- Vertical scan beam -->
+  <div class="beam-wrap">
+    <div class="beam"></div>
+    <div class="beam-line"></div>
+  </div>
+
+  <!-- Defects appear as the beam crosses them -->
+  <div class="defects" id="defects"></div>
+
+  <div class="hud">
+    <span>PROGRESO <b id="progress">000%</b></span>
+    <span>HALLAZGOS <b id="findings">0/5</b></span>
+    <span>INTEGRIDAD <b id="integrity">100%</b></span>
+  </div>
+
+</div>
+
+<script>
+  // Defects: x is the trigger column (% of scene). Beam sweeps left→right.
+  const DEFECTS = [
+    { id:'F-01', x:24, y:55, sev:'med',  label:'Microfisura interna',   sub:'Lateral · 6 mm' },
+    { id:'F-02', x:33, y:30, sev:'crit', label:'Separación de carcasa', sub:'Profundidad 14 mm' },
+    { id:'F-03', x:40, y:78, sev:'med',  label:'Desgaste irregular',    sub:'Banda de rodamiento' },
+    { id:'F-04', x:73, y:42, sev:'crit', label:'Delaminación',          sub:'Capa interior' },
+    { id:'F-05', x:80, y:68, sev:'med',  label:'Compresión de tacos',   sub:'Hombro derecho' },
+  ];
+
+  const root = document.getElementById('defects');
+  DEFECTS.forEach(d=>{
+    const el = document.createElement('div');
+    el.className = 'defect' + (d.sev==='crit'?' crit':'') + (d.x > 55 ? ' left' : '');
+    el.dataset.id = d.id;
+    el.style.left = d.x + '%';
+    el.style.top  = d.y + '%';
+    el.innerHTML = `
+      <div class="target">
+        <i></i><i></i><i></i>
+      </div>
+      <div class="label">${d.id} · ${d.label}<small>${d.sub}</small></div>
+    `;
+    root.appendChild(el);
+  });
+
+  const mesh      = document.getElementById('mesh');
+  const scanlines = document.getElementById('scanlines');
+  const progressEl= document.getElementById('progress');
+  const findingsEl= document.getElementById('findings');
+  const integrityEl=document.getElementById('integrity');
+
+  const SEV_W = { med: 8, crit: 22 };
+  const sceneEl = document.getElementById('scene');
+
+  // Sync beam progress with the CSS animation by parsing time elapsed
+  const CYCLE_MS = 5200;
+  let revealed = new Set();
+  let cycleCount = 0;
+
+  function tick(){
+    const t = (performance.now() % CYCLE_MS) / CYCLE_MS; // 0..1
+
+    // beam sweeps from -200px to 120% across scene width.
+    // Map to a notional "column" 0..100 (approx).
+    const col = (t * 130) - 18; // rough %, beam center
+
+    progressEl.textContent = String(Math.max(0, Math.min(100, Math.round(col)))).padStart(3,'0') + '%';
+
+    // Light up mesh + scanlines after first beam reaches ~10%
+    if (col > 8) mesh.classList.add('lit');
+    if (col > 15) scanlines.classList.add('lit');
+
+    // Reveal defects when beam crosses their x
+    DEFECTS.forEach(d=>{
+      if (!revealed.has(d.id) && col >= d.x){
+        revealed.add(d.id);
+        const el = root.querySelector(`.defect[data-id="${d.id}"]`);
+        if (el) el.classList.add('show');
+        const integ = Math.max(0, 100 - [...revealed].reduce((s,id)=> s + SEV_W[DEFECTS.find(x=>x.id===id).sev], 0));
+        integrityEl.textContent = integ + '%';
+        findingsEl.textContent = revealed.size + '/' + DEFECTS.length;
+      }
+    });
+
+    // Once scan completes (beam exits to the right), reveal labels with stagger
+    if (col >= 100 && !sceneEl.classList.contains('reveal-labels')){
+      sceneEl.classList.add('reveal-labels');
+      // assign per-defect stagger delays (sorted left→right by x)
+      const sorted = DEFECTS.slice().sort((a,b)=> a.x - b.x);
+      // Spread 5 labels across the 12s loop so only ~1-2 are visible at a time.
+      // Each label is on for ~3.6s (4%→36% of 12s). Stagger by 2.2s.
+      sorted.forEach((d,i)=>{
+        const el = root.querySelector(`.defect[data-id="${d.id}"]`);
+        if (el) el.style.setProperty('--delay', (i * 2200) + 'ms');
+      });
+    }
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+</script>
+</body>
+</html>
