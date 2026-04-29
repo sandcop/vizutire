@@ -258,7 +258,7 @@ window.addEventListener('scroll', () => {
 
   /* Mark all animatable elements */
   const selectors = [
-    '.sec-hd', '.sys-status-bar', '.flow .node',
+    '.sec-hd', '.sys-status-bar', '.sis-node', '.flow .node',
     '.prob-layout > *', '.fail-item',
     '.sol-card', '.rector-block',
     '.dash-panel', '.val-block', '.val-check',
@@ -282,7 +282,7 @@ window.addEventListener('scroll', () => {
   if (heroVisual) heroVisual.classList.add('anim-up', 'd2');
 
   /* Stagger within grids */
-  ['.testi-grid', '.sol-grid', '.dashboard', '.flow'].forEach(grid => {
+  ['.testi-grid', '.sol-grid', '.dashboard', '.flow', '.sis-cards'].forEach(grid => {
     const el = document.querySelector(grid);
     if (!el) return;
     [...el.children].forEach((child, i) => {
