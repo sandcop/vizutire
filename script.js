@@ -601,14 +601,299 @@ if (gsapOK){
        onComplete: function(){ if (window.ScrollTrigger) ScrollTrigger.refresh(); }});
   };
 
+  // Enjambre que viaja de frase en frase (H1 → espejismos → giro): un pool
+  // fijo de "drones" que no se crea de nuevo en cada tramo, sino que se
+  // reasigna de destino — la MISMA partícula que ayudó a formar una frase
+  // es la que después vuela a formar la siguiente. Ver más abajo el llamado
+  // a polvoTextos.medirEnFrio() una vez que existen todos los grupos de
+  // letras, y polvoTextos.setP() dentro del onUpdate de tlSup.
+  //
+  // Mecánica: cada dron tiene una posición ACTUAL que persigue a su objetivo
+  // con suavizado exponencial (x += (objetivo - x) * k), y quien mueve y
+  // pinta es un bucle propio de requestAnimationFrame — el mismo patrón de
+  // `terreno` y `gotaFondo`. setP() no dibuja ni interpola: solo decide,
+  // según el progreso de scroll, CUÁL es el objetivo de cada dron en este
+  // instante. Esa separación importa porque tlSup usa scrub: su onUpdate
+  // solo dispara mientras hay eventos de scroll, así que si la persona se
+  // detiene a mitad de un vuelo (o durante una pausa de lectura) el enjambre
+  // se quedaría congelado si dependiera de él para animarse.
+  function construirPolvoTextos(cv, gruposDeLetras){
+    if (!cv || reduced) return { medirEnFrio:function(){}, setP:function(){} };
+    var ctx = cv.getContext('2d');
+    var escenarioEl = document.querySelector('.escenario');
+    var W = 0, H = 0, posiciones = [], drones = [];
+    // Antes eran muy pocos (40/70) repartidos uno por letra, así que se
+    // veían viajar como puntos sueltos en vez de trazar la palabra. Ahora
+    // el pool es mucho más denso y cada punto viene de muestrear la forma
+    // real de cada letra (ver muestrearLetra más abajo), no solo su centro.
+    var POOL = movil ? 280 : 650;
+    var TONOS = ['201,183,154','201,183,154','127,181,171','242,166,90'];
+    // Canvas descartable reutilizado para muestrear cada letra: crear
+    // cientos de <canvas> (uno por letra) sería más lento y le daría más
+    // trabajo al recolector de basura que reusar uno solo.
+    var offCv = document.createElement('canvas');
+    var offCtx = offCv.getContext('2d', { willReadFrequently: true });
+
+    // Renderiza UNA letra tal cual se ve en la página (misma fuente/tamaño
+    // computada — funciona igual para las letras dentro de <em>, que usan
+    // otra tipografía) en el canvas descartable, y devuelve las posiciones
+    // (en coordenadas de viewport) de los píxeles con tinta — así el
+    // enjambre traza la forma real del glifo en vez de un solo punto por
+    // letra, que es lo que se leía como "viajando" y no "construyendo".
+    function muestrearLetra(el){
+      var texto = el.textContent;
+      if (!texto || texto === ' ') return [];
+      var r = el.getBoundingClientRect();
+      var w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+      var pad = Math.ceil(h * 0.3); // margen para ascendentes/descendentes que salen de la caja de línea
+      var aw = w + pad * 2, ah = h + pad * 2;
+      if (offCv.width !== aw) offCv.width = aw;
+      if (offCv.height !== ah) offCv.height = ah;
+      offCtx.clearRect(0, 0, aw, ah);
+      var cs = getComputedStyle(el);
+      offCtx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + '/1 ' + cs.fontFamily;
+      offCtx.fillStyle = '#fff';
+      // 'middle' en vez de calcular a mano dónde cae el baseline: la caja
+      // real de la letra (getBoundingClientRect) mide la altura de LÍNEA,
+      // no la del glifo, y esa proporción varía según line-height de cada
+      // frase (1.1 en H1/giro, 1.25 en las espejismo) — adivinar una
+      // fracción fija se desalinea fácil. 'middle' centra el texto en el
+      // punto que se le pase, así que centrándolo en el medio real de la
+      // caja (h/2) el navegador hace el ajuste vertical correcto solo.
+      offCtx.textBaseline = 'middle';
+      offCtx.fillText(texto, pad, pad + h / 2);
+      var datos;
+      try { datos = offCtx.getImageData(0, 0, aw, ah).data; }
+      catch (e){ return []; } // por si algún navegador deja el canvas "tainted"
+      var puntos = [], paso = 2;
+      for (var y = 0; y < ah; y += paso){
+        for (var x = 0; x < aw; x += paso){
+          if (datos[(y * aw + x) * 4 + 3] > 90){
+            puntos.push({ x: r.left + (x - pad), y: r.top + (y - pad) });
+          }
+        }
+      }
+      return puntos;
+    }
+
+    var visible = true, pActual = -1, pSuave = -1, ultimoNow = performance.now();
+    // El progreso de scroll se usaba tal cual llegaba de tlSup: la posición
+    // de cada partícula era función pura de `p`, así que el vuelo iba
+    // exactamente tan rápido como el dedo/mouse — con un scroll normal se
+    // sentía brusco, no "como el viento". pSuave persigue a pActual con
+    // suavizado exponencial (independiente de los FPS, mismo criterio que
+    // ya se usaba antes en este mismo archivo) en el bucle de cada frame,
+    // así el enjambre siempre va "alcanzando" al scroll real en vez de
+    // saltar con él — y sigue siendo 100% reproducible hacia atrás, porque
+    // pSuave persigue a pActual sin importar en qué dirección se mueva.
+    var K_FLUIDEZ = 0.09;
+
+    function resize(){
+      W = escenarioEl.clientWidth; H = escenarioEl.clientHeight;
+      cv.width = W * DPR; cv.height = H * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+
+    // Junta los puntos muestreados de TODAS las letras de un grupo y
+    // reparte el pool parejo entre ellos (con wraparound si una frase
+    // corta no llega a juntar POOL puntos) — así la densidad de drones es
+    // siempre la misma sin importar cuántas letras tenga cada frase.
+    function medir(){
+      var base = escenarioEl.getBoundingClientRect();
+      posiciones = gruposDeLetras.map(function(letras){
+        var candidatos = [];
+        for (var i = 0; i < letras.length; i++){
+          var puntos = muestrearLetra(letras[i]);
+          for (var j = 0; j < puntos.length; j++) candidatos.push(puntos[j]);
+        }
+        // Red de seguridad: si el muestreo de píxeles no juntó casi nada
+        // para esta frase (fuente todavía sin cargar del todo, letra muy
+        // chica, algún caso raro de navegador), se cae al menos al centro
+        // de cada letra — mejor un enjambre menos denso que uno invisible.
+        if (candidatos.length < letras.length){
+          for (var m = 0; m < letras.length; m++){
+            var r = letras[m].getBoundingClientRect();
+            candidatos.push({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+          }
+        }
+        if (!candidatos.length) return [];
+        var out = [];
+        for (var k = 0; k < POOL; k++){
+          var p = candidatos[Math.floor(k * candidatos.length / POOL) % candidatos.length];
+          out.push({ x: p.x - base.left, y: p.y - base.top });
+        }
+        return out;
+      });
+    }
+
+    // Antes de medir hay que neutralizar el x/rotation del viento: las
+    // letras que todavía no entraron (espejismos posteriores al primero)
+    // arrancan con ese transform ya aplicado por el fromTo de tlSup
+    // (immediateRender), así que sin este reset se mediría su posición
+    // "soplada", no la real. Se fuerza un refresh después para que tlSup
+    // vuelva a pintar el estado correcto (si no, las letras quedarían
+    // ancladas en x:0 hasta el próximo scroll).
+    function medirEnFrio(){
+      var todas = [].concat.apply([], gruposDeLetras);
+      gsap.set(todas, { x: 0, y: 0, rotation: 0 });
+      resize();
+      medir();
+      if (window.ScrollTrigger) ScrollTrigger.refresh();
+    }
+
+    // Pool fijo, creado UNA sola vez. Cada partícula VIAJA de su letra de
+    // origen a su letra de destino (antes solo se dispersaba en el lugar —
+    // se veía "construir" pero no "viajar"; ahora hace las dos cosas: el
+    // recorrido se ve en pantalla, y el ruido (nx/ny) le da textura de
+    // polvo arrastrado por el viento en vez de una línea recta prolija).
+    // `retraso`/`duracion` escalonan cuándo arranca y cuánto tarda cada
+    // una dentro del tramo — así el enjambre no viaja como un bloque.
+    //
+    // IMPORTANTE: retraso+duracion se mantiene siempre por debajo de 1, a
+    // propósito. tlSup revela cada letra (opacity/blur en CSS) durante la
+    // SEGUNDA MITAD del tramo (frac 0.5→1) — antes algunas partículas
+    // tenían retraso+duracion hasta 1.2, así que nunca alcanzaban a llegar
+    // (e nunca pasaba de ~0.8) antes de que el tramo terminara en frac=1,
+    // que es justo cuando la frase de CSS ya está completamente visible:
+    // el texto aparecía antes de que el polvo terminara de construirlo.
+    for (var i = 0; i < POOL; i++){
+      drones.push({
+        tono: TONOS[(Math.random() * TONOS.length) | 0],
+        r: 0.3 + Math.random() * 0.6, // fino, como arena — no bolitas
+        retraso: Math.random() * 0.18,
+        duracion: 0.48 + Math.random() * 0.28,   // retraso+duracion queda entre 0.48 y 0.94: siempre < 1
+        fase: Math.random() * 6.283,
+        nx: makeNoise((i * 2 + 1) * 13.7),
+        ny: makeNoise((i * 2 + 2) * 13.7)
+      });
+    }
+
+    // Tramos = [inicio, fin, grupo de origen, grupo de destino] en la MISMA
+    // escala 0–1 que usa tlSup — coinciden a propósito con el instante en
+    // que cada frase empieza a salir y la siguiente termina de entrar
+    // (ver los números 0.115/0.13/0.23/0.245… más abajo, en la construcción
+    // de tlSup). destino:-1 = dispersión final (el giro no tiene a dónde
+    // viajar después).
+    var TRAMOS = [
+      { a: 0.115, b: 0.145, de: 0, ha: 1 },
+      { a: 0.23,  b: 0.26,  de: 1, ha: 2 },
+      { a: 0.345, b: 0.375, de: 2, ha: 3 },
+      { a: 0.46,  b: 0.49,  de: 3, ha: 4 },
+      { a: 0.575, b: 0.605, de: 4, ha: 5 },
+      { a: 0.69,  b: 0.94,  de: 5, ha: 6 },
+      { a: 0.955, b: 0.995, de: 6, ha: -1 }
+    ];
+
+    // Punto de fuga para la dispersión final del giro — estable por dron
+    // (no se recalcula cada frame) para que cada uno vuele en línea recta.
+    function fuga(semilla){
+      var ang = (semilla * 2.399963) % 6.283;
+      var dist = 0.9 + (semilla % 7) / 7 * 0.6;
+      return { x: W / 2 + Math.cos(ang) * W * dist, y: H / 2 + Math.sin(ang) * H * dist };
+    }
+
+    function centro(){ return { x: W / 2, y: H / 2 }; }
+
+    // setP: único punto de entrada desde el scroll (tlSup.onUpdate). Solo
+    // guarda el progreso — pintar() lo lee cada frame. Cada partícula se
+    // calcula como función pura de `p` (nada de física acumulada frame a
+    // frame), así que no hace falta "recordar" nada: cualquier posición de
+    // scroll, incluso saltando para atrás, se ve exactamente igual.
+    function setP(p){ pActual = p; }
+
+    function tramoDe(p){
+      for (var i = 0; i < TRAMOS.length; i++){
+        if (p >= TRAMOS[i].a && p <= TRAMOS[i].b) return TRAMOS[i];
+      }
+      return null;
+    }
+
+    function pintar(now){
+      if (!W || !H || !posiciones.length) return;
+      var dt = Math.min(0.05, Math.max(0, (now - ultimoNow) / 1000));
+      ultimoNow = now;
+      if (pSuave < 0) pSuave = pActual; // primer cuadro: sin salto inicial
+      // Suavizado exponencial independiente de los FPS (1-(1-k)^(dt*60)):
+      // pSuave persigue a pActual en vez de copiarlo tal cual, así el
+      // enjambre siempre va "detrás" del scroll real, alcanzándolo de a
+      // poco — eso es lo que lee como viento en vez de un salto brusco.
+      pSuave += (pActual - pSuave) * (1 - Math.pow(1 - K_FLUIDEZ, dt * 60));
+
+      // Estela: en vez de borrar de un golpe (clearRect), se le resta un
+      // poco de alfa a lo que ya había — dibujar con destination-out no
+      // pinta color encima (el lienzo es transparente y va SOBRE el resto
+      // de la página, no se lo puede ir tapando con un color opaco: eso
+      // fue justo el error de usar el truco del ejemplo tal cual, que
+      // pinta sobre un canvas opaco propio). Con destination-out el área
+      // que ya estaba vacía sigue vacía — solo se desvanece lo dibujado.
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.fillRect(0, 0, W, H);
+
+      var tramo = tramoDe(pSuave);
+      if (!tramo){ ctx.globalCompositeOperation = 'source-over'; return; }
+
+      var frac = clamp((pSuave - tramo.a) / (tramo.b - tramo.a), 0, 1);
+      var origen = posiciones[tramo.de] || [];
+      var destino = tramo.ha === -1 ? null : (posiciones[tramo.ha] || []);
+      var amplitud = movil ? 20 : 32; // qué tanto se desvía del camino recto por el "viento"
+      ctx.globalCompositeOperation = 'lighter';
+      for (var d = 0; d < drones.length; d++){
+        var dr = drones[d];
+        // e: avance propio de ESTA partícula dentro del tramo (0 recién
+        // sale de su letra vieja, 1 ya llegó a la nueva) — escalonado con
+        // retraso/duracion para que el viaje se vea como un enjambre, no
+        // como un bloque que se mueve entero a la vez.
+        var e = clamp((frac - dr.retraso) / dr.duracion, 0, 1);
+        var suave = e < 0.5 ? 4 * e * e * e : 1 - Math.pow(-2 * e + 2, 3) / 2; // easeInOutCubic
+        var o = origen[d] || centro();
+        var t = destino ? (destino[d] || centro()) : fuga(d);
+        // Textura de viento: nula en las puntas del viaje (nítida al salir
+        // y al llegar) y máxima a mitad de camino — así no es una línea
+        // recta prolija, se lee como polvo arrastrado, no como un dron.
+        var textura = Math.sin(e * Math.PI);
+        var ox = (dr.nx(e * 2.6 + dr.fase) - 0.5) * 2 * amplitud * textura;
+        var oy = (dr.ny(e * 2.6 + dr.fase + 50) - 0.5) * 2 * amplitud * textura;
+        var x = o.x + (t.x - o.x) * suave + ox;
+        var y = o.y + (t.y - o.y) * suave + oy;
+        var a = clamp(0.8 * (0.45 + 0.55 * Math.sin(clamp(e, 0.04, 0.96) * Math.PI)), 0, 1);
+        if (e <= 0 || e >= 1) a = 0; // fuera de su ventana de vuelo, invisible del todo
+        if (a <= 0.02) continue;
+        ctx.fillStyle = 'rgba(' + dr.tono + ',' + a.toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.arc(x, y, dr.r, 0, 6.283);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    resize();
+    window.addEventListener('resize', medirEnFrio);
+
+    // Bucle propio (mismo patrón que terreno/gotaFondo): la estela necesita
+    // desvanecerse a un ritmo constante de cuadros, no solo cuando llega un
+    // evento de scroll — si no, con scrub (que dispara onUpdate salteado,
+    // no cada frame) el desvanecido se vería entrecortado en vez de fluido.
+    (function bucle(now){
+      if (visible && pagVisible) pintar(now);
+      requestAnimationFrame(bucle);
+    })(performance.now());
+    var ioP = new IntersectionObserver(function(en){ visible = en[0].isIntersecting; }, { threshold: 0 });
+    var secP = cv.closest('.acto-superficie');
+    if (secP) ioP.observe(secP);
+
+    return { medirEnFrio: medirEnFrio, setP: setP };
+  }
+
   // timeline scrubbed de la superficie
+  var polvoTextos; // se arma más abajo, después de tener todos los grupos de letras
   var tlSup = gsap.timeline({
     scrollTrigger: {
       trigger: '.acto-superficie',
       start: 'top top',
       end: 'bottom bottom',
       scrub: 0.6,
-      onUpdate: function(self){ terreno.setP(self.progress); }
+      onUpdate: function(self){ terreno.setP(self.progress); if (polvoTextos) polvoTextos.setP(self.progress); }
     }
   });
   // Desplazamientos al azar por letra para el efecto de viento/polvo: entra
@@ -638,9 +923,11 @@ if (gsapOK){
   // casi todo el paso de cada una es tiempo quieto de lectura.
   var frases = ['.e1','.e2','.e3','.e4','.e5'];
   var ini = 0.13, paso = 0.115;
+  var letrasEspejismos = [];
   frases.forEach(function(sel, i){
     var t = ini + i*paso;
     var letras = splitLetters(document.querySelector(sel));
+    letrasEspejismos.push(letras);
     tlSup.fromTo(sel, {opacity:0, y:34}, {opacity:1, y:0, duration:0.015, ease:'none'}, t)
          .fromTo(letras,
         {x:vientoIzq, rotation:vientoGiro, filter:'blur(8px)'},
@@ -653,14 +940,34 @@ if (gsapOK){
   // Giro (cierre del acto 2): mismo criterio — el contenedor maneja la
   // opacidad (así la rayita del eyebrow se esconde con el resto), las
   // letras solo aportan el viento.
+  //
+  // La entrada se retrasa de 0.78 a 0.86 para que quede pegada al final de
+  // la sección (menos hueco vacío antes del cambio a Causa Raíz) — la
+  // salida (0.955→0.995) no se toca, sigue igual que siempre.
   var letrasGiro = splitLetters(document.getElementById('giro'));
-  tlSup.fromTo('#giro', {opacity:0, scale:0.97}, {opacity:1, scale:1, duration:0.08, ease:'none'}, 0.78)
+  tlSup.fromTo('#giro', {opacity:0, scale:0.97}, {opacity:1, scale:1, duration:0.08, ease:'none'}, 0.86)
        .fromTo(letrasGiro,
         {x:vientoIzq, rotation:vientoGiro, filter:'blur(6px)'},
-        {x:0, rotation:0, filter:'blur(0px)', duration:0.08, stagger:0.0015, ease:'none'}, 0.78);
+        {x:0, rotation:0, filter:'blur(0px)', duration:0.08, stagger:0.0015, ease:'none'}, 0.86);
+  // Salida: se desvanece en el lugar, quieto — .escenario ya lo mantiene
+  // fijo en pantalla (position:sticky) durante toda la sección; el paso al
+  // siguiente segmento (Causa Raíz) llega solo, cuando .escenario se
+  // despega al terminar el scroll de .acto-superficie. No hace falta (ni
+  // se quiere) un desplazamiento artificial encima de eso.
   tlSup.to('#giro', {opacity:0, duration:0.04, ease:'none'}, 0.955)
        .to(letrasGiro,
         {x:vientoDer, rotation:vientoGiro, filter:'blur(6px)', duration:0.04, stagger:0.0008, ease:'none'}, 0.955);
+
+  // Ahora que existen los 7 grupos (H1, las 5 espejismo, giro), se arma el
+  // enjambre y se mide su posición real — medirEnFrio() debe correr DESPUÉS
+  // de que tlSup ya definió todos sus fromTo/to (si no, algunas letras
+  // todavía no habrían recibido su x/rotation de "immediateRender" y la
+  // medición de reset no tendría nada que neutralizar).
+  polvoTextos = construirPolvoTextos(
+    document.getElementById('lienzo-polvo-textos'),
+    [letrasH1].concat(letrasEspejismos).concat([letrasGiro])
+  );
+  polvoTextos.medirEnFrio();
 
   // ─── Acto 4: una gota por etapa + tarjetas cinematográficas ───
   var etapasCtl = (function(){

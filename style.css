@@ -141,6 +141,12 @@ body.reduced .acto-superficie{height:auto}
 .escenario{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
 body.reduced .escenario{position:relative;height:auto;min-height:100svh;padding-bottom:4rem}
 #lienzo-terreno{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* Enjambre que viaja entre las letras de cada frase del scroll (H1 →
+   espejismos → giro) — por encima de todos los textos (z-index más alto
+   que .hero-copy/.espejismo en 3 y .giro en 4). Ver construirPolvoTextos
+   en el JS. */
+#lienzo-polvo-textos{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:5;pointer-events:none}
+body.reduced #lienzo-polvo-textos{display:none}
 
 .hero-copy{
   position:absolute;left:clamp(1.25rem,6vw,6rem);bottom:clamp(5rem,14vh,9rem);
