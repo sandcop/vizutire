@@ -42,6 +42,36 @@ document.addEventListener('visibilitychange', function(){ pagVisible = !document
 function lerp(a,b,t){ return a + (b-a)*t; }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 function hash(n){ var x = Math.sin(n*127.1 + 311.7)*43758.5453; return x - Math.floor(x); }
+// ScrollTrigger.refresh() recalcula todos los triggers de la página y, para
+// medir bien los que usan 'top top'/'bottom bottom', internamente mueve el
+// scroll de un lado a otro y al final intenta restaurar la posición previa
+// -pero si el usuario sigue scrolleando MIENTRAS eso ocurre (típico: unos
+// segundos después de cargar, o en móvil cuando la barra de direcciones
+// aparece/desaparece y dispara un 'resize'), la posición que GSAP restaura
+// puede quedar desfasada de dónde el usuario está realmente parado, y el
+// hero (o cualquier sección) puede terminar "atascado" varios cientos de
+// px más abajo de donde el usuario intentaba estar. Capturar y reimponer
+// el scroll nosotros mismos, justo después del refresh, hace que esa
+// restauración interna de GSAP quede sin efecto pase lo que pase adentro.
+//
+// El "reimponer" tiene que ser INSTANTÁNEO, no animado: como el sitio tiene
+// html{scroll-behavior:smooth} en el CSS, CUALQUIER scrollTo (el nuestro Y
+// el que haga GSAP puertas adentro durante el refresh) se anima de a poco
+// en vez de saltar -y si el usuario sigue moviendo la rueda mientras esa
+// animación de ~1s todavía corre, el resultado final queda peleado entre
+// ambos y la página termina "atascada" a mitad de camino. Apagar
+// scroll-behavior mientras dura el refresh fuerza que todo salto sea
+// instantáneo, sin dejarle tiempo al usuario de interferir.
+function refrescarScrollTrigger(){
+  if (!window.ScrollTrigger) return;
+  var y = window.scrollY;
+  var htmlEl = document.documentElement;
+  var comportamientoPrevio = htmlEl.style.scrollBehavior;
+  htmlEl.style.scrollBehavior = 'auto';
+  ScrollTrigger.refresh();
+  window.scrollTo(0, y);
+  htmlEl.style.scrollBehavior = comportamientoPrevio;
+}
 function makeNoise(seed){
   return function(x){
     var i = Math.floor(x), f = x - i, u = f*f*(3-2*f);
@@ -197,6 +227,7 @@ var gotaFondo = (function(){
   if (!cv) return { setP:function(){} };
   var ctx = cv.getContext('2d');
   var W=0, H=0;
+  var tmActual = 0;                 // reloj de la escena, para el reflejo que se desliza en la gota
   var objetivo = 0, P = 0;          // scroll objetivo y suavizado (inercia liquida)
   var visible = false;
   var lastNow = performance.now();
@@ -242,9 +273,18 @@ var gotaFondo = (function(){
     ctx.strokeStyle = 'rgba(230,245,240,'+(0.4*alpha).toFixed(3)+')';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,'+(0.8*alpha).toFixed(3)+')';
+    // reflejo: antes era un brillo fijo siempre en el mismo punto, por eso
+    // la gota en reposo (que es la mayor parte del tiempo, mientras el
+    // usuario lee) se veía como un ícono quieto. Ahora recorre lento la
+    // superficie -como luz real atrapada en el agua- en vez de quedarse
+    // clavado en una esquina.
+    var faseReflejo = tmActual * 0.35;
+    var rx = Math.cos(faseReflejo) * r*0.3 - r*0.08;
+    var ry = Math.sin(faseReflejo) * r*0.22 - r*0.14;
+    var brilloReflejo = 0.72 + 0.18 * Math.sin(faseReflejo * 1.7);
+    ctx.fillStyle = 'rgba(255,255,255,'+(brilloReflejo*alpha).toFixed(3)+')';
     ctx.beginPath();
-    ctx.ellipse(-r*0.36, -r*0.12, r*0.17, r*0.3, -0.5, 0, 6.28);
+    ctx.ellipse(rx, ry, r*0.17, r*0.3, faseReflejo*0.6, 0, 6.28);
     ctx.fill();
     ctx.restore();
   }
@@ -289,6 +329,7 @@ var gotaFondo = (function(){
 
   function draw(now){
     var tm = now/1000;
+    tmActual = tm;
     var dt = Math.min(0.05, (now - lastNow)/1000);
     lastNow = now;
     ctx.clearRect(0,0,W,H);
@@ -334,6 +375,22 @@ var gotaFondo = (function(){
     ctx.strokeStyle = 'rgba(127,181,171,'+(0.22+poolK*0.12).toFixed(3)+')';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.ellipse(x,yFin+6,pw*0.82,pw*0.17,0,0,6.28); ctx.stroke();
+    // ondas ambientales: el charco "respira" solo con el reloj de la
+    // escena, no solo cuando cae la gota -si no, entre etapas (que es la
+    // mayor parte del tiempo) se ve como un dibujo fijo. Tres ondas en
+    // bucle, desfasadas entre sí, que nacen en el borde del charco y se
+    // expanden desvaneciéndose.
+    for (var oi = 0; oi < 3; oi++){
+      var faseOnda = ((tm/3.2) + oi/3) % 1;
+      var radioOnda = pw * (0.55 + faseOnda*0.9);
+      var alphaOnda = (1 - faseOnda) * 0.16;
+      if (alphaOnda <= 0.01) continue;
+      ctx.strokeStyle = 'rgba(159,216,204,'+alphaOnda.toFixed(3)+')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(x, yFin+6, radioOnda, radioOnda*0.22, 0, 0, 6.28);
+      ctx.stroke();
+    }
     // anillos persistentes de etapas completadas
     for (var pk=0; pk<s; pk++){
       ctx.strokeStyle = 'rgba(127,181,171,0.1)';
@@ -592,33 +649,32 @@ if (gsapOK){
     if (instantaneo){
       gsap.set(wsH1, { opacity:1, y:0, filter:'blur(0px)' });
       gsap.set(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas'], { opacity:1, y:0 });
-      if (window.ScrollTrigger) ScrollTrigger.refresh();
+      refrescarScrollTrigger();
       return;
     }
     gsap.to(wsH1, { opacity:1, y:0, filter:'blur(0px)', duration:1.1, stagger:0.08, ease:'power3.out', delay:0.3 });
     gsap.to(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas'],
       {opacity:1, y:0, duration:0.9, stagger:0.14, delay:0.7, ease:'power3.out',
-       onComplete: function(){ if (window.ScrollTrigger) ScrollTrigger.refresh(); }});
+       onComplete: refrescarScrollTrigger});
   };
 
   // Enjambre que viaja de frase en frase (H1 → espejismos → giro): un pool
-  // fijo de "drones" que no se crea de nuevo en cada tramo, sino que se
+  // fijo de "drones" que no se crea de nuevo en cada viaje, sino que se
   // reasigna de destino — la MISMA partícula que ayudó a formar una frase
-  // es la que después vuela a formar la siguiente. Ver más abajo el llamado
-  // a polvoTextos.medirEnFrio() una vez que existen todos los grupos de
-  // letras, y polvoTextos.setP() dentro del onUpdate de tlSup.
+  // es la que después vuela a formar la siguiente.
   //
-  // Mecánica: cada dron tiene una posición ACTUAL que persigue a su objetivo
-  // con suavizado exponencial (x += (objetivo - x) * k), y quien mueve y
-  // pinta es un bucle propio de requestAnimationFrame — el mismo patrón de
-  // `terreno` y `gotaFondo`. setP() no dibuja ni interpola: solo decide,
-  // según el progreso de scroll, CUÁL es el objetivo de cada dron en este
-  // instante. Esa separación importa porque tlSup usa scrub: su onUpdate
-  // solo dispara mientras hay eventos de scroll, así que si la persona se
-  // detiene a mitad de un vuelo (o durante una pausa de lectura) el enjambre
-  // se quedaría congelado si dependiera de él para animarse.
+  // Disparado por EVENTOS (irA(grupo)), no por fracción de scroll: cada
+  // frase ahora se muestra/oculta con su propio controlador de índice
+  // (mismo patrón que etapasCtl en el Acto 4 — "anclar" cada frase con
+  // pausas de lectura reales, no atadas a la velocidad de scroll), y el
+  // vuelo del enjambre dura un tiempo real fijo (ms) en vez de una
+  // fracción de scroll — así el enjambre y el texto quedan sincronizados
+  // sin importar qué tan rápido o lento se scrollee. Ver más abajo el
+  // llamado a polvoTextos.medirEnFrio() una vez que existen todos los
+  // grupos de letras, y los distintos polvoTextos.irA(...) repartidos
+  // donde antes vivían los tramos de scroll.
   function construirPolvoTextos(cv, gruposDeLetras){
-    if (!cv || reduced) return { medirEnFrio:function(){}, setP:function(){} };
+    if (!cv || reduced) return { medirEnFrio:function(){}, irA:function(){} };
     var ctx = cv.getContext('2d');
     var escenarioEl = document.querySelector('.escenario');
     var W = 0, H = 0, posiciones = [], drones = [];
@@ -676,22 +732,33 @@ if (gsapOK){
       return puntos;
     }
 
-    var visible = true, pActual = -1, pSuave = -1, ultimoNow = performance.now();
-    // El progreso de scroll se usaba tal cual llegaba de tlSup: la posición
-    // de cada partícula era función pura de `p`, así que el vuelo iba
-    // exactamente tan rápido como el dedo/mouse — con un scroll normal se
-    // sentía brusco, no "como el viento". pSuave persigue a pActual con
-    // suavizado exponencial (independiente de los FPS, mismo criterio que
-    // ya se usaba antes en este mismo archivo) en el bucle de cada frame,
-    // así el enjambre siempre va "alcanzando" al scroll real en vez de
-    // saltar con él — y sigue siendo 100% reproducible hacia atrás, porque
-    // pSuave persigue a pActual sin importar en qué dirección se mueva.
-    var K_FLUIDEZ = 0.09;
+    var visible = true;
+
+    // El viento/grano se tunearon mirando el H1 a su tamaño CSS máximo
+    // (5rem = 80px, ver .hero-copy h1 en style.css). Como el font-size real
+    // usa clamp(min, vw, max), en anchos intermedios (~920–1540px: laptops
+    // chicos, ventana sin maximizar, tablets en horizontal) el texto se
+    // renderiza más chico que ese tope, y la misma amplitud/grano en px
+    // absolutos se sale de la silueta de la letra — se ve el "viento"
+    // desbordando el trazo. Este factor mide cuánto más chico está el H1
+    // ahora mismo respecto a su máximo, para escalar viento y grano en la
+    // misma proporción: da 1 (sin cambios) desde ~1540px hacia arriba —
+    // donde el clamp ya toca su tope — y baja junto con el texto por
+    // debajo de eso. No toca la rama móvil (esa se ajusta aparte).
+    var ALTURA_H1_MAX_PX = 80; // 5rem al tamaño de raíz por defecto (16px)
+    var escalaTexto = 1;
+    function actualizarEscalaTexto(){
+      var referencia = (gruposDeLetras[0] || [])[0];
+      if (!referencia) return;
+      var actual = parseFloat(getComputedStyle(referencia).fontSize) || ALTURA_H1_MAX_PX;
+      escalaTexto = clamp(actual / ALTURA_H1_MAX_PX, 0.44, 1);
+    }
 
     function resize(){
       W = escenarioEl.clientWidth; H = escenarioEl.clientHeight;
       cv.width = W * DPR; cv.height = H * DPR;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      actualizarEscalaTexto();
     }
 
     // Junta los puntos muestreados de TODAS las letras de un grupo y
@@ -738,51 +805,28 @@ if (gsapOK){
       gsap.set(todas, { x: 0, y: 0, rotation: 0 });
       resize();
       medir();
-      if (window.ScrollTrigger) ScrollTrigger.refresh();
+      refrescarScrollTrigger();
     }
 
     // Pool fijo, creado UNA sola vez. Cada partícula VIAJA de su letra de
-    // origen a su letra de destino (antes solo se dispersaba en el lugar —
-    // se veía "construir" pero no "viajar"; ahora hace las dos cosas: el
-    // recorrido se ve en pantalla, y el ruido (nx/ny) le da textura de
-    // polvo arrastrado por el viento en vez de una línea recta prolija).
-    // `retraso`/`duracion` escalonan cuándo arranca y cuánto tarda cada
-    // una dentro del tramo — así el enjambre no viaja como un bloque.
-    //
-    // IMPORTANTE: retraso+duracion se mantiene siempre por debajo de 1, a
-    // propósito. tlSup revela cada letra (opacity/blur en CSS) durante la
-    // SEGUNDA MITAD del tramo (frac 0.5→1) — antes algunas partículas
-    // tenían retraso+duracion hasta 1.2, así que nunca alcanzaban a llegar
-    // (e nunca pasaba de ~0.8) antes de que el tramo terminara en frac=1,
-    // que es justo cuando la frase de CSS ya está completamente visible:
-    // el texto aparecía antes de que el polvo terminara de construirlo.
+    // origen a su letra de destino, con textura de viento (nx/ny) montada
+    // encima del camino recto. `retraso`/`duracion` (fracciones 0–1 del
+    // vuelo, no de un tramo de scroll) escalonan cuándo arranca y cuánto
+    // tarda cada una — el enjambre se desprende como enjambre, no como un
+    // bloque. retraso+duracion se mantiene siempre por debajo de 1 para
+    // que cada partícula alcance a llegar (e=1) antes de que el vuelo
+    // termine.
     for (var i = 0; i < POOL; i++){
       drones.push({
         tono: TONOS[(Math.random() * TONOS.length) | 0],
         r: 0.3 + Math.random() * 0.6, // fino, como arena — no bolitas
         retraso: Math.random() * 0.18,
-        duracion: 0.48 + Math.random() * 0.28,   // retraso+duracion queda entre 0.48 y 0.94: siempre < 1
+        duracion: 0.48 + Math.random() * 0.28,
         fase: Math.random() * 6.283,
         nx: makeNoise((i * 2 + 1) * 13.7),
         ny: makeNoise((i * 2 + 2) * 13.7)
       });
     }
-
-    // Tramos = [inicio, fin, grupo de origen, grupo de destino] en la MISMA
-    // escala 0–1 que usa tlSup — coinciden a propósito con el instante en
-    // que cada frase empieza a salir y la siguiente termina de entrar
-    // (ver los números 0.115/0.13/0.23/0.245… más abajo, en la construcción
-    // de tlSup). destino:-1 = dispersión final (el giro no tiene a dónde
-    // viajar después).
-    var TRAMOS = [
-      { a: 0.115, b: 0.145, de: 0, ha: 1 },
-      { a: 0.23,  b: 0.26,  de: 1, ha: 2 },
-      { a: 0.345, b: 0.375, de: 2, ha: 3 },
-      { a: 0.46,  b: 0.49,  de: 3, ha: 4 },
-      { a: 0.575, b: 0.605, de: 4, ha: 5 },
-      { a: 0.69,  b: 0.94,  de: 5, ha: 6 },
-      { a: 0.955, b: 0.995, de: 6, ha: -1 }
-    ];
 
     // Punto de fuga para la dispersión final del giro — estable por dron
     // (no se recalcula cada frame) para que cada uno vuele en línea recta.
@@ -794,60 +838,69 @@ if (gsapOK){
 
     function centro(){ return { x: W / 2, y: H / 2 }; }
 
-    // setP: único punto de entrada desde el scroll (tlSup.onUpdate). Solo
-    // guarda el progreso — pintar() lo lee cada frame. Cada partícula se
-    // calcula como función pura de `p` (nada de física acumulada frame a
-    // frame), así que no hace falta "recordar" nada: cualquier posición de
-    // scroll, incluso saltando para atrás, se ve exactamente igual.
-    function setP(p){ pActual = p; }
+    // grupoActual: índice del grupo donde están "posadas" las partículas
+    // ahora mismo (0 = H1, 1-5 = espejismos, 6 = giro). vuelo: null cuando
+    // no hay ningún viaje en curso (las partículas no se dibujan — el texto
+    // real ya está formado y quieto vía CSS, no hace falta nada encima).
+    //
+    // irA() reemplaza al viejo setP(progreso de scroll): ahora el disparador
+    // es un EVENTO puntual (una frase empieza a formarse) y el vuelo dura un
+    // tiempo REAL fijo (ms), no una fracción de scroll — así el enjambre
+    // siempre tarda lo mismo en volar sin importar qué tan rápido se
+    // scrollee.
+    var grupoActual = 0, vuelo = null;
 
-    function tramoDe(p){
-      for (var i = 0; i < TRAMOS.length; i++){
-        if (p >= TRAMOS[i].a && p <= TRAMOS[i].b) return TRAMOS[i];
-      }
-      return null;
+    function irA(nuevoGrupo, duracionMs){
+      if (reduced) return;
+      var esFuga = nuevoGrupo === -1;
+      // Si se pide volver al MISMO grupo donde ya estaba posado (típico:
+      // el usuario vaciló con el scroll cerca del borde de una frase y esa
+      // misma frase se volvió a formar — el texto igual se re-anima desde
+      // cero con gsap.fromTo), no hay un "grupo anterior" real del que
+      // partir: usar la posición del grupo actual como origen daría un
+      // vuelo de un punto a sí mismo, invisible. Antes esto directamente
+      // se descartaba (if nuevoGrupo === grupoActual) — así que el polvo
+      // solo se veía la primera vez que cada frase aparecía, y con
+      // cualquier vaivén de scroll (normal en mouse/trackpad real) el
+      // texto se re-formaba sin su acompañamiento de polvo.
+      var mismoDestino = nuevoGrupo === grupoActual;
+      vuelo = {
+        origen: mismoDestino ? drones.map(function(_, d){ return fuga(d); }) : (posiciones[grupoActual] || []),
+        destino: esFuga ? null : (posiciones[nuevoGrupo] || []),
+        esFuga: esFuga,
+        t0: performance.now(),
+        duracion: duracionMs || 900
+      };
+      grupoActual = nuevoGrupo;
     }
 
     function pintar(now){
       if (!W || !H || !posiciones.length) return;
-      var dt = Math.min(0.05, Math.max(0, (now - ultimoNow) / 1000));
-      ultimoNow = now;
-      if (pSuave < 0) pSuave = pActual; // primer cuadro: sin salto inicial
-      // Suavizado exponencial independiente de los FPS (1-(1-k)^(dt*60)):
-      // pSuave persigue a pActual en vez de copiarlo tal cual, así el
-      // enjambre siempre va "detrás" del scroll real, alcanzándolo de a
-      // poco — eso es lo que lee como viento en vez de un salto brusco.
-      pSuave += (pActual - pSuave) * (1 - Math.pow(1 - K_FLUIDEZ, dt * 60));
-
       // Estela: en vez de borrar de un golpe (clearRect), se le resta un
       // poco de alfa a lo que ya había — dibujar con destination-out no
       // pinta color encima (el lienzo es transparente y va SOBRE el resto
-      // de la página, no se lo puede ir tapando con un color opaco: eso
-      // fue justo el error de usar el truco del ejemplo tal cual, que
-      // pinta sobre un canvas opaco propio). Con destination-out el área
-      // que ya estaba vacía sigue vacía — solo se desvanece lo dibujado.
+      // de la página, no se lo puede ir tapando con un color opaco). Con
+      // destination-out el área que ya estaba vacía sigue vacía — solo se
+      // desvanece lo dibujado.
       ctx.globalCompositeOperation = 'destination-out';
       ctx.fillStyle = 'rgba(0,0,0,0.22)';
       ctx.fillRect(0, 0, W, H);
 
-      var tramo = tramoDe(pSuave);
-      if (!tramo){ ctx.globalCompositeOperation = 'source-over'; return; }
-
-      var frac = clamp((pSuave - tramo.a) / (tramo.b - tramo.a), 0, 1);
-      var origen = posiciones[tramo.de] || [];
-      var destino = tramo.ha === -1 ? null : (posiciones[tramo.ha] || []);
-      var amplitud = movil ? 20 : 32; // qué tanto se desvía del camino recto por el "viento"
+      if (!vuelo){ ctx.globalCompositeOperation = 'source-over'; return; }
+      var fracVuelo = clamp((now - vuelo.t0) / vuelo.duracion, 0, 1);
+      // qué tanto se desvía del camino recto por el "viento" — en desktop se
+      // escala por escalaTexto para que no se salga de letras más chicas en
+      // anchos intermedios (ver actualizarEscalaTexto más arriba).
+      var amplitud = movil ? 20 : 32 * escalaTexto;
       ctx.globalCompositeOperation = 'lighter';
       for (var d = 0; d < drones.length; d++){
         var dr = drones[d];
-        // e: avance propio de ESTA partícula dentro del tramo (0 recién
-        // sale de su letra vieja, 1 ya llegó a la nueva) — escalonado con
-        // retraso/duracion para que el viaje se vea como un enjambre, no
-        // como un bloque que se mueve entero a la vez.
-        var e = clamp((frac - dr.retraso) / dr.duracion, 0, 1);
+        // e: avance propio de ESTA partícula dentro del vuelo (0 recién
+        // sale de su letra vieja, 1 ya llegó a la nueva).
+        var e = clamp((fracVuelo - dr.retraso) / dr.duracion, 0, 1);
         var suave = e < 0.5 ? 4 * e * e * e : 1 - Math.pow(-2 * e + 2, 3) / 2; // easeInOutCubic
-        var o = origen[d] || centro();
-        var t = destino ? (destino[d] || centro()) : fuga(d);
+        var o = vuelo.origen[d] || centro();
+        var t = vuelo.esFuga ? fuga(d) : (vuelo.destino[d] || centro());
         // Textura de viento: nula en las puntas del viaje (nítida al salir
         // y al llegar) y máxima a mitad de camino — así no es una línea
         // recta prolija, se lee como polvo arrastrado, no como un dron.
@@ -861,19 +914,19 @@ if (gsapOK){
         if (a <= 0.02) continue;
         ctx.fillStyle = 'rgba(' + dr.tono + ',' + a.toFixed(3) + ')';
         ctx.beginPath();
-        ctx.arc(x, y, dr.r, 0, 6.283);
+        ctx.arc(x, y, movil ? dr.r : dr.r * escalaTexto, 0, 6.283);
         ctx.fill();
       }
       ctx.globalCompositeOperation = 'source-over';
+      if (fracVuelo >= 1) vuelo = null; // vuelo terminado: deja de dibujar hasta el próximo irA()
     }
 
     resize();
     window.addEventListener('resize', medirEnFrio);
 
     // Bucle propio (mismo patrón que terreno/gotaFondo): la estela necesita
-    // desvanecerse a un ritmo constante de cuadros, no solo cuando llega un
-    // evento de scroll — si no, con scrub (que dispara onUpdate salteado,
-    // no cada frame) el desvanecido se vería entrecortado en vez de fluido.
+    // desvanecerse a un ritmo constante de cuadros, y el vuelo se mide en
+    // tiempo real (performance.now()), no en eventos de scroll.
     (function bucle(now){
       if (visible && pagVisible) pintar(now);
       requestAnimationFrame(bucle);
@@ -882,18 +935,24 @@ if (gsapOK){
     var secP = cv.closest('.acto-superficie');
     if (secP) ioP.observe(secP);
 
-    return { medirEnFrio: medirEnFrio, setP: setP };
+    return { medirEnFrio: medirEnFrio, irA: irA };
   }
 
   // timeline scrubbed de la superficie
   var polvoTextos; // se arma más abajo, después de tener todos los grupos de letras
+  var espejismosCtl; // ídem — controlador de índice de las frases-espejismo
+  var giroCtl;       // ídem — controlador (mostrar/ocultar) del giro
   var tlSup = gsap.timeline({
     scrollTrigger: {
       trigger: '.acto-superficie',
       start: 'top top',
       end: 'bottom bottom',
       scrub: 0.6,
-      onUpdate: function(self){ terreno.setP(self.progress); if (polvoTextos) polvoTextos.setP(self.progress); }
+      onUpdate: function(self){
+        terreno.setP(self.progress);
+        if (espejismosCtl) espejismosCtl.update(self.progress);
+        if (giroCtl) giroCtl.update(self.progress);
+      }
     }
   });
   // Desplazamientos al azar por letra para el efecto de viento/polvo: entra
@@ -911,52 +970,146 @@ if (gsapOK){
   // letras, cualquier cosa que no sea texto partido en letras (por ejemplo
   // la rayita ::before del eyebrow) se quedaría visible por su cuenta.
   var letrasH1 = splitLetters(document.getElementById('h1'));
-  tlSup.to(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas', '#h1'],
+  // fromTo, no to: '#hero-copy .eyebrow'/'p'/'.hero-ctas' arrancan en
+  // opacity:0 por el gsap.set(...) de más arriba (para que lanzarHero() los
+  // pueda hacer entrar con su propio fundido) — con un .to() normal, tlSup
+  // habría capturado ESE opacity:0 como su "desde" la primera vez que se
+  // renderiza (antes de que lanzarHero corra), y lo dejaría clavado ahí
+  // para siempre: aunque lanzarHero después los suba a 1 y el usuario
+  // vuelva a subir el scroll hasta el hero, tlSup los devolvería al
+  // opacity:0 "desde" que grabó, no al 1 real — el hero no reaparecía.
+  // Con fromTo el "desde" (opacity:1) queda explícito, sin depender de en
+  // qué momento tlSup evalúe el tween por primera vez.
+  tlSup.fromTo(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas', '#h1'],
+        { opacity:1, y:0 },
         { opacity:0, y:-70, duration:0.015, ease:'none' }, 0.115)
        .to(letrasH1,
         { x:vientoDer, rotation:vientoGiro, filter:'blur(6px)', duration:0.015, stagger:0.0006, ease:'none' }, 0.115)
        .to('.indicador-scroll', { opacity:0, duration:0.04 }, 0.04);
+  // Las espejismo y el giro ya no ponen tweens en tlSup (ahora las manejan
+  // sus controladores por su cuenta con self.progress), así que el último
+  // tween REAL de tlSup es la salida del H1 en 0.115. Sin esto, la duración
+  // total de tlSup colapsaría a ~0.13, y como el scrub mapea el scroll 0→1
+  // sobre esa duración, la salida del H1 (posición absoluta 0.115) se
+  // dispararía recién al ~88% del scroll en vez de al ~11.5% — el hero no
+  // se ocultaba en casi todo el recorrido. Este marcador vacío en la
+  // posición 1.0 fija la duración a 1.0 para que las posiciones absolutas
+  // vuelvan a mapear 1:1 con el progreso de scroll.
+  tlSup.set({}, { x: 0 }, 1);
 
-  // Frases-espejismo: entran desde abajo y se van deslizando hacia arriba
-  // (el fundido lo maneja el contenedor); las letras solo suman el viento
-  // (posición + giro + blur) encima. La entrada y la salida son cortas y
-  // casi todo el paso de cada una es tiempo quieto de lectura.
+  // Frases-espejismo: ANCLADAS — en vez de atarlas a una fracción exacta de
+  // scroll (frágil: con scroll rápido se veían aparecer/desaparecer de
+  // golpe, y quedaban desincronizadas del enjambre de polvo), cada una se
+  // muestra/oculta por ÍNDICE, con animaciones de duración fija en TIEMPO
+  // REAL — mismo patrón que etapasCtl (Acto 4, las tarjetas del método) más
+  // abajo en este archivo. La pausa de lectura queda atada a cuánto scroll
+  // real se necesita para cruzar la ventana de esa frase, pero la entrada y
+  // la salida en sí siempre tardan lo mismo, sin importar qué tan rápido se
+  // scrollee.
   var frases = ['.e1','.e2','.e3','.e4','.e5'];
-  var ini = 0.13, paso = 0.115;
-  var letrasEspejismos = [];
-  frases.forEach(function(sel, i){
-    var t = ini + i*paso;
-    var letras = splitLetters(document.querySelector(sel));
-    letrasEspejismos.push(letras);
-    tlSup.fromTo(sel, {opacity:0, y:34}, {opacity:1, y:0, duration:0.015, ease:'none'}, t)
-         .fromTo(letras,
-        {x:vientoIzq, rotation:vientoGiro, filter:'blur(8px)'},
-        {x:0, rotation:0, filter:'blur(0px)', duration:0.015, stagger:0.0008, ease:'none'}, t)
-         .to(sel, {opacity:0, y:-26, duration:0.015, ease:'none'}, t + 0.1)
-         .to(letras,
-        {x:vientoDer, rotation:vientoGiro, filter:'blur(6px)', duration:0.015, stagger:0.0008, ease:'none'}, t + 0.1);
-  });
+  var ini = 0.13, paso = 0.115; // mismo rango total de scroll que ocupaban antes (0.13 a 0.705)
+  var letrasEspejismos = frases.map(function(sel){ return splitLetters(document.querySelector(sel)); });
 
-  // Giro (cierre del acto 2): mismo criterio — el contenedor maneja la
-  // opacidad (así la rayita del eyebrow se esconde con el resto), las
-  // letras solo aportan el viento.
-  //
-  // La entrada se retrasa de 0.78 a 0.86 para que quede pegada al final de
-  // la sección (menos hueco vacío antes del cambio a Causa Raíz) — la
-  // salida (0.955→0.995) no se toca, sigue igual que siempre.
+  espejismosCtl = (function(){
+    var mostrada = [false, false, false, false, false];
+    var DUR_ENTRA = 0.9, DUR_SALE = 0.55; // segundos reales
+
+    function entra(i){
+      var sel = frases[i], letras = letrasEspejismos[i];
+      gsap.killTweensOf(sel); gsap.killTweensOf(letras);
+      gsap.fromTo(sel, {opacity:0, y:70}, {opacity:1, y:0, duration:DUR_ENTRA, ease:'power3.out', overwrite:'auto'});
+      gsap.fromTo(letras,
+        {x:vientoIzq, rotation:vientoGiro, filter:'blur(8px)'},
+        {x:0, rotation:0, filter:'blur(0px)', duration:DUR_ENTRA, stagger:0.01, ease:'power3.out', overwrite:'auto'});
+      if (polvoTextos) polvoTextos.irA(i + 1, DUR_ENTRA * 1000);
+    }
+    function sale(i){
+      var sel = frases[i], letras = letrasEspejismos[i];
+      gsap.killTweensOf(sel); gsap.killTweensOf(letras);
+      gsap.to(sel, {opacity:0, y:-55, duration:DUR_SALE, ease:'power2.in', overwrite:'auto'});
+      gsap.to(letras,
+        {x:vientoDer, rotation:vientoGiro, filter:'blur(6px)', duration:DUR_SALE, stagger:0.006, ease:'power2.in', overwrite:'auto'});
+    }
+
+    return {
+      // p: progreso global 0–1 de .acto-superficie (viene de tlSup.onUpdate).
+      update: function(p){
+        if (p < ini || p >= ini + paso * 5){
+          for (var k = 0; k < 5; k++){ if (mostrada[k]){ mostrada[k] = false; sale(k); } }
+          return;
+        }
+        var pl = (p - ini) / (paso * 5); // 0–1 dentro de todo el bloque de 5 frases
+        var s = clamp(Math.floor(pl * 5), 0, 4);
+        var t = pl * 5 - s; // 0–1 dentro del segmento de ESTA frase
+        // Ventana visible angosta en los bordes (10%/5%) — el resto del
+        // segmento es la frase "anclada": ya se formó y se lee tranquila
+        // hasta que el scroll avanza lo suficiente para soltarla.
+        var visible = (t >= 0.1 && t <= 0.95) ? s : -1;
+        for (var i = 0; i < 5; i++){
+          if (i === visible && !mostrada[i]){ mostrada[i] = true; entra(i); }
+          if (i !== visible && mostrada[i]){ mostrada[i] = false; sale(i); }
+        }
+      }
+    };
+  })();
+
+  // Giro (cierre del acto 2): ANCLADO igual que las espejismo, por la misma
+  // razón — antes estaba atado al scroll-scrub, y con un scroll normal las
+  // últimas letras seguían borrosas (el stagger tarda ~0.09 de scroll, más
+  // que su ventana de entrada de 0.08) cuando ya empezaba la salida en
+  // 0.955: aparecía y desaparecía sin terminar de formarse. Ahora se
+  // muestra/oculta por umbral de scroll, pero la formación en sí es un tween
+  // de tiempo real fijo, así que SIEMPRE termina de formarse nítido antes de
+  // quedarse anclado y legible hasta casi el final de la sección.
   var letrasGiro = splitLetters(document.getElementById('giro'));
-  tlSup.fromTo('#giro', {opacity:0, scale:0.97}, {opacity:1, scale:1, duration:0.08, ease:'none'}, 0.86)
-       .fromTo(letrasGiro,
+  giroCtl = (function(){
+    var el = document.getElementById('giro');
+    var mostrado = false;
+    var DUR_ENTRA = 1.0, DUR_SALE = 0.55; // segundos reales
+
+    function entra(){
+      gsap.killTweensOf(el); gsap.killTweensOf(letrasGiro);
+      gsap.fromTo(el, {opacity:0, scale:0.97}, {opacity:1, scale:1, duration:DUR_ENTRA, ease:'power2.out', overwrite:'auto'});
+      gsap.fromTo(letrasGiro,
         {x:vientoIzq, rotation:vientoGiro, filter:'blur(6px)'},
-        {x:0, rotation:0, filter:'blur(0px)', duration:0.08, stagger:0.0015, ease:'none'}, 0.86);
-  // Salida: se desvanece en el lugar, quieto — .escenario ya lo mantiene
-  // fijo en pantalla (position:sticky) durante toda la sección; el paso al
-  // siguiente segmento (Causa Raíz) llega solo, cuando .escenario se
-  // despega al terminar el scroll de .acto-superficie. No hace falta (ni
-  // se quiere) un desplazamiento artificial encima de eso.
-  tlSup.to('#giro', {opacity:0, duration:0.04, ease:'none'}, 0.955)
-       .to(letrasGiro,
-        {x:vientoDer, rotation:vientoGiro, filter:'blur(6px)', duration:0.04, stagger:0.0008, ease:'none'}, 0.955);
+        {x:0, rotation:0, filter:'blur(0px)', duration:DUR_ENTRA, stagger:0.006, ease:'power3.out', overwrite:'auto'});
+      if (polvoTextos) polvoTextos.irA(6, DUR_ENTRA * 1000);
+    }
+    function sale(){
+      gsap.killTweensOf(el); gsap.killTweensOf(letrasGiro);
+      gsap.to(el, {opacity:0, duration:DUR_SALE, ease:'power2.in', overwrite:'auto'});
+      gsap.to(letrasGiro,
+        {x:vientoDer, rotation:vientoGiro, filter:'blur(6px)', duration:DUR_SALE, stagger:0.005, ease:'power2.in', overwrite:'auto'});
+      if (polvoTextos) polvoTextos.irA(-1, 700);
+    }
+
+    return {
+      // Ventana de scroll del giro: se muestra al entrar en [0.86, 1] (queda
+      // anclado y legible hasta el final de .acto-superficie), y se oculta
+      // al salir de ella. El fundido de salida en sí lo maneja sale() en
+      // tiempo real.
+      //
+      // El límite de arriba era 0.99, no 1: el último 1% de .acto-superficie
+      // (0.99→1) ya no corresponde a ningún tween -tlSup ya terminó todo lo
+      // suyo antes de eso- así que ese tramo final solo sirve para que el
+      // <div class="escenario"> (position:sticky) alcance a "despegarse" del
+      // tope antes de que termine su contenedor (position:sticky SIEMPRE dejɑ
+      // un tramo sin pegar del alto de un viewport al final del contenedor,
+      // es cómo funciona sticky). En ese tramo, y en el viewport completo que
+      // sigue después (ya fuera de .acto-superficie, antes de que la sección
+      // "Causa raíz" llene la pantalla), no había NADA dibujado -sale() ya
+      // había ocultado el giro en 0.99- así que se sentía como "mucho
+      // scroll para nada" entre el giro y lo siguiente. Con el límite en 1
+      // el giro se queda a la vista todo ese tramo final y se ve
+      // desplazarse con el scroll (ya no está pegado) hasta que la
+      // siguiente sección lo tapa, en vez de dejar la pantalla vacía.
+      update: function(p){
+        var dentro = p >= 0.86 && p <= 1;
+        if (dentro && !mostrado){ mostrado = true; entra(); }
+        if (!dentro && mostrado){ mostrado = false; sale(); }
+      }
+    };
+  })();
 
   // Ahora que existen los 7 grupos (H1, las 5 espejismo, giro), se arma el
   // enjambre y se mide su posición real — medirEnFrio() debe correr DESPUÉS
@@ -1047,7 +1200,7 @@ if (gsapOK){
   });
 
   // titulares de la zona de luz: mismo revelado palabra a palabra que el resto del sitio
-  [['.servicios-head h2', 'top 82%'], ['.blog-head h2', 'top 82%'], ['.acto-faq h2', 'top 82%']].forEach(function(par){
+  [['.motor-cabecera h2', 'top 82%'], ['.blog-head h2', 'top 82%'], ['.acto-faq h2', 'top 82%']].forEach(function(par){
     var h = document.querySelector(par[0]);
     if (!h) return;
     var ws = splitWords(h);
@@ -1543,10 +1696,6 @@ document.querySelectorAll('.caso').forEach(function(c, i){
   c.style.transitionDelay = (i*0.12)+'s';
   ioRev.observe(c);
 });
-document.querySelectorAll('.servicio-card').forEach(function(c, i){
-  c.style.transitionDelay = (i*0.1)+'s';
-  ioRev.observe(c);
-});
 document.querySelectorAll('.blog-card').forEach(function(c, i){
   c.style.transitionDelay = (i*0.1)+'s';
   ioRev.observe(c);
@@ -1621,7 +1770,7 @@ if (window.matchMedia('(pointer:fine)').matches && !reduced){
     el.addEventListener('mouseleave', function(){ cur.classList.remove('tagged'); });
   });
   // mismo sistema, para grupos de elementos repetidos (tarjetas expandibles)
-  [['.servicio-card summary','Ver detalle'], ['.blog-card summary','Leer más'], ['.faq-item summary','Ver respuesta']].forEach(function(par){
+  [['.faq-item summary','Ver respuesta']].forEach(function(par){
     document.querySelectorAll(par[0]).forEach(function(el){
       el.addEventListener('mouseenter', function(){ tagEl.textContent = par[1]; cur.classList.add('tagged'); });
       el.addEventListener('mouseleave', function(){ cur.classList.remove('tagged'); });
@@ -1907,64 +2056,293 @@ try{ (function(){
 })(); }catch(e){ console.error('Kairal: jardín no disponible.', e); }
 
 /* ============================================================
-   13 · SERVICIOS ESPECTACULAR: tilt 3D + foco de luz + pétalos
+   14 · MOTOR DE SCROLL: Medicina Funcional
+   12 escenas (Causa raíz + 10 áreas + cierre) ancladas a .motor-pista
+   -misma técnica que etapasCtl del Método (sección 2): un solo
+   ScrollTrigger con start:'top top'/end:'bottom bottom' entrega un
+   progress 0→1 continuo, que acá se traduce en el contenido del panel
+   (alternando izquierda/derecha), el punto activo del riel, y a dónde
+   viaja el anillo de arena (ver construirPolvoAro). Es su propia IIFE
+   -sin acceso por clausura a gsapOK/reduced/DPR/etc de otras
+   secciones-, así que todo se recalcula localmente.
 ============================================================ */
 try{ (function(){
-  var cards = document.querySelectorAll('.servicio-card');
-  if (!cards.length) return;
+  if (!window.gsap || !window.ScrollTrigger) return; // sin motor: la sección se ve estática (escena 0, ver CSS body.reduced)
+  gsap.registerPlugin(ScrollTrigger);
+  var reducedLocal = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // estallido de pétalos al abrir una tarjeta (WAAPI, sin dependencias)
-  function estallido(card){
-    if (reduced || !card.animate) return;
-    var origen = card.querySelector('.servicio-mas');
-    var cr = card.getBoundingClientRect();
-    var or_ = origen ? origen.getBoundingClientRect() : cr;
-    var ox = or_.left - cr.left + or_.width/2;
-    var oy = or_.top - cr.top + or_.height/2;
-    var colores = ['#C75C84', '#D77BA0', '#F2A65A', '#0E7C6B'];
-    for (var i=0; i<9; i++){
-      var p = document.createElement('span');
-      p.className = 'petalo-burst';
-      p.style.left = ox+'px';
-      p.style.top = oy+'px';
-      p.style.background = colores[i % colores.length];
-      card.appendChild(p);
-      var ang = -Math.PI*0.85 + (i/8)*Math.PI*0.7 + (Math.random()-0.5)*0.4;
-      var dist = 34 + Math.random()*46;
-      var dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist + 26;
-      var anim = p.animate([
-        { transform:'translate(0,0) rotate(0deg) scale(1)', opacity:1 },
-        { transform:'translate('+(dx*0.7)+'px,'+(dy*0.4)+'px) rotate('+(120+Math.random()*180)+'deg) scale(1)', opacity:.9, offset:.55 },
-        { transform:'translate('+dx+'px,'+dy+'px) rotate('+(260+Math.random()*180)+'deg) scale(.5)', opacity:0 }
-      ], { duration: 750 + Math.random()*350, easing:'cubic-bezier(.22,1,.36,1)' });
-      anim.onfinish = (function(el){ return function(){ el.remove(); }; })(p);
+  var pista = document.getElementById('motor-pista');
+  var fijo = document.getElementById('motor-fijo');
+  var panel = document.getElementById('motor-panel');
+  var kickerEl = document.getElementById('motor-kicker-texto');
+  var tituloEl = document.getElementById('motor-titulo');
+  var descEl = document.getElementById('motor-desc');
+  var hint = document.getElementById('motor-hint');
+  if (!pista || !fijo || !panel) return;
+  var railPuntos = pista.querySelectorAll('.motor-rail-punto');
+
+  // Anillo de arena: mismo efecto de partículas que #lienzo-polvo-textos
+  // del hero (mismos tonos), pero acá no dibujan letras -trazan el
+  // CONTORNO de una elipse que gira sin parar y viaja (nunca salta) al
+  // centro o al panel activo. Como las 3 propiedades que definen "dónde
+  // está el anillo ahora" (cx, cy, rx, ry) son un solo objeto tweedeable,
+  // GSAP anima esas 4 y el dibujo de cada partícula sale solo -no hace
+  // falta animar cada partícula a mano como en el hero (ahí cada dron
+  // viaja de una letra a otra distinta; acá todas comparten la misma
+  // elipse en todo momento).
+  function construirPolvoAro(cv, stage){
+    if (!cv || reducedLocal) return { irACentro:function(){}, irA:function(){}, vueltaInicial:function(onDone){ if (onDone) onDone(); } };
+    var ctx = cv.getContext('2d');
+    var DPR = Math.min(window.devicePixelRatio || 1, 1.75);
+    var W = 0, H = 0;
+    var movilLocal = window.matchMedia('(max-width:920px)').matches;
+    var N = movilLocal ? 260 : 460;
+    var BANDA_PX = movilLocal ? 9 : 16;
+    var TONOS = ['201,183,154', '201,183,154', '127,181,171', '242,166,90'];
+
+    // El arco NUNCA cubre el círculo completo -siempre queda un hueco
+    // visible-. COBERTURA_REPOSO es el barrido normal (~275°, deja un
+    // hueco de ~85°). COBERTURA_VUELTA es el barrido durante la "vuelta
+    // completa" del arranque del scroll (Task 4): el hueco se angosta a
+    // ~20°, pero NUNCA llega a 0°/360° -la vuelta es la ROTACIÓN de
+    // 360°, no el cierre geométrico del arco.
+    var COBERTURA_REPOSO = 275 * Math.PI / 180;
+    var COBERTURA_VUELTA = 340 * Math.PI / 180;
+
+    var particulas = [];
+    for (var i = 0; i < N; i++){
+      particulas.push({
+        t: i / N,
+        tono: TONOS[(Math.random() * TONOS.length) | 0],
+        r: 0.6 + Math.random() * 0.9,
+        jFase: Math.random() * 6.283,
+        jVel: 0.5 + Math.random() * 0.6,
+        jAmp: 1.6 + Math.random() * 2.6,
+        // Offset radial FIJO por partícula (no cambia cuadro a cuadro):
+        // todas al mismo radio se ve como una línea; con esta banda se
+        // ve como una franja de arena de varios granos de espesor.
+        banda: (Math.random() * 2 - 1) * BANDA_PX
+      });
     }
-  }
-  cards.forEach(function(card){
-    card.addEventListener('toggle', function(){ if (card.open) estallido(card); });
-  });
 
-  // tilt 3D + foco de luz (solo puntero fino, nunca en reduced)
-  if (window.matchMedia('(pointer:fine)').matches && !reduced){
-    cards.forEach(function(card){
-      card.addEventListener('pointermove', function(e){
-        var r = card.getBoundingClientRect();
-        var px = (e.clientX - r.left)/r.width;
-        var py = (e.clientY - r.top)/r.height;
-        card.style.setProperty('--mx', (px*100).toFixed(1)+'%');
-        card.style.setProperty('--my', (py*100).toFixed(1)+'%');
-        if (!card.classList.contains('visible')) return;
-        card.classList.add('inclinando');
-        var rx = (0.5 - py)*7, ry = (px - 0.5)*8;
-        card.style.transform = 'perspective(800px) rotateX('+rx.toFixed(2)+'deg) rotateY('+ry.toFixed(2)+'deg) translateY(-4px)';
+    // Único estado tweedeable: la elipse donde "vive" el anillo ahora
+    // mismo, más coberturaRad (cuánto barre el arco) y rotacionBoost (el
+    // impulso extra de la vuelta inicial, Task 4). rotacion (abajo,
+    // variable de closure) es el giro ambiente continuo -independiente
+    // de a dónde esté viajando la elipse o de la vuelta completa.
+    var estado = { cx: 0, cy: 0, rx: 90, ry: 90, opacidad: 0, coberturaRad: COBERTURA_REPOSO, rotacionBoost: 0 };
+    var rotacion = 0, ultimoNow = 0, activo = false, tween = null;
+
+    function resize(){
+      W = stage.clientWidth; H = stage.clientHeight;
+      cv.width = W * DPR; cv.height = H * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Estado de reposo: mismo punto donde vivía el círculo sólido que
+    // reemplaza este efecto (36% del alto del escenario) -y donde vive
+    // ahora también el texto permanente .motor-permanente.
+    function centro(){
+      var radio = Math.min(95, W * 0.085, H * 0.16);
+      return { cx: W / 2, cy: H * 0.36, rx: radio, ry: radio };
+    }
+    // El anillo se agranda/achica para calzar con el tamaño real del
+    // panel (getBoundingClientRect en vivo, no un tamaño fijo -el texto
+    // de cada escena mide distinto), con un margen para que el trazo
+    // quede AFUERA del texto, no encima.
+    function elipseDe(el){
+      var r = el.getBoundingClientRect();
+      var base = stage.getBoundingClientRect();
+      return {
+        cx: r.left + r.width / 2 - base.left,
+        cy: r.top + r.height / 2 - base.top,
+        rx: r.width / 2 + 30,
+        ry: r.height / 2 + 26
+      };
+    }
+
+    function dibujar(now){
+      if (!activo) return;
+      var dt = ultimoNow ? Math.min(now - ultimoNow, 48) : 16;
+      ultimoNow = now;
+      rotacion += dt * 0.00015;
+      var anguloBase = rotacion + estado.rotacionBoost;
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'lighter';
+      for (var i = 0; i < particulas.length; i++){
+        var p = particulas[i];
+        // Los extremos del arco (cerca de t=0 o t=1, junto al hueco) se
+        // afinan en opacidad y tamaño -así no se ve un corte limpio tipo
+        // borde SVG, sino un trazo de arena que se dispersa hacia el
+        // hueco, orgánico.
+        var distExtremo = Math.min(p.t, 1 - p.t);
+        var borde = Math.min(1, distExtremo / 0.06);
+        if (borde <= 0.02) continue;
+        var ang = p.t * estado.coberturaRad + anguloBase;
+        var jx = Math.sin(now * 0.001 * p.jVel + p.jFase) * p.jAmp;
+        var jy = Math.cos(now * 0.0011 * p.jVel + p.jFase) * p.jAmp;
+        var x = estado.cx + Math.cos(ang) * (estado.rx + p.banda) + jx;
+        var y = estado.cy + Math.sin(ang) * (estado.ry + p.banda) + jy;
+        var a = 0.6 * estado.opacidad * borde;
+        if (a <= 0.01) continue;
+        ctx.fillStyle = 'rgba(' + p.tono + ',' + a.toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(x, y, p.r * (0.55 + 0.45 * borde), 0, 6.283); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      requestAnimationFrame(dibujar);
+    }
+    function arrancar(){
+      if (activo) return;
+      activo = true; ultimoNow = 0;
+      requestAnimationFrame(dibujar);
+    }
+
+    function irAEstado(destino, duracion){
+      if (tween) tween.kill();
+      tween = gsap.to(estado, {
+        cx: destino.cx, cy: destino.cy, rx: destino.rx, ry: destino.ry, opacidad: 1,
+        duration: duracion, ease: 'power3.inOut'
       });
-      card.addEventListener('pointerleave', function(){
-        card.style.transform = '';
-        setTimeout(function(){ card.classList.remove('inclinando'); }, 380);
-      });
+    }
+
+    var c0 = centro();
+    estado.cx = c0.cx; estado.cy = c0.cy; estado.rx = c0.rx; estado.ry = c0.ry; estado.opacidad = 1;
+    arrancar();
+
+    return {
+      // fase 1 del viaje entre escenas: pasa por el centro, ya formado
+      // en círculo -mismo estado de reposo inicial-.
+      irACentro: function(){ resize(); irAEstado(centro(), 0.5); },
+      // fase 2: envuelve el panel (se llama recién cuando el panel ya
+      // tiene el contenido/tamaño de la escena nueva, para medir bien).
+      irA: function(panelEl){ if (panelEl) irAEstado(elipseDe(panelEl), 0.6); },
+      // Vuelta completa: pasa UNA sola vez, al arrancar el scroll (ver
+      // "arrancoAro" más abajo). Dos tramos en una sola timeline:
+      // 1) impulso de rotación de 360° (rotacionBoost 0→2π) MIENTRAS el
+      //    hueco se angosta (coberturaRad sube hasta COBERTURA_VUELTA,
+      //    nunca hasta 2π -el arco no se cierra, solo gira una vuelta
+      //    entera alrededor del texto permanente).
+      // 2) recién cuando ese tramo termina, el hueco se reabre a su
+      //    tamaño normal (coberturaRad baja de vuelta a COBERTURA_REPOSO).
+      // onDone se llama después de la reapertura -ahí, y no antes, debe
+      // arrancar el viaje hacia el panel de la primera escena.
+      vueltaInicial: function(onDone){
+        var tl = gsap.timeline({ onComplete: function(){ rotacion += estado.rotacionBoost; estado.rotacionBoost = 0; if (onDone) onDone(); } });
+        tl.to(estado, { rotacionBoost: Math.PI * 2, coberturaRad: COBERTURA_VUELTA, duration: 1.2, ease: 'power2.inOut' }, 0);
+        tl.to(estado, { coberturaRad: COBERTURA_REPOSO, duration: 0.35, ease: 'power2.out' });
+      }
+    };
+  }
+  var polvoAro = construirPolvoAro(document.getElementById('lienzo-polvo-motor'), fijo);
+
+  // Contenido de las 12 escenas -mismo texto que ya se redactó para el
+  // diagrama radial anterior (data-detalle), reordenado con Causa raíz
+  // primero (como pide la referencia) y sumando kicker + escena de cierre.
+  var escenas = [
+    { kicker:'El origen', titulo:'Causa raíz', lado:'izq',
+      desc:'No nos detenemos únicamente en el síntoma. Buscamos comprender qué factores pueden estar relacionados con lo que está ocurriendo.' },
+    { kicker:'La energía', titulo:'Metabolismo', lado:'der',
+      desc:'Cómo tu cuerpo convierte comida en energía — y por qué, cuando ese proceso se desregula, se siente como cansancio sin causa aparente.' },
+    { kicker:'El combustible', titulo:'Nutrición', lado:'izq',
+      desc:'Lo que comes es información para cada célula. No se trata de dietas estrictas, sino de darle a tu cuerpo lo que necesita para reparar y regular.' },
+    { kicker:'La conversación interna', titulo:'Salud digestiva', lado:'der',
+      desc:'Tu intestino no solo digiere: conversa con tu sistema inmune y tu cerebro. Ahí empiezan —y a veces terminan— muchos síntomas que parecían no tener relación.' },
+    { kicker:'El mensajero', titulo:'Equilibrio hormonal', lado:'izq',
+      desc:'Tiroides, cortisol, hormonas sexuales: rara vez fallan solas. Un desajuste en una suele arrastrar a las demás.' },
+    { kicker:'La respuesta', titulo:'Inflamación', lado:'der',
+      desc:'La respuesta natural de defensa de tu cuerpo, cuando se queda encendida de más, es el hilo común detrás de dolor, fatiga y piel reactiva.' },
+    { kicker:'El mando', titulo:'Sistema nervioso', lado:'izq',
+      desc:'Regula desde tu digestión hasta tu ánimo. Cuando vive en alerta constante, todo el cuerpo lo nota.' },
+    { kicker:'La señal', titulo:'Estrés', lado:'der',
+      desc:'No es solo lo que sientes: es una cascada bioquímica medible que reorganiza cómo tu cuerpo prioriza energía, digestión e inmunidad.' },
+    { kicker:'La reparación', titulo:'Sueño y recuperación', lado:'izq',
+      desc:'Es cuando tu cuerpo repara lo que el día desgastó. Dormir mal no es un síntoma menor: es una causa raíz en sí misma.' },
+    { kicker:'La defensa', titulo:'Sistema inmunológico', lado:'der',
+      desc:'Su trabajo es distinguir amigo de enemigo. Cuando pierde esa claridad, aparecen alergias, sensibilidades y enfermedad autoinmune.' },
+    { kicker:'El reflejo', titulo:'Salud cardiovascular', lado:'izq',
+      desc:'El corazón no trabaja aislado: refleja la inflamación y el desgaste metabólico y hormonal acumulados durante años.' },
+    // Sin kicker ni título: "Medicina Funcional" ya está siempre visible
+    // como texto permanente (.motor-permanente) -repetirlo acá quedaría
+    // duplicado en pantalla al mismo tiempo.
+    { kicker:'', titulo:'', lado:'centro',
+      desc:'Una mirada integral para comprender qué está detrás de tus síntomas.' }
+  ];
+
+  function mostrarEscena(i, instantaneo){
+    var e = escenas[i];
+    function cambiar(){
+      kickerEl.textContent = e.kicker;
+      tituloEl.textContent = e.titulo;
+      descEl.textContent = e.desc;
+      panel.className = 'motor-panel motor-panel--' + e.lado;
+      // Escena de cierre: sin kicker/título (ver dato de la escena 12) -
+      // estas clases los ocultan del todo para que no quede el puntito
+      // decorativo del kicker huérfano ni un hueco de layout.
+      panel.classList.toggle('motor-panel--sin-kicker', !e.kicker);
+      panel.classList.toggle('motor-panel--sin-titulo', !e.titulo);
+      void panel.offsetWidth; // fuerza reflow para que la transición vuelva a correr
+      panel.classList.add('visible');
+      // recién ahora el panel tiene el tamaño/posición de ESTA escena
+      // (contenido y clase --izq/--der/--centro ya aplicados), así que
+      // recién ahora se puede medir bien para el anillo. Excepto la
+      // primerísima llamada (instantaneo, al cargar la página, todavía
+      // sin scroll): ahí el anillo se queda quieto en el centro -recién
+      // viaja cuando el usuario empieza a desplazarse de verdad, ver el
+      // "primer viaje" en el ScrollTrigger de abajo.
+      if (!instantaneo) polvoAro.irA(panel);
+    }
+    if (instantaneo){ cambiar(); }
+    else {
+      panel.classList.remove('visible');
+      polvoAro.irACentro(); // fase 1: se recoge al centro mientras el panel viejo se apaga
+      setTimeout(cambiar, 260); // fase 2 (adentro de cambiar): viaja al panel nuevo
+    }
+    railPuntos.forEach(function(b){
+      b.classList.toggle('activo', parseInt(b.getAttribute('data-i'), 10) === i);
     });
   }
-})(); }catch(e){ console.error('Kairal: efectos de servicios no disponibles.', e); }
+
+  function saltarAEscena(i){
+    // offsetTop es relativo al ancestro posicionado más cercano (acá,
+    // .acto-motor), no a la página -con eso el salto caía en cualquier
+    // parte. getBoundingClientRect().top + scrollY da la posición real.
+    var top = pista.getBoundingClientRect().top + window.scrollY;
+    var total = pista.offsetHeight - window.innerHeight;
+    window.scrollTo({ top: top + total * (i / (escenas.length - 1)), behavior: 'smooth' });
+  }
+  railPuntos.forEach(function(b){
+    b.addEventListener('click', function(){ saltarAEscena(parseInt(b.getAttribute('data-i'), 10)); });
+  });
+
+  var actual = 0, arrancoAro = false;
+  mostrarEscena(0, true);
+
+  if (!reducedLocal){
+    ScrollTrigger.create({
+      trigger: pista,
+      start: 'top top',
+      end: 'bottom bottom',
+      onUpdate: function(self){
+        var p = self.progress;
+        // Primer viaje del anillo: recién cuando el usuario empieza a
+        // scrollear de verdad (no en el mostrarEscena(0,true) del
+        // arranque, que corre con la sección todavía fuera de pantalla).
+        // idx sigue en 0 en este punto, así que mostrarEscena(idx) más
+        // abajo no se dispara solo -este es el único momento en que la
+        // escena 0 recibe su viaje.
+        // La vuelta completa (una sola vez) pasa ANTES del viaje: recién
+        // cuando termina de reabrirse el hueco (onDone) arranca irA().
+        if (!arrancoAro && p > 0.002){ arrancoAro = true; polvoAro.vueltaInicial(function(){ polvoAro.irA(panel); }); }
+        var idx = Math.max(0, Math.min(escenas.length - 1, Math.round(p * (escenas.length - 1))));
+        if (idx !== actual){ actual = idx; mostrarEscena(idx, false); }
+        if (hint) hint.classList.toggle('oculto', p > 0.035);
+      }
+    });
+  }
+})(); }catch(e){ console.error('Kairal: motor de scroll no disponible.', e); }
 
 /* ============================================================
    10 · MENÚ MÓVIL
@@ -2011,206 +2389,18 @@ try{
   var inputRaiz = document.getElementById('raiz-input');
   var chipsRaiz = document.getElementById('raiz-chips');
   var footerAbrirRaiz = document.getElementById('footer-abrir-raiz');
-  var cvPolvoRaiz = document.getElementById('lienzo-polvo-raiz');
   // Estado inicial del cuerpo (saludo + disclaimer), para poder volver a él
   // con "Nueva conversación" sin duplicar ese texto acá también.
   var estadoInicialRaiz = cuerpoRaiz ? cuerpoRaiz.innerHTML : '';
-
-  // Espectáculo de drones: cada partícula tiene un destino ASIGNADO y el
-  // conjunto de esos destinos dibuja la silueta del panel (contorno
-  // redondeado + relleno interior). Al abrir, el enjambre llega disperso y
-  // se ensambla en esa formación; al cerrar parte de la formación armada y
-  // cada dron se desprende con su propia trayectoria hacia afuera. No es una
-  // nube que cambia de densidad: cada punto viaja de A a B con curva, retraso
-  // propio y easing, que es lo que hace legible el "se está armando la caja".
-  function construirPolvoRaiz(cv){
-    if (!cv) return { abrir:function(){}, cerrar:function(){} };
-    var ctx = cv.getContext('2d');
-    var W = 0, H = 0, drones = [], activo = false, fase = null, t0 = 0, dur = 0, serie = 0;
-    var DUR_ABRIR = 1250;  // el enjambre termina de aterrizar ~950ms y se apaga al final
-    var DUR_CERRAR = 760;  // el panel recién se apaga a los .46s (ver .panel-raiz en el CSS)
-    var RADIO = 22;        // debe seguir al border-radius de .panel-raiz
-    // Canales rgb sueltos para poder componer rgba() con alfa variable por
-    // dron. Mayoría --duna, con pizcas de --bruma y --alba como luces frías/cálidas.
-    var TONOS = ['201,183,154','201,183,154','201,183,154','127,181,171','242,166,90'];
-    var punto = { x:0, y:0 };
-
-    function resize(){
-      W = panelRaiz.clientWidth; H = panelRaiz.clientHeight;
-      cv.width = W * DPR; cv.height = H * DPR;
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    }
-
-    // Punto del contorno del rectángulo redondeado parametrizado por LONGITUD
-    // de arco (no por ángulo): así los drones quedan repartidos parejo por el
-    // borde en vez de amontonarse en las cuatro esquinas.
-    function puntoContorno(s, r){
-      var lh = Math.max(W - 2 * r, 0);   // tramo recto horizontal
-      var lv = Math.max(H - 2 * r, 0);   // tramo recto vertical
-      var la = Math.PI * r / 2;          // cuarto de circunferencia
-      var d = s * (2 * lh + 2 * lv + 4 * la), a;
-      if (d < lh) return { x: r + d, y: 0 };
-      d -= lh;
-      if (d < la){ a = -Math.PI / 2 + (d / la) * (Math.PI / 2); return { x: W - r + Math.cos(a) * r, y: r + Math.sin(a) * r }; }
-      d -= la;
-      if (d < lv) return { x: W, y: r + d };
-      d -= lv;
-      if (d < la){ a = (d / la) * (Math.PI / 2); return { x: W - r + Math.cos(a) * r, y: H - r + Math.sin(a) * r }; }
-      d -= la;
-      if (d < lh) return { x: W - r - d, y: H };
-      d -= lh;
-      if (d < la){ a = Math.PI / 2 + (d / la) * (Math.PI / 2); return { x: r + Math.cos(a) * r, y: H - r + Math.sin(a) * r }; }
-      d -= la;
-      if (d < lv) return { x: 0, y: H - r - d };
-      d -= lv;
-      a = Math.PI + Math.min(d / la, 1) * (Math.PI / 2);
-      return { x: r + Math.cos(a) * r, y: r + Math.sin(a) * r };
-    }
-
-    function crearDrones(n, haciaLaFormacion){
-      drones = [];
-      var borde = Math.round(n * 0.72);
-      var interior = n - borde;
-      // El relleno va en grilla con ruido: el azar puro deja grumos y huecos
-      // que rompen la lectura de "volumen" del cuadro.
-      var cols = Math.max(1, Math.round(Math.sqrt(Math.max(interior, 1) * (W / Math.max(H, 1)))));
-      var filas = Math.max(1, Math.ceil(Math.max(interior, 1) / cols));
-      for (var i = 0; i < n; i++){
-        var f, k;
-        if (i < borde){
-          // pequeño jitter en el parámetro para que el borde no se vea "de regla"
-          f = puntoContorno(((i + Math.random() * 0.65) % borde) / borde, RADIO);
-        } else {
-          k = i - borde;
-          f = {
-            x: 15 + ((k % cols) + 0.5) / cols * Math.max(W - 30, 1) + (Math.random() - 0.5) * 14,
-            y: 15 + (Math.floor(k / cols) % filas + 0.5) / filas * Math.max(H - 30, 1) + (Math.random() - 0.5) * 14
-          };
-        }
-        // Dispersión: en anillo alrededor del centro del panel, con radios que
-        // caen dentro y fuera del recorte, para que unos entren desde el borde
-        // y otros ya estén sueltos adentro (enjambre, no cortina).
-        var ang = Math.random() * 6.283;
-        var lejos = 0.62 + Math.random() * 0.62;
-        var disp = {
-          x: W / 2 + Math.cos(ang) * (W / 2) * lejos,
-          y: H / 2 + Math.sin(ang) * (H / 2) * lejos
-        };
-        var o = haciaLaFormacion ? disp : f;
-        var dst = haciaLaFormacion ? f : disp;
-        var mx = (o.x + dst.x) / 2, my = (o.y + dst.y) / 2;
-        var vx = dst.x - o.x, vy = dst.y - o.y;
-        var largoV = Math.sqrt(vx * vx + vy * vy) || 1;
-        // Control de la Bézier desplazado en la perpendicular: da trayectorias
-        // curvas y distintas entre sí, que es lo que se lee como "vuelo".
-        var arco = (Math.random() - 0.5) * largoV * 0.42;
-        drones.push({
-          ox: o.x, oy: o.y, tx: dst.x, ty: dst.y,
-          cx: mx + (-vy / largoV) * arco,
-          cy: my + (vx / largoV) * arco,
-          r: 0.75 + Math.random() * 1.35,
-          tono: TONOS[(Math.random() * TONOS.length) | 0],
-          retraso: Math.random() * (haciaLaFormacion ? 0.34 : 0.26),
-          largo: (haciaLaFormacion ? 0.40 : 0.42) + Math.random() * 0.20,
-          ph: Math.random() * 6.283
-        });
-      }
-    }
-
-    function enCurva(d, e){
-      var u = 1 - e;
-      punto.x = u * u * d.ox + 2 * u * e * d.cx + e * e * d.tx;
-      punto.y = u * u * d.oy + 2 * u * e * d.cy + e * e * d.ty;
-      return punto;
-    }
-
-    // Devuelve si queda animación por delante (quien la agenda decide seguir).
-    function cuadro(now){
-      if (!t0) t0 = now;
-      var t = (now - t0) / dur;
-      if (t >= 1){ activo = false; ctx.clearRect(0, 0, W, H); return false; }
-      var abriendo = fase === 'abrir';
-      ctx.clearRect(0, 0, W, H);
-      ctx.lineCap = 'round';
-      // 'lighter' sobre el fondo oscuro del panel: los cruces de drones suman
-      // luz en vez de taparse, que es como se ve un enjambre real de luces.
-      ctx.globalCompositeOperation = 'lighter';
-      // Al abrir, las luces se apagan una vez completada la formación para
-      // dejar a la vista el contenido real (que llega con su propio fade CSS).
-      var global = abriendo ? (t < 0.76 ? 1 : Math.max(1 - (t - 0.76) / 0.24, 0)) : 1;
-      for (var i = 0; i < drones.length; i++){
-        var d = drones[i];
-        var p = (t - d.retraso) / d.largo;
-        if (p <= 0){
-          // Antes de despegar: al abrir aún no existe; al cerrar sigue posado
-          // en la formación, así el cuadro se ve armado hasta que se suelta.
-          if (abriendo) continue;
-          p = 0;
-        } else if (p > 1) p = 1;
-        // Llegando frenan (easeOut) y saliendo aceleran (easeIn): la asimetría
-        // es lo que distingue "aterrizar en formación" de "salir disparado".
-        var e = abriendo ? 1 - Math.pow(1 - p, 3) : p * p;
-        var a = abriendo ? Math.min(p / 0.18, 1) : 1 - p * p;
-        if (abriendo && p >= 1) a *= 0.72 + 0.28 * Math.sin(now / 95 + d.ph); // titileo posado
-        a *= global;
-        if (a <= 0.012) continue;
-        // enCurva reusa un mismo objeto, así que hay que copiar el punto
-        // anterior antes de pedir el actual.
-        var q = enCurva(d, Math.max(e - 0.055, 0));
-        var lx = q.x, ly = q.y;
-        q = enCurva(d, e);
-        var x = q.x, y = q.y;
-        if (abriendo && p >= 1){
-          // micro-deriva en el punto de destino: parecen sostenerse en el aire
-          x += Math.sin(now / 430 + d.ph) * 0.7;
-          y += Math.cos(now / 390 + d.ph) * 0.7;
-        } else {
-          ctx.strokeStyle = 'rgba(' + d.tono + ',' + (a * 0.42).toFixed(3) + ')';
-          ctx.lineWidth = d.r * 1.05;
-          ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke();
-        }
-        ctx.fillStyle = 'rgba(' + d.tono + ',' + a.toFixed(3) + ')';
-        ctx.beginPath(); ctx.arc(x, y, d.r, 0, 6.283); ctx.fill();
-      }
-      ctx.globalCompositeOperation = 'source-over';
-      return true;
-    }
-
-    function lanzar(nuevaFase){
-      if (reduced) return;
-      resize();
-      fase = nuevaFase;
-      dur = nuevaFase === 'abrir' ? DUR_ABRIR : DUR_CERRAR;
-      crearDrones(movil ? 105 : 185, nuevaFase === 'abrir');
-      t0 = 0; activo = true;
-      // Token por lanzamiento: si se alterna rápido el FAB, el bucle anterior
-      // se corta en vez de quedar dibujando en paralelo con el nuevo.
-      var mio = ++serie;
-      requestAnimationFrame(function paso(now){
-        if (mio !== serie || !activo) return;
-        if (cuadro(now)) requestAnimationFrame(paso);
-      });
-    }
-
-    window.addEventListener('resize', function(){ if (panelRaiz.classList.contains('abierto')) resize(); });
-
-    return {
-      abrir: function(){ lanzar('abrir'); },
-      cerrar: function(){ lanzar('cerrar'); }
-    };
-  }
-  var polvoRaizCtl = construirPolvoRaiz(cvPolvoRaiz);
 
   if (fabRaiz && panelRaiz){
     function abrirRaiz(){
       panelRaiz.classList.add('abierto');
       panelRaiz.setAttribute('aria-hidden','false');
       fabRaiz.setAttribute('aria-expanded','true');
-      polvoRaizCtl.abrir();
       if (!movil && inputRaiz) setTimeout(function(){ inputRaiz.focus(); }, 350);
     }
     function cerrarRaizPanel(){
-      polvoRaizCtl.cerrar();
       panelRaiz.classList.remove('abierto');
       panelRaiz.setAttribute('aria-hidden','true');
       fabRaiz.setAttribute('aria-expanded','false');
@@ -2242,7 +2432,7 @@ try{
     // base de respuestas: palabra clave -> contenido real de la página
     var baseRaiz = [
       { k:['servicio','medicina funcional','pni','psiconeuro','bioregul','ofrec'],
-        r:'Kairal trabaja con cuatro enfoques: Medicina General, Medicina Funcional, Medicina Bioreguladora y Psiconeuroinmunología. Puedes ver el detalle de cada uno en la sección "Servicios" de esta página.' },
+        r:'Kairal trabaja con un enfoque de Medicina Funcional: en vez de tratar cada síntoma por separado, busca la causa raíz conectando metabolismo, hormonas, sistema nervioso, inmune y más. Puedes explorarlo en la sección "Servicios" de esta página.' },
       { k:['metodo','método','proceso','como trabajan','pasos','evaluacion','diagnostico'],
         r:'El método tiene 4 etapas: Escuchar (evaluación de 60–90 min), Mapear (laboratorios funcionales), Sembrar (plan personalizado) y Cultivar (seguimiento continuo). Puedes verlo animado en la sección "El método".' },
       { k:['precio','costo','valor','cuanto cuesta','plata','arancel'],
@@ -2315,22 +2505,25 @@ try{
   var btn = document.getElementById('velo-btn');
   var cvv = document.getElementById('lienzo-velo');
   document.documentElement.classList.add('velado');
+  // Refuerzo del arranque-desde-el-hero: además del scrollRestoration:manual
+  // del <head>, se vuelve a llevar el scroll al tope acá (el layout ya está
+  // listo al final del body) y en el evento load, por si el navegador
+  // restauró la posición antes de que corriera lo del <head>.
+  window.scrollTo(0, 0);
+  window.addEventListener('load', function(){ window.scrollTo(0, 0); });
   var entrado = false, fin = false;
 
   function entrar(){
     if (entrado) return;
     entrado = true;
+    // La página siempre arranca desde el hero (ver scrollRestoration:manual
+    // en el <head>), así que al soltar el preloader nos aseguramos de estar
+    // en el tope antes de lanzar la entrada del hero.
+    window.scrollTo(0, 0);
     velo.classList.add('fuera');
     document.documentElement.classList.remove('velado');
     terreno.amanecer();
-    // Si la página se cargó con el scroll ya movido (recarga en otra
-    // sección, restauración nativa del navegador), el hero puede estar
-    // fuera de vista — se le pasa a lanzarHero() para que se salte la
-    // animación vistosa y solo asiente el estado final en silencio (ver
-    // definición de lanzarHero, más arriba en el archivo, para el porqué
-    // completo: si nunca se llama en absoluto, el hero queda invisible
-    // para siempre aunque el usuario vuelva a subir hasta ahí).
-    if (lanzarHero) lanzarHero(window.scrollY >= window.innerHeight * 0.5);
+    if (lanzarHero) lanzarHero();
     setTimeout(function(){ velo.style.display = 'none'; fin = true; }, 1300);
   }
   btn.addEventListener('click', entrar);
@@ -2397,11 +2590,103 @@ try{
 })();
 
 /* ============================================================
-   12 · BLOG DINÁMICO — feed real de Sanity
+   12 · BLOG DINÁMICO — feed real de Sanity + rotación de texto
    Mismo patrón que kairal-main/script.js: si falla, se deja el
    artículo de respaldo que ya está en el HTML.
 ============================================================ */
 (function(){
+  // Palabra por palabra, con blur -MISMO efecto que "El blog de
+  // Kairal." (splitWords en la sección 2), pero es su propia copia:
+  // esta IIFE es un scope aparte, sin acceso por clausura a la de ahí.
+  function splitWordsBlog(el){
+    var nodos = Array.prototype.slice.call(el.childNodes);
+    el.innerHTML = '';
+    nodos.forEach(function(n){
+      if (n.nodeType === 3){
+        n.textContent.split(/\s+/).filter(Boolean).forEach(function(w){
+          var s = document.createElement('span'); s.className = 'w'; s.textContent = w;
+          el.appendChild(s); el.appendChild(document.createTextNode(' '));
+        });
+      }
+    });
+    return el.querySelectorAll('.w');
+  }
+
+  // Rotación de texto de la tarjeta única del blog: cada 2s pasa al
+  // post siguiente. El título entra palabra por palabra con blur -el
+  // mismo efecto que "El blog de Kairal."-, categoría/párrafo/botón
+  // entran con un fundido simple (igual que el eyebrow/párrafo/CTAs del
+  // hero, que tampoco se parten en palabras -ese tratamiento se reserva
+  // para titulares). La pila de fotos sigue su propio ciclo por CSS
+  // (blog-pila-N, también 2s por rol) sin depender de esto.
+  function iniciarRotacion(card){
+    if (!card || !window.gsap) return; // sin JS/gsap: se queda el post 1 fijo (ya visible por CSS)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var slides = Array.prototype.slice.call(card.querySelectorAll('.blog-texto-slide'));
+    if (slides.length < 2) return;
+
+    function ocultarYa(slide){
+      gsap.set(slide, { visibility: 'hidden' });
+      var elC = slide.querySelector('.blog-cat'), elP = slide.querySelector('p'), elB = slide.querySelector('.btn');
+      gsap.set([elC, elP, elB].filter(Boolean), { opacity: 0, y: 14 });
+    }
+    slides.forEach(function(s, i){ if (i !== 0) ocultarYa(s); });
+
+    function mostrar(slide){
+      // El CSS de arranque (.blog-texto-slide--2/--3{opacity:0}) deja el
+      // PADRE en opacity:0 -si acá solo se cambia visibility, la opacity
+      // del padre se queda en 0 para siempre y multiplica a 0 la de
+      // cualquier hijo, por más que ese hijo esté animado a 1-. Hay que
+      // resetear la opacity del padre además de la visibility.
+      slide.style.opacity = '1';
+      slide.style.visibility = 'visible';
+      var elC = slide.querySelector('.blog-cat'), elH = slide.querySelector('h3'),
+          elP = slide.querySelector('p'), elB = slide.querySelector('.btn');
+      var palabras = splitWordsBlog(elH);
+      gsap.set(palabras, { opacity: 0, y: 20, filter: 'blur(5px)' });
+      gsap.set([elC, elP, elB].filter(Boolean), { opacity: 0, y: 14 });
+      var tl = gsap.timeline();
+      tl.to(elC, { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out' })
+        .to(palabras, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.4, stagger: 0.035, ease: 'power3.out' }, '-=.12')
+        .to(elP, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out' }, '-=.15')
+        .to(elB, { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out' }, '-=.12');
+    }
+
+    var idx = 0, timer;
+    function siguiente(){
+      if (!document.body.contains(card)){ clearInterval(timer); return; } // la tarjeta se reemplazo (ver fetch mas abajo)
+      var prev = slides[idx];
+      idx = (idx + 1) % slides.length;
+      var next = slides[idx];
+      var salientes = prev.querySelectorAll('.blog-cat,h3,p,.btn');
+      // mostrar(next) va DENTRO del onComplete, no en paralelo: si el
+      // texto que entra empieza a aparecer mientras el anterior todavía
+      // se está apagando, hay un instante con dos títulos parcialmente
+      // visibles a la vez -se lee como texto encimado, no como una
+      // transición linda (a diferencia de la pila de fotos, que sí se
+      // funde bien). Primero se apaga del todo, recién ahí entra el
+      // siguiente.
+      gsap.to(salientes, {
+        opacity: 0, duration: 0.22,
+        onComplete: function(){ prev.style.visibility = 'hidden'; mostrar(next); }
+      });
+    }
+
+    // Igual que el resto del sitio: la animación arranca recién cuando
+    // la tarjeta entra en pantalla, no apenas carga la página.
+    var io = new IntersectionObserver(function(ents){
+      ents.forEach(function(en){
+        if (en.isIntersecting){
+          mostrar(slides[0]);
+          timer = setInterval(siguiente, 2000);
+          io.unobserve(card);
+        }
+      });
+    }, { threshold: 0.3 });
+    io.observe(card);
+  }
+  iniciarRotacion(document.getElementById('blog-rotativo'));
+
   var SANITY_PROJECT_ID = 'zu3r11hb';
   var SANITY_DATASET = 'production';
   var SANITY_API_URL = 'https://' + SANITY_PROJECT_ID + '.api.sanity.io/v2021-10-21/data/query/' + SANITY_DATASET;
@@ -2417,62 +2702,106 @@ try{
     s = String(s || '').replace(/\s+/g, ' ').trim();
     return s.length > max ? s.slice(0, max).trim() + '…' : s;
   }
-  function tarjeta(post){
+  // Mismo decodificador de ref de Sanity que usa kairal-main/script.js: el
+  // ref del asset viene como "image-<id>-<ancho>x<alto>-<formato>" y hay que
+  // recomponerlo a mano en la URL del CDN (no hace falta pedirle la URL a la
+  // API, Sanity la deriva de forma determinística a partir del ref).
+  function sanityImageUrl(ref){
+    if (!ref) return '';
+    var partes = ref.split('-');
+    var id = partes[1], dimensiones = partes[2], formato = partes[3];
+    if (!id || !dimensiones || !formato) return '';
+    return 'https://cdn.sanity.io/images/' + SANITY_PROJECT_ID + '/' + SANITY_DATASET + '/' +
+      id + '-' + dimensiones + '.' + formato + '?w=600&q=75&fit=max&auto=format&fm=webp';
+  }
+  var fallbackSvg = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6c4 6-2 8-2 13a6 6 0 0 0 12 0c0-2-1-3-1-3 1 6-3 8-3 8a8 8 0 0 1-6-14c0-2 0-3 0-4Z"/></svg>';
+  // Una capa de la pila = la foto de ESE post (no la misma repetida): a
+  // diferencia de cuando cada post tenía su propia tarjeta chica, acá los
+  // 3 conviven en una sola tarjeta, así que cada capa sí es distinta.
+  function capaFoto(post, capa){
+    var refImg = post.image && post.image.asset && post.image.asset._ref;
+    var urlImg = refImg ? sanityImageUrl(refImg) : '';
+    var imgTag = urlImg
+      ? '<img src="' + escHtml(urlImg) + '" alt="' + (capa === 1 ? escHtml(post.title) : '') + '" ' +
+        (capa === 1 ? 'loading="lazy"' : 'aria-hidden="true"') +
+        ' onerror="this.closest(\'.blog-foto\').classList.add(\'sin-foto\')">'
+      : '';
+    return '<span class="blog-foto blog-foto--' + capa + (urlImg ? '' : ' sin-foto') + '">' + imgTag + fallbackSvg + '</span>';
+  }
+  function slideTexto(post, capa){
     var cat = escHtml(post.category || 'Medicina funcional');
     var titulo = escHtml(post.title);
     var extractoCompleto = String(post.excerpt || '').replace(/\s+/g, ' ').trim();
-    var teaser = escHtml(recortar(extractoCompleto, 130));
-    var extractoLargo = escHtml(extractoCompleto);
+    var teaser = escHtml(recortar(extractoCompleto, 150));
     var slug = escHtml((post.slug && post.slug.current) || '');
-    return '<details class="blog-card blog-item">' +
-      '<summary>' +
-      '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="16"/></svg>' +
+    return '<div class="blog-texto-slide blog-texto-slide--' + capa + '">' +
       '<span class="blog-cat">' + cat + '</span>' +
-      '<h3>' + titulo + '</h3>' +
+      '<h3 class="rev">' + titulo + '</h3>' +
       '<p>' + teaser + '</p>' +
-      '<span class="blog-mas">Leer más ↓</span>' +
-      '</summary>' +
-      '<div class="blog-extra"><p>' + extractoLargo + '</p>' +
-      '<p style="margin-top:.8rem"><a href="https://kairal.cl/blog.html?slug=' + encodeURIComponent(slug) + '" style="color:var(--teal)">Leer el artículo completo →</a></p></div>' +
-      '</details>';
+      '<a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html?slug=' + encodeURIComponent(slug) + '" target="_blank" rel="noopener">Leer artículo →</a>' +
+      '</div>';
+  }
+  // Arma la tarjeta única con los 3 posts sincronizados (imagen y texto
+  // cambian juntos, ver blog-pila-N / blog-texto-N en el CSS). Si Sanity
+  // devuelve menos de 3 posts, se repiten en loop (post[i % length]) para
+  // no dejar capas vacías -el mecanismo de 3 roles queda igual.
+  function rotativo(posts){
+    var pila = '', textos = '';
+    for (var capa = 1; capa <= 3; capa++){
+      var post = posts[(capa - 1) % posts.length];
+      pila += capaFoto(post, capa);
+      textos += slideTexto(post, capa);
+    }
+    return '<div class="blog-card" id="blog-rotativo">' +
+      '<div class="blog-img">' + pila + '</div>' +
+      '<div class="blog-textos">' + textos + '</div>' +
+      '</div>';
   }
 
-  var query = encodeURIComponent('*[_type == "post"] | order(publishedAt desc)[0...3] { title, slug, category, publishedAt, excerpt }');
+  var query = encodeURIComponent('*[_type == "post"] | order(publishedAt desc)[0...3] { title, slug, category, publishedAt, excerpt, image }');
   fetch(SANITY_API_URL + '?query=' + query)
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (!data.result || !data.result.length) return; // deja el respaldo
       var grid = document.getElementById('blog-grid');
       if (!grid) return;
-      grid.innerHTML = data.result.map(tarjeta).join('');
-      // las tarjetas nuevas nunca pasaron por ioRev (se insertan después de que
-      // el IntersectionObserver ya se suscribió al cargar la página) — como el
-      // usuario ya está viendo esta sección, se revelan directamente.
+      grid.innerHTML = rotativo(data.result);
+      // la tarjeta nueva nunca pasó por ioRev (se inserta después de que el
+      // IntersectionObserver ya se suscribió al cargar la página) — como el
+      // usuario ya está viendo esta sección, se revela directamente.
       grid.querySelectorAll('.blog-card').forEach(function(c){ c.classList.add('visible'); });
+      // La tarjeta estática ya tenía su propia rotación arrancada (o
+      // esperando a entrar en pantalla) sobre el nodo viejo -que
+      // acabamos de reemplazar-; esta la vuelve a armar sobre la
+      // tarjeta real recién insertada. La rotación vieja se autolimpia
+      // sola en su próximo tick (ver el chequeo de contains() adentro).
+      iniciarRotacion(document.getElementById('blog-rotativo'));
+      // El CTA usa la clase .btn genérica del sitio (mismo relleno al hover,
+      // mismo cursor "grande" que cualquier otro botón) para que se sienta
+      // igual al resto -pero el magnetismo (sección 7 del JS) se engancha
+      // una sola vez a los .btn que existen al cargar la página, ANTES de
+      // este fetch; el botón recién insertado se queda sin ese listener si
+      // no se repite acá. Esta sección es su propia IIFE (no anidada
+      // dentro de la de la sección 7), así que no tiene acceso por clausura
+      // a la variable gsapOK de ahí -se recalcula la misma condición acá
+      // directo sobre window.gsap en vez de asumir el closure.
+      if (window.gsap){
+        grid.querySelectorAll('.btn').forEach(function(b){
+          b.addEventListener('mousemove', function(e){
+            var r = b.getBoundingClientRect();
+            gsap.to(b, {
+              x: ((e.clientX - r.left) / r.width - 0.5) * 16,
+              y: ((e.clientY - r.top) / r.height - 0.5) * 10,
+              duration: 0.4, ease: 'power3.out'
+            });
+          });
+          b.addEventListener('mouseleave', function(){
+            gsap.to(b, { x: 0, y: 0, duration: 0.85, ease: 'elastic.out(1,0.45)' });
+          });
+        });
+      }
     })
     .catch(function(e){ console.log('Blog dinámico: usando respaldo estático', e); });
-
-  // cursor contextual ("Leer más"): el bloque de la sección 7 engancha
-  // .blog-card summary una sola vez al cargar, antes de este fetch. Se usa
-  // delegación de eventos sobre document para cubrir también las tarjetas
-  // insertadas dinámicamente, sin depender del scope de esa sección.
-  document.addEventListener('mouseover', function(e){
-    if (!document.body.classList.contains('con-cursor')) return;
-    var el = e.target.closest && e.target.closest('.blog-card summary');
-    if (!el) return;
-    var curEl = document.getElementById('cursor');
-    if (!curEl) return;
-    var tagEl2 = curEl.querySelector('.cursor-tag');
-    if (tagEl2) tagEl2.textContent = 'Leer más';
-    curEl.classList.add('tagged');
-  });
-  document.addEventListener('mouseout', function(e){
-    if (!document.body.classList.contains('con-cursor')) return;
-    var el = e.target.closest && e.target.closest('.blog-card summary');
-    if (!el) return;
-    var curEl = document.getElementById('cursor');
-    if (curEl) curEl.classList.remove('tagged');
-  });
 })();
 
 /* ============================================================

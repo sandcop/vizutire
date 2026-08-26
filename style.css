@@ -343,8 +343,9 @@ body.reduced .tarjeta-etapa svg :is(path,circle){stroke-dashoffset:0}
 .acto-doctora::before{content:'';position:absolute;top:0;left:0;right:0;height:110px;background:linear-gradient(180deg,#0C2B28,rgba(12,43,40,0));pointer-events:none;z-index:2}
 .doctora-grid{display:grid;grid-template-columns:5fr 7fr;gap:clamp(2rem,6vw,5rem);align-items:center}
 @media(max-width:920px){.doctora-grid{grid-template-columns:1fr}}
+.retrato-envoltorio{position:relative}
 .retrato{
-  position:relative;border-radius:58% 42% 55% 45%/48% 55% 45% 52%;overflow:hidden;
+  position:relative;z-index:1;border-radius:58% 42% 55% 45%/48% 55% 45% 52%;overflow:hidden;
   aspect-ratio:4/5;background:linear-gradient(150deg,var(--duna),#a8957a);
   clip-path:inset(0 0 100% 0);
 }
@@ -359,6 +360,65 @@ body.reduced .tarjeta-etapa svg :is(path,circle){stroke-dashoffset:0}
   padding:.8rem 1.2rem;font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;
   box-shadow:0 12px 32px rgba(8,31,29,.35);
 }
+
+/* Pila de fotos: las 3 tarjetas viven en el MISMO punto, como un montoncito
+   de fotos sobre la mesa -no dispersas alrededor del retrato. Solo una está
+   "al frente" (tamaño completo, sin girar) y las otras dos quedan detrás,
+   más chicas, giradas y más abajo, asomando el borde -acumuladas, como una
+   galería. Cuál está al frente rota cada 2.6s (front->mid->back->front),
+   ciclo de 7.8s. z-index de la pila siempre queda por debajo del retrato
+   (z-index 1) para que este nunca quede tapado, sin importar el rol.
+   Grande a propósito (82% de la columna): mientras no haya una foto real
+   de la doctora, la pila es el elemento visual principal de esa columna,
+   no un detalle chico en una esquina. */
+.foto-inclinada{
+  position:absolute;overflow:hidden;
+  width:93%;aspect-ratio:4/5;top:1%;left:2%;
+  border-radius:16px;border:5px solid var(--arena);
+  background:linear-gradient(150deg,var(--duna),#a8957a);
+  box-shadow:0 16px 34px rgba(26,36,33,.22);
+}
+.foto-inclinada img{width:100%;height:100%;object-fit:cover;display:block}
+.foto-inclinada .fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center}
+.foto-inclinada .fallback svg{width:36%;height:36%;stroke:rgba(26,36,33,.3);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.foto-inclinada.sin-foto img{display:none}
+.foto-inclinada.sin-foto .fallback{display:flex}
+/* Mismas keyframes de rol (front/mid/back) para las tres; lo único que
+   cambia es en qué % del ciclo de 7.8s le toca cada rol a cada una -así
+   quedan sincronizadas para siempre, sin animation-delay (que se
+   desincroniza con el tiempo porque cada elemento reinicia su propio
+   período de forma independiente). */
+.foto-inclinada--1{animation:foto-pila-1 7.8s ease-in-out infinite}
+.foto-inclinada--2{animation:foto-pila-2 7.8s ease-in-out infinite}
+.foto-inclinada--3{animation:foto-pila-3 7.8s ease-in-out infinite}
+/* mid/back se desplazan hacia afuera del retrato (izquierda), no hacia
+   adentro -si no, el óvalo orgánico del retrato (z-index 1, más arriba
+   que la pila) las tapa por completo en vez de dejarlas asomar. */
+@keyframes foto-pila-1{
+  0%, 25.64%{ transform:translate(0,0) rotate(0deg) scale(1); opacity:1; z-index:0; }
+  33.33%, 58.97%{ transform:translate(-12%,5%) rotate(-5deg) scale(.94); opacity:.94; z-index:-1; }
+  66.67%, 92.3%{ transform:translate(-22%,12%) rotate(6deg) scale(.89); opacity:.88; z-index:-2; }
+  100%{ transform:translate(0,0) rotate(0deg) scale(1); opacity:1; z-index:0; }
+}
+@keyframes foto-pila-2{
+  0%, 25.64%{ transform:translate(-12%,5%) rotate(-5deg) scale(.94); opacity:.94; z-index:-1; }
+  33.33%, 58.97%{ transform:translate(-22%,12%) rotate(6deg) scale(.89); opacity:.88; z-index:-2; }
+  66.67%, 92.3%{ transform:translate(0,0) rotate(0deg) scale(1); opacity:1; z-index:0; }
+  100%{ transform:translate(-12%,5%) rotate(-5deg) scale(.94); opacity:.94; z-index:-1; }
+}
+@keyframes foto-pila-3{
+  0%, 25.64%{ transform:translate(-22%,12%) rotate(6deg) scale(.89); opacity:.88; z-index:-2; }
+  33.33%, 58.97%{ transform:translate(0,0) rotate(0deg) scale(1); opacity:1; z-index:0; }
+  66.67%, 92.3%{ transform:translate(-12%,5%) rotate(-5deg) scale(.94); opacity:.94; z-index:-1; }
+  100%{ transform:translate(-22%,12%) rotate(6deg) scale(.89); opacity:.88; z-index:-2; }
+}
+/* sin animación: pila estática (1 al frente, 2 y 3 detrás) */
+body.reduced .foto-inclinada--1{animation:none;transform:translate(0,0) rotate(0deg) scale(1);opacity:1;z-index:0}
+body.reduced .foto-inclinada--2{animation:none;transform:translate(-12%,5%) rotate(-5deg) scale(.94);opacity:.94;z-index:-1}
+body.reduced .foto-inclinada--3{animation:none;transform:translate(-22%,12%) rotate(6deg) scale(.89);opacity:.88;z-index:-2}
+@media(max-width:920px){
+  .foto-inclinada{width:88%;top:1%;left:2%}
+}
 .doctora-copy{position:relative}
 .doctora-copy .eyebrow{color:var(--teal)}
 .chispa{position:absolute;top:-2.4rem;left:2px;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#F2A65A 55%,rgba(242,166,90,0));box-shadow:0 0 18px rgba(242,166,90,.85),0 0 44px rgba(242,166,90,.35);opacity:0;pointer-events:none}
@@ -371,14 +431,35 @@ body.reduced .chispa{display:none}
 .firma{font-weight:600;font-size:1.05rem;color:var(--teal);margin-top:1.4rem}
 
 .viaje{margin-top:3rem}
-.viaje-linea{position:relative;height:2px;background:rgba(26,36,33,.15);margin:2.4rem 0 0}
-.viaje-fill{position:absolute;inset:0;width:0;background:var(--teal);transition:width 1.6s var(--ease-tierra)}
-.viaje.visible .viaje-fill,body.reduced .viaje-fill{width:100%}
+.viaje-linea{position:relative;height:26px;margin:2.4rem 0 0;overflow:visible}
+.viaje-linea svg{width:100%;height:100%;display:block;overflow:visible}
+/* Enredadera: el tallo se dibuja solo (mismo truco que los íconos de
+   .tarjeta-etapa, pero con pathLength="1" para no tener que calcular el
+   largo real del trazo -dasharray/dashoffset quedan siempre en 0..1) y
+   7 hojitas brotan a lo largo del tallo -no solo en los 4 países- al
+   ritmo lento en que el tallo las va alcanzando (3.6s en total, contra
+   1.6s antes). Los círculos de .hito se re-escalonan al mismo ritmo,
+   según en qué % del tallo cae cada país (x/600 del path).
+   Hoja 1 (x=4, país 1) →0s · Hoja 3 (x=200, país 2) →1.1s ·
+   Hoja 5 (x=400, país 3) →2.1s · Hoja 7 (x=596, país 4) →3.2s. */
+.viaje-tallo{fill:none;stroke:var(--teal);stroke-width:1.4;stroke-linecap:round;
+  stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 3.6s var(--ease-tierra)}
+.viaje.visible .viaje-tallo,body.reduced .viaje-tallo{stroke-dashoffset:0}
+.hoja-viaje{opacity:0;transform:scale(.3);transform-origin:0 0;
+  transition:opacity .6s var(--ease-tierra),transform .6s var(--ease-tierra)}
+.hoja-viaje path{fill:none;stroke:var(--teal);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.viaje.visible .hoja-viaje,body.reduced .hoja-viaje{opacity:1;transform:scale(1)}
+.viaje.visible .hoja-viaje--2,body.reduced .hoja-viaje--2{transition-delay:.5s}
+.viaje.visible .hoja-viaje--3,body.reduced .hoja-viaje--3{transition-delay:1.1s}
+.viaje.visible .hoja-viaje--4,body.reduced .hoja-viaje--4{transition-delay:1.6s}
+.viaje.visible .hoja-viaje--5,body.reduced .hoja-viaje--5{transition-delay:2.1s}
+.viaje.visible .hoja-viaje--6,body.reduced .hoja-viaje--6{transition-delay:2.6s}
+.viaje.visible .hoja-viaje--7,body.reduced .hoja-viaje--7{transition-delay:3.2s}
 .hitos{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;margin-top:-7px}
 .hito{position:relative;padding-top:1.4rem}
 .hito::before{content:'';position:absolute;top:0;left:0;width:12px;height:12px;border-radius:50%;background:var(--arena);border:2px solid var(--teal);transform:scale(0);transition:transform .5s var(--ease-tierra)}
 .viaje.visible .hito::before,body.reduced .hito::before{transform:scale(1)}
-.hito:nth-child(2)::before{transition-delay:.3s}.hito:nth-child(3)::before{transition-delay:.6s}.hito:nth-child(4)::before{transition-delay:.9s}
+.hito:nth-child(2)::before{transition-delay:1.1s}.hito:nth-child(3)::before{transition-delay:2.1s}.hito:nth-child(4)::before{transition-delay:3.2s}
 .hito b{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);display:block}
 .hito span{font-size:.85rem;color:rgba(26,36,33,.75);line-height:1.45;display:block;margin-top:.2rem}
 @media(max-width:640px){.hitos{grid-template-columns:repeat(2,1fr);row-gap:1.4rem}}
@@ -402,57 +483,136 @@ body.reduced .chispa{display:none}
 }
 body.reduced .mota{animation:none;opacity:.4}
 
-/* ============ SERVICIOS ============ */
-.acto-servicios{position:relative;z-index:1;padding:clamp(2rem,5vh,4rem) 0 clamp(5rem,11vh,8rem)}
-.servicios-head{max-width:42rem;margin-bottom:2.8rem}
-.servicios-head h2{font-size:clamp(2rem,3.6vw,3.2rem);margin:1rem 0 1rem}
-.servicios-head h2 em{font-family:var(--script);font-style:normal;letter-spacing:normal;font-size:1.25em;color:var(--teal)}
-.servicios-head p{color:rgba(26,36,33,.72)}
-.servicios-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.4rem}
-@media(max-width:1100px){.servicios-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.servicios-grid{grid-template-columns:1fr}}
-.servicio-card{
-  position:relative;
-  background:#FBF7EF;border-radius:20px;padding:2rem 1.7rem;
-  box-shadow:0 10px 30px rgba(26,36,33,.06);border:1px solid transparent;
-  opacity:0;transform:translateY(20px);
-  transition:opacity .8s var(--ease-tierra),transform .35s var(--ease-tierra),box-shadow .35s,border-color .35s;
-  --mx:50%;--my:50%;
+/* ============ SERVICIOS · MOTOR DE SCROLL (Medicina Funcional) ============
+   12 escenas (Causa raíz + 10 áreas + cierre) mapeadas a una progresión
+   continua 0→11 dentro de .motor-pista (altura = 12 "pantallas"). El
+   escenario queda anclado (position:sticky, igual patrón que
+   .metodo-escena) mientras se recorre; script.js traduce el progreso del
+   ScrollTrigger en el anillo de arena activo y el contenido -ver "14 ·
+   MOTOR DE SCROLL". */
+.acto-motor{position:relative;z-index:1}
+.motor-cabecera{padding:clamp(2rem,5vh,4rem) 0 1.5rem;max-width:30rem}
+.motor-cabecera h2{font-size:clamp(1.8rem,3.2vw,2.6rem);margin-top:.7rem}
+.motor-cabecera h2 em{font-family:var(--script);font-style:normal;letter-spacing:normal;font-size:1.2em;color:var(--teal)}
+
+.motor-pista{position:relative;height:calc(12 * 85vh)}
+body.reduced .motor-pista{height:auto}
+.motor-fijo{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
+body.reduced .motor-fijo{position:relative;height:auto;min-height:70vh;padding:2rem 0}
+
+/* Anillo de arena: reemplaza al círculo sólido -mismo efecto de
+   partículas que #lienzo-polvo-textos en el hero (mismos tonos: duna,
+   bruma, alba), pero acá no trazan letras, trazan el contorno de una
+   elipse que gira sola sin parar y viaja (ver construirPolvoAro en el
+   JS) -pasando siempre por el centro- para envolver el panel que esté
+   activo. pointer-events:none para no tapar los clicks del riel/panel. */
+.motor-polvo{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+body.reduced .motor-polvo{display:none}
+
+/* Etiqueta fija en el mismo punto donde reposa el arco (36% del alto del
+   escenario, ver centro() en construirPolvoAro) -nunca se mueve, nunca
+   se oculta, ni siquiera cuando el arco viaja lejos a un panel lateral.
+   Vive fuera del canvas y fuera de las clases que cambian con cada
+   escena, así no depende de ninguna transición. */
+.motor-permanente{
+  position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);z-index:3;
+  margin:0;font-family:var(--mono);font-size:.72rem;letter-spacing:.22em;
+  text-transform:uppercase;color:rgba(26,36,33,.55);text-align:center;
+  pointer-events:none;
 }
-.servicio-card.visible,body.reduced .servicio-card{opacity:1;transform:none}
-.servicio-card:hover{border-color:rgba(14,124,107,.28);box-shadow:0 24px 48px rgba(26,36,33,.14)}
-.servicio-card.inclinando{transition:opacity .8s var(--ease-tierra),transform .12s ease-out,box-shadow .35s,border-color .35s}
-/* foco de luz que sigue al cursor dentro de la tarjeta */
-.servicio-card::after{
-  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
-  background:radial-gradient(240px circle at var(--mx) var(--my),rgba(14,124,107,.12),rgba(242,166,90,.05) 45%,transparent 70%);
-  transition:opacity .4s;
+body.reduced .motor-permanente{position:static;transform:none;margin-bottom:.3rem}
+
+/* Panel de contenido: uno solo activo a la vez, alterna izquierda/derecha
+   según la escena. El texto se apoya hacia el centro del escenario (el
+   panel izquierdo queda alineado a la derecha, y viceversa) para que
+   siempre "mire" hacia el árbol. */
+.motor-panel{
+  position:absolute;top:25%;z-index:3;width:min(320px,34vw);
+  opacity:0;transform:translateY(14px);
+  transition:opacity .5s var(--ease-tierra),transform .5s var(--ease-tierra);
 }
-.servicio-card:hover::after{opacity:1}
-body.reduced .servicio-card::after{display:none}
-/* pétalos del estallido al abrir */
-.petalo-burst{
-  position:absolute;width:9px;height:5.5px;border-radius:50%;
-  background:var(--flor);pointer-events:none;z-index:3;
+.motor-panel.visible{opacity:1;transform:translateY(0)}
+/* Antes quedaban a una distancia FIJA del borde de la pantalla
+   (clamp(1.25rem,5vw,5rem)) -en una pantalla ancha eso los dejaba
+   pegados al lateral, muy lejos del centro. Ahora la distancia es
+   desde el CENTRO (50% + un margen que respeta al círculo), así el
+   texto queda cerca del centro sin importar qué tan ancha sea la
+   pantalla. */
+.motor-panel--izq{left:auto;right:calc(50% + clamp(90px,12vw,170px));text-align:right}
+.motor-panel--der{right:auto;left:calc(50% + clamp(90px,12vw,170px));text-align:left}
+/* Centrado con left/right/margin (no transform): el panel--centro es el
+   único que se centra horizontalmente -los demás usan left/right fijo-,
+   y left/right/margin NO están en la lista de `transition` de arriba, así
+   que se resuelven al instante. Si centráramos con transform:translateX(-50%)
+   (como antes), esa propiedad SÍ transiciona -viene de un transform sin
+   desplazamiento horizontal en la escena izq/der anterior- y elipseDe()
+   mediría el panel a mitad de esa transición, con el anillo terminando
+   descentrado hacia la derecha (bug real, visto con Playwright). */
+.motor-panel--centro{left:0;right:0;margin:0 auto;width:min(30rem,86vw);transform:translateY(14px);text-align:center;top:auto;bottom:10%}
+.motor-panel--centro.visible{transform:translateY(0)}
+.motor-kicker{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--flor)}
+.motor-kicker::after{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--flor);margin-left:.6em;vertical-align:middle}
+.motor-panel--izq .motor-kicker::after{order:-1;margin-left:0;margin-right:.6em}
+.motor-panel--izq .motor-kicker{display:inline-flex;flex-direction:row-reverse;align-items:center;justify-content:flex-end}
+.motor-titulo{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3vw,2.3rem);color:var(--texto-oscuro);margin:.35rem 0 .7rem}
+.motor-panel--centro .motor-titulo{font-family:var(--script);font-style:normal;font-weight:400;color:var(--teal);font-size:clamp(1.6rem,3vw,2.1rem)}
+.motor-filete{width:2.4rem;height:2px;background:var(--teal);margin:0 0 1rem}
+.motor-panel--izq .motor-filete{margin-left:auto}
+.motor-panel--der .motor-filete{margin-right:auto}
+.motor-panel--centro .motor-filete{margin:0 auto 1rem}
+.motor-desc{font-size:.96rem;line-height:1.6;color:rgba(26,36,33,.7)}
+body.reduced .motor-fijo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+body.reduced .motor-panel{position:static;opacity:1;transform:none;width:100%;max-width:32rem;margin:0 auto;text-align:center}
+body.reduced .motor-panel .motor-filete{margin:0 auto 1rem}
+body.reduced .motor-panel .motor-kicker{display:block}
+.motor-panel--sin-kicker .motor-kicker{display:none}
+.motor-panel--sin-titulo .motor-titulo{display:none}
+
+/* Riel: 12 puntos, solo el activo muestra su nombre -el resto queda
+   como marca de posición nada más, clicable para saltar directo. */
+.motor-rail{position:absolute;right:clamp(1rem,3.6vw,3rem);top:30%;z-index:3;display:flex;flex-direction:column;align-items:flex-end;gap:.85rem}
+.motor-rail-punto{
+  background:none;border:none;padding:.2rem;cursor:pointer;
+  display:flex;align-items:center;gap:.6rem;
 }
-.servicio-card summary{cursor:pointer;list-style:none;display:block;-webkit-tap-highlight-color:transparent;position:relative}
-.servicio-card summary::-webkit-details-marker{display:none}
-.servicio-card summary::marker{content:''}
-.servicio-card svg{width:44px;height:44px;stroke:var(--teal);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin-bottom:1.1rem}
-.servicio-card.visible svg :is(path,circle){stroke-dasharray:170;stroke-dashoffset:170;animation:dibujar 1.3s var(--ease-tierra) .25s forwards}
-body.reduced .servicio-card svg :is(path,circle){stroke-dashoffset:0;animation:none}
-.servicio-card h3{font-family:var(--display);font-weight:480;font-size:1.35rem;margin-bottom:.55rem}
-.servicio-card summary>p{font-size:.92rem;color:rgba(26,36,33,.72);margin-bottom:1rem}
-.servicio-tag{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--flor)}
-.servicio-mas{
-  position:absolute;right:0;top:2px;width:24px;height:24px;border-radius:50%;
-  border:1px solid rgba(14,124,107,.3);display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);color:var(--teal);font-size:.95rem;transition:transform .35s var(--ease-tierra);
+.motor-rail-punto::after{
+  content:'';width:6px;height:6px;border-radius:50%;background:rgba(26,36,33,.28);
+  transition:background .3s,transform .3s var(--ease-tierra),box-shadow .3s;flex:none;
 }
-.servicio-card[open] .servicio-mas{transform:rotate(45deg)}
-.servicio-extra{padding-top:.9rem;margin-top:.8rem;border-top:1px solid rgba(26,36,33,.08);font-size:.86rem;color:rgba(26,36,33,.68)}
-.servicios-nota{margin-top:2.4rem;font-size:.92rem;color:rgba(26,36,33,.6)}
-.servicios-nota a{color:var(--teal);font-weight:500}
+.motor-rail-punto:hover::after{background:rgba(199,92,132,.6)}
+.motor-rail-punto.activo::after{background:var(--flor);transform:scale(1.7);box-shadow:0 0 0 5px rgba(199,92,132,.16)}
+.motor-rail-nombre{
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:var(--texto-oscuro);
+  white-space:nowrap;opacity:0;max-width:0;overflow:hidden;transition:opacity .3s,max-width .3s;
+}
+.motor-rail-punto.activo .motor-rail-nombre{opacity:1;max-width:12rem;font-weight:600}
+body.reduced .motor-rail{display:none}
+
+.motor-hint{
+  position:absolute;bottom:clamp(2rem,6vh,3.5rem);left:50%;transform:translateX(-50%);z-index:2;
+  font-family:var(--mono);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(26,36,33,.5);text-align:center;transition:opacity .6s;
+}
+.motor-hint::after{content:'';display:block;width:1px;height:1.6rem;background:rgba(26,36,33,.3);margin:.6rem auto 0}
+.motor-hint.oculto{opacity:0}
+body.reduced .motor-hint{display:none}
+
+@media(max-width:920px){
+  .motor-pista{height:calc(12 * 78vh)}
+  .motor-fijo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding-top:3.5rem}
+  .motor-panel{position:relative;top:auto;left:auto!important;right:auto!important;width:100%;
+    max-width:26rem;margin:0 auto;text-align:center!important;padding:0 1.5rem;transform:translateY(10px)}
+  .motor-panel.visible{transform:translateY(0)}
+  .motor-panel--centro{transform:translate(0,10px)}
+  .motor-panel--centro.visible{transform:translate(0,0)}
+  .motor-filete,.motor-panel--izq .motor-filete,.motor-panel--der .motor-filete{margin:0 auto 1rem!important}
+  .motor-kicker,.motor-panel--izq .motor-kicker{display:inline-flex!important;flex-direction:row!important;justify-content:center!important}
+  .motor-kicker::after{order:0!important;margin-left:.6em!important;margin-right:0!important}
+  .motor-panel--sin-kicker .motor-kicker{display:none!important}
+  .motor-rail{display:none}
+  .motor-hint{bottom:1rem}
+  .motor-permanente{position:absolute;top:5.5rem;left:50%;transform:translateX(-50%);margin:0}
+}
 
 /* ============ ACTO 6 · FLORACIONES ============ */
 .acto-flora{position:relative;z-index:1;padding:clamp(5rem,12vh,9rem) 0 clamp(4rem,10vh,7rem)}
@@ -488,29 +648,150 @@ body.reduced .servicio-card svg :is(path,circle){stroke-dashoffset:0;animation:n
 .acto-blog{position:relative;z-index:1;padding:clamp(5rem,11vh,8rem) 0}
 .blog-head{margin-bottom:2.4rem}
 .blog-head h2{font-size:clamp(2rem,3.6vw,3.2rem);color:var(--texto-oscuro);margin-top:1rem}
-.blog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.4rem;margin-bottom:2.2rem}
-@media(max-width:860px){.blog-grid{grid-template-columns:1fr}}
+.blog-grid{margin-bottom:2.2rem}
+/* Una sola tarjeta -no una grilla de 3- que va mostrando los 3 posts por
+   turnos: la imagen y el texto cambian JUNTOS cada 2s (ciclo de 6s / 3),
+   en loop infinito. En espejo respecto a "La doctora" -acá el texto va
+   a la izquierda y la imagen a la derecha-, así que las columnas del
+   grid se invierten (7fr 5fr) y order pone el texto primero visualmente
+   sin tocar el orden real del HTML (la imagen sigue announced primero
+   para lectores de pantalla). */
 .blog-card{
-  border-left:3px solid var(--flor);border-radius:4px 16px 16px 4px;padding:1.7rem 1.6rem;
-  background:#FBF7EF;box-shadow:0 10px 28px rgba(26,36,33,.06);
   opacity:0;transform:translateY(20px);
-  transition:opacity .8s var(--ease-tierra),transform .35s var(--ease-tierra),box-shadow .35s;
-  display:block;
+  transition:opacity .8s var(--ease-tierra),transform .35s var(--ease-tierra);
+  display:grid;grid-template-columns:7fr 5fr;gap:clamp(2rem,6vw,5rem);align-items:center;width:100%;
 }
 .blog-card.visible,body.reduced .blog-card{opacity:1;transform:none}
-.blog-card:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(26,36,33,.12)}
-.blog-card svg{width:26px;height:26px;stroke:var(--flor);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;margin-bottom:.9rem}
-.blog-card.visible svg :is(path,circle){stroke-dasharray:160;stroke-dashoffset:160;animation:dibujar 1.1s var(--ease-tierra) .2s forwards}
-body.reduced .blog-card svg :is(path,circle){stroke-dashoffset:0;animation:none}
-.blog-card summary{cursor:pointer;list-style:none;display:block;-webkit-tap-highlight-color:transparent;position:relative}
-.blog-card summary::-webkit-details-marker{display:none}
-.blog-card summary::marker{content:''}
+/* Miniatura: EXACTAMENTE el mismo diseño Y TAMAÑO que la pila de fotos
+   de "La doctora" (.foto-inclinada / foto-pila-N, mismo 93% de ancho de
+   columna) -marco grueso arena, esquinas redondeadas, sombra-, en
+   espejo (ahora asoma hacia la DERECHA, alejándose del texto que quedó
+   a la izquierda). A diferencia de la primera versión, acá cada capa SÍ
+   es la foto de un post distinto (1 capa = 1 post), porque ahora los 3
+   posts conviven en la misma tarjeta en vez de estar cada uno en la
+   suya. */
+.blog-img{width:93%;aspect-ratio:4/5;position:relative;order:2}
+.blog-foto{
+  position:absolute;inset:0;overflow:hidden;
+  border-radius:16px;border:5px solid var(--arena);
+  background:linear-gradient(150deg,var(--duna),#a8957a);
+  box-shadow:0 16px 34px rgba(26,36,33,.22);
+  display:flex;align-items:center;justify-content:center;
+}
+.blog-foto img{width:100%;height:100%;object-fit:cover;display:block}
+.blog-foto svg{width:34%;height:34%;stroke:rgba(26,36,33,.35);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;display:none}
+/* sin-foto va en cada CAPA, no en el contenedor: cada capa es un post
+   distinto y uno puede tener foto mientras otro no (o falla al cargar
+   la suya sola), así que el respaldo tiene que decidirse por capa. */
+.blog-foto.sin-foto img{display:none}
+.blog-foto.sin-foto svg{display:block}
+.blog-foto--1{animation:blog-pila-1 6s ease-in-out infinite}
+.blog-foto--2{animation:blog-pila-2 6s ease-in-out infinite}
+.blog-foto--3{animation:blog-pila-3 6s ease-in-out infinite}
+/* Mismos % de ciclo que foto-pila-1/2/3 de La doctora (25.64/33.33/58.97/
+   66.67/92.3) -solo cambia la duración (6s en vez de 7.8s) para que cada
+   rol dure exactamente 2s (6s / 3 posts), como se pidió. */
+@keyframes blog-pila-1{
+  0%, 25.64%{ transform:translate(0,0) rotate(0deg) scale(1); opacity:1; z-index:2; }
+  33.33%, 58.97%{ transform:translate(12%,5%) rotate(5deg) scale(.94); opacity:.94; z-index:1; }
+  66.67%, 92.3%{ transform:translate(22%,12%) rotate(-6deg) scale(.89); opacity:.88; z-index:0; }
+  100%{ transform:translate(0,0) rotate(0deg) scale(1); opacity:1; z-index:2; }
+}
+@keyframes blog-pila-2{
+  0%, 25.64%{ transform:translate(12%,5%) rotate(5deg) scale(.94); opacity:.94; z-index:1; }
+  33.33%, 58.97%{ transform:translate(22%,12%) rotate(-6deg) scale(.89); opacity:.88; z-index:0; }
+  66.67%, 92.3%{ transform:translate(0,0) rotate(0deg) scale(1); opacity:1; z-index:2; }
+  100%{ transform:translate(12%,5%) rotate(5deg) scale(.94); opacity:.94; z-index:1; }
+}
+@keyframes blog-pila-3{
+  0%, 25.64%{ transform:translate(22%,12%) rotate(-6deg) scale(.89); opacity:.88; z-index:0; }
+  33.33%, 58.97%{ transform:translate(0,0) rotate(0deg) scale(1); opacity:1; z-index:2; }
+  66.67%, 92.3%{ transform:translate(12%,5%) rotate(5deg) scale(.94); opacity:.94; z-index:1; }
+  100%{ transform:translate(22%,12%) rotate(-6deg) scale(.89); opacity:.88; z-index:0; }
+}
+body.reduced .blog-foto--1{animation:none;transform:none;opacity:1;z-index:2}
+body.reduced .blog-foto--2,body.reduced .blog-foto--3{display:none}
+/* Texto: mismo ciclo de 6s que la imagen, centrado en los mismos 3
+   puntos de cambio de rol (~29.5%/~62.8%/~96.15%), pero SIN cruce
+   -primero se apaga del todo el que sale y recién ahí aparece el que
+   entra-, a diferencia de la foto que sí se funde. Un párrafo entero
+   solapado con otro durante la transición se lee como texto ilegible
+   encimado, no como una linda superposición (a diferencia de dos fotos
+   difuminándose, que sí se ve bien). display:grid + grid-area:1/1
+   apila los 3 textos en la MISMA celda: el contenedor toma la altura
+   del texto más alto y no salta al cambiar de post. visibility además
+   de opacity para que el slide oculto no se pueda tabular ni haga
+   click en su CTA. */
+/* max-width acá (no en .blog-card): la fila ahora ocupa todo el ancho
+   del contenedor, pero un párrafo estirado a 1200px+ es ilegible -esto
+   deja la tarjeta abarcando el ancho completo, con la columna de texto
+   en un ancho cómodo de lectura y el resto como aire a la derecha. */
+.blog-textos{min-width:0;max-width:640px;display:grid}
+.blog-texto-slide{grid-area:1/1;display:flex;flex-direction:column;justify-content:center}
+/* blog-texto-1/2/3 (crossfade simple, sin traslado) se conservan solo
+   para que la pila de fotos las reuse en móvil -ver @media(920px) más
+   abajo-, ya no las usa .blog-texto-slide directamente. */
+@keyframes blog-texto-1{
+  0%{ opacity:1; visibility:visible; }
+  28%{ opacity:1; visibility:visible; }
+  29.5%{ opacity:0; visibility:hidden; }
+  96.15%{ opacity:0; visibility:hidden; }
+  97.65%{ opacity:1; visibility:visible; }
+  100%{ opacity:1; visibility:visible; }
+}
+@keyframes blog-texto-2{
+  0%{ opacity:0; visibility:hidden; }
+  29.5%{ opacity:0; visibility:hidden; }
+  31%{ opacity:1; visibility:visible; }
+  61.3%{ opacity:1; visibility:visible; }
+  62.8%{ opacity:0; visibility:hidden; }
+  100%{ opacity:0; visibility:hidden; }
+}
+@keyframes blog-texto-3{
+  0%{ opacity:0; visibility:hidden; }
+  62.8%{ opacity:0; visibility:hidden; }
+  64.3%{ opacity:1; visibility:visible; }
+  94.65%{ opacity:1; visibility:visible; }
+  96.15%{ opacity:0; visibility:hidden; }
+  100%{ opacity:0; visibility:hidden; }
+}
+/* La rotación entre posts (imagen y texto cambiando cada ~2.4s) y la
+   entrada de cada texto (palabra por palabra con blur, MISMO efecto
+   que "El blog de Kairal." -ver splitWords en script.js sección 2- en
+   vez del fundido simple que se probó antes) ahora las maneja GSAP
+   directo (ver "12b · BLOG: rotación de texto" en script.js), no CSS
+   -las keyframes por palabra necesitarían una cantidad de pasos
+   distinta según cuántas palabras tenga cada título, algo que CSS no
+   puede calcular solo. Acá solo queda el estado de arranque antes de
+   que corra el JS: se ve el post 1 fijo (progressive enhancement, es
+   lo mismo que ve alguien con JS desactivado o gsap caído), 2 y 3
+   ocultos hasta que les toque. */
+.blog-texto-slide--2,.blog-texto-slide--3{opacity:0;visibility:hidden}
 .blog-cat{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--flor)}
-.blog-card h3{font-family:var(--display);font-weight:460;font-size:1.28rem;color:var(--texto-oscuro);margin:.6rem 0 .6rem;line-height:1.25}
+.blog-card h3{font-family:var(--display);font-weight:460;font-size:1.24rem;color:var(--texto-oscuro);margin:.5rem 0 .5rem;line-height:1.25}
 .blog-card p{font-size:.9rem;color:rgba(26,36,33,.68)}
-.blog-mas{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-top:.7rem;display:inline-block}
-.blog-item[open] .blog-mas{display:none}
-.blog-extra{padding-top:.9rem;margin-top:.7rem;border-top:1px solid rgba(26,36,33,.08);font-size:.88rem;color:rgba(26,36,33,.68)}
+/* El CTA usa el mismo .btn.btn-solido del resto del sitio (mismo relleno
+   que sube al pasar el mouse, mismo magnetismo -ver script.js-), solo
+   se posiciona dentro de la columna de texto. */
+.blog-texto-slide .btn{margin-top:1rem;align-self:flex-start}
+/* Mismo quiebre que .doctora-grid (920px): abajo de eso la columna de
+   imagen queda muy angosta para la pila, se apila igual que ahí. La
+   pila de fotos necesita margen a los costados para que las capas de
+   atrás asomen sin cortarse -en una imagen a todo el ancho no hay ese
+   margen, así que acá la imagen también cruza en vez de trasladarse
+   (mismo reloj que el texto, blog-texto-N), y queda todo sincronizado
+   sin desbordes. */
+@media(max-width:920px){
+  .blog-card{grid-template-columns:1fr}
+  /* 88% y aspect-ratio 4/5 -no 16/9- para que apilada quede del mismo
+     tamaño que .foto-inclinada en su propio quiebre móvil, no solo en
+     desktop. */
+  .blog-img{width:88%;aspect-ratio:4/5}
+  .blog-foto{animation-duration:6s;animation-timing-function:ease-in-out;animation-iteration-count:infinite}
+  .blog-foto--1{animation-name:blog-texto-1}
+  .blog-foto--2{animation-name:blog-texto-2}
+  .blog-foto--3{animation-name:blog-texto-3}
+}
 
 /* ============ FAQ ============ */
 .contenedor-angosta{max-width:760px}
@@ -625,30 +906,18 @@ body.reduced .fab-raiz{animation:none}
   display:flex;flex-direction:column;overflow:hidden;
   opacity:0;transform:translateY(18px) scale(.97);visibility:hidden;pointer-events:none;
   filter:blur(7px);
-  /* CIERRE (se aplica al volver a este estado): el panel se queda encendido
-     .46s antes de apagarse. El canvas de drones es HIJO del panel, así que
-     hereda su opacity/blur: sin esa espera el fade del padre se llevaría las
-     partículas antes de que alcancen a dispersarse. */
-  transition:opacity .34s var(--ease-tierra) .46s,transform .5s var(--ease-tierra) .3s,visibility .8s,
-    filter .34s var(--ease-tierra) .46s;
+  transition:opacity .3s var(--ease-tierra),transform .4s var(--ease-tierra),visibility .3s,
+    filter .3s var(--ease-tierra);
 }
 .panel-raiz.abierto{
   opacity:1;transform:none;visibility:visible;pointer-events:auto;
   filter:blur(0px);
-  /* APERTURA: opacidad y desenfoque se resuelven rápido (.34s) para que los
-     drones se vean nítidos durante el vuelo — el blur del padre también les
-     aplica —; el transform sigue asentándose mientras aterrizan. */
-  transition:opacity .34s var(--ease-tierra),transform .7s var(--ease-tierra),visibility .34s,
-    filter .34s var(--ease-tierra);
+  transition:opacity .3s var(--ease-tierra),transform .4s var(--ease-tierra),visibility .3s,
+    filter .3s var(--ease-tierra);
 }
-/* Enjambre de drones (canvas, no puntos CSS): las partículas vuelan hasta
-   destinos que trazan la silueta del panel y lo "ensamblan" al abrir; al
-   cerrar se desprenden de esa formación. Ver construirPolvoRaiz en el JS. */
-.raiz-polvo{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;display:block}
 .raiz-cab,.raiz-cuerpo,.raiz-chips,.raiz-form{position:relative;z-index:2}
 body.reduced .panel-raiz{filter:none;transition:opacity .3s,visibility .3s}
 body.reduced .panel-raiz.abierto{filter:none}
-body.reduced .raiz-polvo{display:none}
 .raiz-cab{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.1rem;border-bottom:1px solid rgba(127,181,171,.15)}
 .raiz-cab-id{display:flex;align-items:center;gap:.7rem}
 .raiz-avatar{width:34px;height:34px;border-radius:50%;background:rgba(14,124,107,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0}

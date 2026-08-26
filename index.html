@@ -59,6 +59,18 @@
   gtag('js', new Date());
   gtag('config', 'G-59B7SRB9L4');
 </script>
+
+<!-- La experiencia está diseñada para arrancar SIEMPRE desde el hero (con
+     el preloader y su narrativa de scroll). Si el navegador restaura la
+     posición de scroll al recargar a mitad de página, todo el sistema de
+     scroll-jacking + GSAP queda descalibrado y el hero puede no volver a
+     aparecer. Se desactiva esa restauración lo más temprano posible (antes
+     de que el navegador la aplique) para que siempre se cargue desde
+     arriba. El scrollTo(0,0) explícito cubre el caso de esta misma carga. -->
+<script>
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch(e){}
+  window.scrollTo(0, 0);
+</script>
 </head>
 <body>
 
@@ -259,13 +271,32 @@
 <section class="acto-doctora" id="doctora">
   <canvas id="lienzo-jardin" aria-hidden="true"></canvas>
   <div class="contenedor doctora-grid">
-    <div>
+    <div class="retrato-envoltorio">
+      <!-- Collage de fotos: 3 tarjetas con placeholder (sin foto real
+           todavía). Para poner una foto real, agrega src="tu-foto.jpg" al
+           <img> de la tarjeta correspondiente y quita la clase "sin-foto"
+           -el onerror ya deja el marcador si el archivo no existe. -->
+      <figure class="foto-inclinada foto-inclinada--1 sin-foto">
+        <img src="assets/collage-doctora-1.jpg" alt="" loading="lazy" aria-hidden="true"
+             onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
+        <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
+      </figure>
+      <figure class="foto-inclinada foto-inclinada--2 sin-foto">
+        <img src="assets/collage-doctora-2.jpg" alt="" loading="lazy" aria-hidden="true"
+             onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
+        <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
+      </figure>
+      <figure class="foto-inclinada foto-inclinada--3 sin-foto">
+        <img src="assets/collage-doctora-3.jpg" alt="" loading="lazy" aria-hidden="true"
+             onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
+        <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
+      </figure>
       <figure class="retrato" id="retrato">
         <img src="https://kairal.cl/kathy_slide.webp" alt="Dra. Yusneily Sánchez, médico funcional en Antofagasta" loading="lazy"
              onerror="this.closest('.retrato').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true">YS</div>
       </figure>
-      <div style="position:relative"><div class="retrato-badge">+10 años · Medicina con propósito</div></div>
+      <div class="retrato-badge">+10 años · Medicina con propósito</div>
     </div>
     <div class="doctora-copy">
       <span class="chispa" aria-hidden="true"></span>
@@ -277,7 +308,45 @@
 
       <div class="viaje" id="viaje">
         <p class="eyebrow" style="color:var(--teal)">Un viaje de formación en cuatro países</p>
-        <div class="viaje-linea"><div class="viaje-fill"></div></div>
+        <div class="viaje-linea">
+          <svg viewBox="0 0 600 40" preserveAspectRatio="none" aria-hidden="true">
+            <path class="viaje-tallo" pathLength="1"
+              d="M4,22 C60,10 100,32 150,20 C200,8 250,32 300,18 C350,8 400,32 450,20 C500,10 550,28 596,20" />
+            <!-- cada hoja va en un <g> anidado: el de afuera solo posiciona (atributo
+                 transform, intacto), el de adentro es al que CSS le anima
+                 opacity/transform -si se mezclan en el mismo <g>, el transform de
+                 CSS (scale) REEMPLAZA por completo al atributo transform (translate)
+                 en vez de sumarse, y las 4 hojas colapsan todas al origen. -->
+            <g transform="translate(4,21)"><g class="hoja-viaje hoja-viaje--1">
+              <path d="M0,0 Q-3,-9 -9,-13" />
+              <path d="M-9,-13 Q-15,-13 -14,-19 Q-8,-18 -9,-13 Z" />
+            </g></g>
+            <g transform="translate(90,16)"><g class="hoja-viaje hoja-viaje--2">
+              <path d="M0,0 Q4,-9 10,-12" />
+              <path d="M10,-12 Q16,-11 16,-17 Q10,-17 10,-12 Z" />
+            </g></g>
+            <g transform="translate(200,20)"><g class="hoja-viaje hoja-viaje--3">
+              <path d="M0,0 Q3,-9 9,-13" />
+              <path d="M9,-13 Q15,-13 14,-19 Q8,-18 9,-13 Z" />
+            </g></g>
+            <g transform="translate(290,14)"><g class="hoja-viaje hoja-viaje--4">
+              <path d="M0,0 Q-4,-9 -10,-12" />
+              <path d="M-10,-12 Q-16,-11 -16,-17 Q-10,-17 -10,-12 Z" />
+            </g></g>
+            <g transform="translate(400,18)"><g class="hoja-viaje hoja-viaje--5">
+              <path d="M0,0 Q-3,-9 -9,-13" />
+              <path d="M-9,-13 Q-15,-13 -14,-19 Q-8,-18 -9,-13 Z" />
+            </g></g>
+            <g transform="translate(490,15)"><g class="hoja-viaje hoja-viaje--6">
+              <path d="M0,0 Q4,-9 10,-12" />
+              <path d="M10,-12 Q16,-11 16,-17 Q10,-17 10,-12 Z" />
+            </g></g>
+            <g transform="translate(596,20)"><g class="hoja-viaje hoja-viaje--7">
+              <path d="M0,0 Q3,-9 9,-13" />
+              <path d="M9,-13 Q15,-13 14,-19 Q8,-18 9,-13 Z" />
+            </g></g>
+          </svg>
+        </div>
         <div class="hitos">
           <div class="hito"><b>Venezuela</b><span>Médico Cirujano · UNEFM</span></div>
           <div class="hito"><b>Perú</b><span>Terapias PRP y Ozonoterapia</span></div>
@@ -310,62 +379,65 @@
     <span class="mota" style="--x:35%;--y:8%;--s:3px;--d:-15s;--dur:13s"></span>
   </div>
 
-<!-- ════ SERVICIOS ════ -->
-<section class="acto-servicios" id="servicios">
-  <div class="contenedor">
-    <div class="servicios-head">
-      <p class="eyebrow" style="color:var(--teal)">Cómo trabajamos contigo</p>
-      <h2 class="display rev">Cuatro caminos, un mismo objetivo: <em>la causa raíz.</em></h2>
-      <p>No todas las consultas necesitan lo mismo. Elegimos juntos el enfoque según tu historia.</p>
+<!-- ════ SERVICIOS · MOTOR DE SCROLL (árbol de Medicina Funcional) ════
+     Reemplaza el diagrama radial con hover por una secuencia anclada al
+     scroll: 12 escenas (Causa raíz + 10 áreas + cierre) mapeadas a una
+     progresión continua 0→11 dentro de .motor-pista (altura = 12 "pantallas").
+     El escenario (.motor-fijo) queda fijo en pantalla vía position:sticky
+     mientras se avanza -mismo patrón que .metodo-escena en el Acto 4-, y
+     un solo controlador en script.js (ver "14 · MOTOR DE SCROLL") traduce
+     el progreso continuo del ScrollTrigger en: la cámara (zoom/encuadre
+     del árbol, sin saltos), qué raíz se resalta, y el texto del panel
+     lateral (alternando izquierda/derecha) + el punto activo del riel.
+     El árbol (raíces/tronco/ramas) es un solo SVG; las 11 raíces están
+     precalculadas como curvas -mismo criterio que el resto del sitio
+     (viaje, blog-pila): nada se recalcula en JS, solo se anima. -->
+<section class="acto-motor" id="servicios">
+  <div class="motor-cabecera contenedor">
+    <p class="eyebrow" style="color:var(--teal)">Cómo trabajamos contigo</p>
+    <h2 class="display rev">Un solo <em>enfoque</em>, muchas conexiones</h2>
+  </div>
+
+  <div class="motor-pista" id="motor-pista">
+    <div class="motor-fijo" id="motor-fijo">
+      <!-- Igual que el efecto de arena del hero (#lienzo-polvo-textos):
+           partículas finas, mismos tonos. En vez de dibujar letras, acá
+           trazan SOLO el contorno de un anillo que gira sin parar y
+           viaja -pasando siempre por el centro- para envolver el panel
+           de la escena activa (ver construirPolvoAro en el JS). -->
+      <canvas class="motor-polvo" id="lienzo-polvo-motor" aria-hidden="true"></canvas>
+
+      <!-- Texto permanente: a diferencia del panel (que cambia de escena
+           en escena, con su propia transición), este vive fuera de esa
+           coreografía -opacidad fija, sin transición, sin clase que lo
+           oculte- para que nunca parpadee ni se mueva mientras el arco
+           de arena viaja alrededor, incluso lejos, hacia un panel lateral. -->
+      <p class="motor-permanente">Medicina Funcional</p>
+
+      <div class="motor-panel motor-panel--izq" id="motor-panel">
+        <p class="motor-kicker"><span id="motor-kicker-texto">El origen</span></p>
+        <h3 class="motor-titulo" id="motor-titulo">Causa raíz</h3>
+        <div class="motor-filete" aria-hidden="true"></div>
+        <p class="motor-desc" id="motor-desc">No nos detenemos únicamente en el síntoma. Buscamos comprender qué factores pueden estar relacionados con lo que está ocurriendo.</p>
+      </div>
+
+      <nav class="motor-rail" id="motor-rail" aria-label="Recorrido por Medicina Funcional">
+        <button type="button" class="motor-rail-punto" data-i="0"><span class="motor-rail-nombre">Causa raíz</span></button>
+        <button type="button" class="motor-rail-punto" data-i="1"><span class="motor-rail-nombre">Metabolismo</span></button>
+        <button type="button" class="motor-rail-punto" data-i="2"><span class="motor-rail-nombre">Nutrición</span></button>
+        <button type="button" class="motor-rail-punto" data-i="3"><span class="motor-rail-nombre">Salud digestiva</span></button>
+        <button type="button" class="motor-rail-punto" data-i="4"><span class="motor-rail-nombre">Equilibrio hormonal</span></button>
+        <button type="button" class="motor-rail-punto" data-i="5"><span class="motor-rail-nombre">Inflamación</span></button>
+        <button type="button" class="motor-rail-punto" data-i="6"><span class="motor-rail-nombre">Sistema nervioso</span></button>
+        <button type="button" class="motor-rail-punto" data-i="7"><span class="motor-rail-nombre">Estrés</span></button>
+        <button type="button" class="motor-rail-punto" data-i="8"><span class="motor-rail-nombre">Sueño y recuperación</span></button>
+        <button type="button" class="motor-rail-punto" data-i="9"><span class="motor-rail-nombre">Sistema inmunológico</span></button>
+        <button type="button" class="motor-rail-punto" data-i="10"><span class="motor-rail-nombre">Salud cardiovascular</span></button>
+        <button type="button" class="motor-rail-punto" data-i="11"><span class="motor-rail-nombre">Medicina Funcional</span></button>
+      </nav>
+
+      <p class="motor-hint" id="motor-hint">Desplázate para recorrer el sistema</p>
     </div>
-    <div class="servicios-grid">
-
-      <details class="servicio-card">
-        <summary>
-          <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="17" r="7"/><path d="M10 40c0-8 6-13 14-13s14 5 14 13"/></svg>
-          <span class="servicio-mas">+</span>
-          <h3>Medicina General</h3>
-          <p>Atención médica integral y de confianza: control de salud, orientación diagnóstica y primer contacto con tu proceso.</p>
-          <span class="servicio-tag">Ideal para un primer chequeo</span>
-        </summary>
-        <div class="servicio-extra"><p>Incluye revisión de signos vitales, análisis de exámenes generales y una conversación sin apuro sobre cómo te sientes — el punto de partida si aún no sabes por dónde empezar.</p></div>
-      </details>
-
-      <details class="servicio-card">
-        <summary>
-          <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 42V18"/><path d="M24 26q-11-1-14-14 13 1 14 14"/><path d="M24 18q11-1 14-14-13 1-14 14"/><circle cx="24" cy="10" r="4"/></svg>
-          <span class="servicio-mas">+</span>
-          <h3>Medicina Funcional</h3>
-          <p>Buscamos la causa raíz de síntomas crónicos: fatiga, digestión, hormonas, piel, ánimo. Tratamos el porqué, no solo el qué.</p>
-          <span class="servicio-tag">Ideal si ya probaste de todo</span>
-        </summary>
-        <div class="servicio-extra"><p>Se apoya en laboratorios funcionales — más allá del panel básico — para revisar inflamación, función tiroidea completa y salud metabólica con mayor profundidad que un chequeo estándar.</p></div>
-      </details>
-
-      <details class="servicio-card">
-        <summary>
-          <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15"/><path d="M24 15v9l7 4"/></svg>
-          <span class="servicio-mas">+</span>
-          <h3>Medicina Bioreguladora</h3>
-          <p>Terapias que activan la capacidad natural de autorregulación de tu cuerpo, complementando el tratamiento convencional.</p>
-          <span class="servicio-tag">Ideal para inflamación y dolor</span>
-        </summary>
-        <div class="servicio-extra"><p>Incluye técnicas como ozonoterapia y PRP, orientadas a activar los propios mecanismos de reparación del cuerpo — siempre como complemento, nunca reemplazando tratamientos médicos necesarios.</p></div>
-      </details>
-
-      <details class="servicio-card">
-        <summary>
-          <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="16" cy="16" r="5"/><circle cx="32" cy="16" r="5"/><circle cx="24" cy="34" r="5"/><path d="M18.5 20 L22 30 M29.5 20 L26 30 M20 16h8"/></svg>
-          <span class="servicio-mas">+</span>
-          <h3>Psiconeuroinmunología</h3>
-          <p>El vínculo entre mente, sistema nervioso, inmune y hormonal. La especialidad de la Dra. Sánchez, formada en Regenera (España).</p>
-          <span class="servicio-tag">Ideal para estrés y ansiedad somática</span>
-        </summary>
-        <div class="servicio-extra"><p>Se trabaja el eje hipotálamo-hipófisis-adrenal, la respuesta al estrés crónico y su impacto medible en tu sistema inmune y hormonal — el estrés que sí se puede ver en un examen.</p></div>
-      </details>
-
-    </div>
-    <p class="servicios-nota">¿No sabes cuál necesitas? La primera consulta es justamente para eso — <a href="#agendar">agenda</a> y lo definimos juntas.</p>
   </div>
 </section>
 
@@ -426,19 +498,43 @@
       <p class="eyebrow" style="color:var(--teal)">Para seguir aprendiendo</p>
       <h2 class="display rev">El blog de Kairal.</h2>
     </div>
+    <!-- Una sola tarjeta que va mostrando los 3 posts por turnos (no 3
+         tarjetas lado a lado): imagen y texto cambian juntos cada 2s, en
+         loop -mismo mecanismo de pila que .foto-inclinada en La doctora
+         (ver blog-pila-N en el CSS), pero cada capa es un post distinto,
+         no la misma foto repetida. El contenido de acá es una maqueta de
+         respaldo (sin conexión a un post real): se ve mientras el feed de
+         Sanity no responde -en local por CORS, o si algún día la API está
+         caída-. Si el fetch funciona, reemplaza TODO #blog-grid por los
+         posts reales (ver script.js, sección 12). -->
     <div class="blog-grid" id="blog-grid">
-
-      <details class="blog-card blog-item" id="blog-respaldo">
-        <summary>
-          <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6c4 6-2 8-2 13a6 6 0 0 0 12 0c0-2-1-3-1-3 1 6-3 8-3 8a8 8 0 0 1-6-14c0-2 0-3 0-4Z"/></svg>
-          <span class="blog-cat">Medicina funcional</span>
-          <h3>Nuestros artículos más recientes</h3>
-          <p>Estamos cargando el contenido del blog — si no aparece, visítalo directamente.</p>
-          <span class="blog-mas">Ver blog ↓</span>
-        </summary>
-        <div class="blog-extra"><p>Puedes ver todos los artículos publicados en <a href="https://kairal.cl/blog.html" style="color:var(--teal)">kairal.cl/blog.html</a>.</p></div>
-      </details>
-
+      <div class="blog-card" id="blog-rotativo">
+        <div class="blog-img">
+          <span class="blog-foto blog-foto--1 sin-foto"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6c4 6-2 8-2 13a6 6 0 0 0 12 0c0-2-1-3-1-3 1 6-3 8-3 8a8 8 0 0 1-6-14c0-2 0-3 0-4Z"/></svg></span>
+          <span class="blog-foto blog-foto--2 sin-foto"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6c4 6-2 8-2 13a6 6 0 0 0 12 0c0-2-1-3-1-3 1 6-3 8-3 8a8 8 0 0 1-6-14c0-2 0-3 0-4Z"/></svg></span>
+          <span class="blog-foto blog-foto--3 sin-foto"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6c4 6-2 8-2 13a6 6 0 0 0 12 0c0-2-1-3-1-3 1 6-3 8-3 8a8 8 0 0 1-6-14c0-2 0-3 0-4Z"/></svg></span>
+        </div>
+        <div class="blog-textos">
+          <div class="blog-texto-slide blog-texto-slide--1">
+            <span class="blog-cat">Medicina funcional</span>
+            <h3 class="rev">Qué es la causa raíz (y por qué casi nadie te la explica)</h3>
+            <p>Casi todos los tratamientos apuntan al síntoma. Acá te contamos qué significa realmente ir a la raíz, y por qué cambia todo el enfoque.</p>
+            <a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Leer artículo →</a>
+          </div>
+          <div class="blog-texto-slide blog-texto-slide--2">
+            <span class="blog-cat">Nutrición</span>
+            <h3 class="rev">Cinco señales de que tu intestino te está hablando</h3>
+            <p>Hinchazón, cansancio, piel sensible, resfríos a repetición: no son cosas sueltas. Son formas en que el cuerpo pide que le prestes atención.</p>
+            <a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Leer artículo →</a>
+          </div>
+          <div class="blog-texto-slide blog-texto-slide--3">
+            <span class="blog-cat">Bienestar</span>
+            <h3 class="rev">Sanar no es apagar síntomas, es escuchar el cuerpo</h3>
+            <p>Cuando la solución solo tapa lo que sientes, vuelve. Te contamos cómo se ve un cambio que sí se sostiene en el tiempo.</p>
+            <a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Leer artículo →</a>
+          </div>
+        </div>
+      </div>
     </div>
     <a class="btn btn-ghost" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Ver todos los artículos</a>
   </div>
@@ -549,7 +645,6 @@
   <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27V13"/><path d="M16 19q-8-1-10-10 9 1 10 10"/><path d="M16 13q8-1 10-10-9 1-10 10"/><circle cx="16" cy="9" r="3.4"/></svg>
 </button>
 <div class="panel-raiz" id="panel-raiz" role="dialog" aria-label="Asistente Raíz de Kairal" aria-hidden="true">
-  <canvas class="raiz-polvo" id="lienzo-polvo-raiz" aria-hidden="true"></canvas>
   <header class="raiz-cab">
     <div class="raiz-cab-id">
       <span class="raiz-avatar" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 27V13"/><path d="M16 19q-8-1-10-10 9 1 10 10"/><path d="M16 13q8-1 10-10-9 1-10 10"/><circle cx="16" cy="9" r="3.4"/></svg></span>
