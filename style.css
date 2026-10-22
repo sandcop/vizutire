@@ -99,6 +99,13 @@ body.reduced .rev .w{opacity:1;transform:none;filter:none}
   transition:opacity .5s var(--ease-tierra),visibility .5s,transform .5s var(--ease-tierra);
 }
 .menu-movil.abierto{opacity:1;visibility:visible;transform:none}
+/* X de cierre: misma posición que la hamburguesa del header (el panel la tapa) */
+.menu-cerrar{position:absolute;top:calc(1.1rem + env(safe-area-inset-top, 0px));right:clamp(1.25rem,4vw,3rem);width:44px;height:44px;margin:-3px;
+  display:grid;place-items:center;padding:0;background:none;border:1px solid rgba(127,181,171,.3);border-radius:50%;color:var(--arena);cursor:pointer;
+  transition:background .3s,border-color .3s,transform .4s var(--ease-tierra)}
+.menu-cerrar svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.menu-cerrar:hover,.menu-cerrar:active{background:rgba(127,181,171,.12);border-color:var(--bruma);transform:rotate(90deg)}
+.menu-cerrar:focus-visible{outline:2px solid var(--bruma);outline-offset:3px}
 .menu-movil nav{display:flex;flex-direction:column;align-items:center;gap:1.5rem}
 .menu-movil nav a{
   font-family:var(--display);font-size:1.7rem;font-weight:430;text-decoration:none;color:var(--arena);
@@ -131,6 +138,20 @@ html.menu-abierto{overflow:hidden}
 .btn-ghost{border-color:rgba(237,229,214,.35);color:var(--texto-claro)}
 .btn-ghost:hover{border-color:var(--bruma)}
 .btn-ghost::after{background:rgba(127,181,171,.14)}
+/* Reservar (hero): dorado como "Está esperando florecer.", con un brillo
+   que lo recorre cada pocos segundos para llamar la atención sin gritar */
+.btn-reserva{background:linear-gradient(135deg,#F7B871 0%,var(--alba) 55%,#E08A3C 100%);color:#2A1A0C;font-weight:600;
+  box-shadow:0 8px 30px rgba(242,166,90,.42),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn-reserva::after{background:linear-gradient(135deg,#FFC98A,#F2A65A)}
+.btn-reserva::before{content:'';position:absolute;z-index:1;top:0;bottom:0;left:-60%;width:45%;pointer-events:none;
+  background:linear-gradient(100deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.55) 50%,rgba(255,255,255,0) 100%);
+  transform:skewX(-20deg);animation:reserva-brillo 4.5s ease-in-out 2.5s infinite}
+.btn-reserva:hover{transform:translateY(-2px);box-shadow:0 14px 38px rgba(242,166,90,.55),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn-reserva svg{position:relative;z-index:2;width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.btn-reserva-flecha{transition:transform .35s var(--ease-tierra)}
+.btn-reserva:hover .btn-reserva-flecha{transform:translateX(4px)}
+@keyframes reserva-brillo{0%{left:-60%}35%,100%{left:130%}}
+@media (prefers-reduced-motion:reduce){.btn-reserva::before{animation:none;display:none}}
 .btn-arena{background:var(--texto-oscuro);color:var(--arena)}
 .btn-arena::after{background:#000}
 body.reduced .btn::after{transition:none}
@@ -217,7 +238,7 @@ body.reduced .indicador-scroll{display:none}
 
 /* frases espejismo */
 .espejismo{
-  position:absolute;z-index:3;opacity:0;
+  position:absolute;z-index:3;opacity:0;pointer-events:none;
   font-family:var(--script);font-style:normal;font-weight:400;
   font-size:clamp(1.5rem,3.4vw,3rem);line-height:1.25;color:var(--arena);
   max-width:min(34rem,86vw);
@@ -235,59 +256,104 @@ body.reduced .espejismo .calor{animation:none}
 /* cierre del acto 2 */
 .giro{
   position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;text-align:center;opacity:0;
+  align-items:center;justify-content:center;text-align:center;opacity:0;pointer-events:none;
   padding:0 1.5rem;
 }
 body.reduced .giro{position:static;opacity:1;padding:3rem 1.5rem}
 .giro h2{font-size:clamp(2rem,4.6vw,4.2rem);color:var(--arena);max-width:18ch;margin-top:1.2rem}
 .giro h2 em{font-family:var(--script);font-style:normal;letter-spacing:normal;font-size:1.25em;color:var(--alba)}
 
-/* ============ ACTO 3 · CAUSA RAÍZ ============ */
+/* ============ ACTO 3 · BAJO LA SUPERFICIE — raíces ============
+   Corte del suelo bajo las dunas del acto anterior: 4 raíces (una por
+   sistema) que crecen con el scroll, se conectan con filamentos y
+   convergen en un nudo común. Pista alta + escenario sticky, mismo
+   patrón que el Motor de scroll. Ver "3 · BAJO LA SUPERFICIE" en script.js. */
 .acto-raiz{position:relative;background:radial-gradient(120% 90% at 50% 0%,#0c2b28 0%,var(--tinta) 55%,#051512 100%)}
-/* Antes tenía min-height:100svh con el contenido centrado — como el bloque
-   real (título + red + texto) no llega a llenar una pantalla completa, eso
-   dejaba una franja verde vacía apenas se entraba a la sección, antes de
-   que el contenido centrado alcanzara a aparecer. Se saca el mínimo y se
-   deja que la altura la defina el contenido + el padding. */
-.raiz-stage{display:grid;grid-template-columns:1.15fr .85fr;gap:2rem;align-items:center;padding:clamp(5rem,10vh,8rem) clamp(1.25rem,5vw,5rem)}
-@media(max-width:920px){.raiz-stage{grid-template-columns:1fr;gap:1rem}}
-.raiz-visual{position:relative;aspect-ratio:1/1;max-height:78vh;margin-inline:auto;width:100%;max-width:680px}
-#lienzo-red{position:absolute;inset:0;width:100%;height:100%;border-radius:24px;touch-action:manipulation}
-.raiz-info{max-width:30rem}
-.raiz-info h2{font-size:clamp(2rem,3.8vw,3.4rem);color:var(--arena);margin:1.1rem 0 1rem}
-.raiz-info>p{color:rgba(237,229,214,.78)}
+.raiz-pista{position:relative}
+.raiz-fijo{position:relative;height:100vh;height:100svh;overflow:hidden;display:flex;flex-direction:column;
+  padding:clamp(5.5rem,11vh,7rem) clamp(1.25rem,5vw,5rem) 1.5rem}
+.raiz-cab-sec{max-width:40rem}
+.raiz-cab-sec h2{font-size:clamp(2rem,3.6vw,3.2rem);color:var(--arena);margin:.8rem 0 .4rem}
+.raiz-intro{color:rgba(237,229,214,.78)}
+.raiz-escena{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:2rem;margin-top:.6rem}
+/* El dibujo mantiene la proporción del viewBox (600×640) dentro de la celda,
+   sea cual sea su ancho/alto: así los botones .raiz-nombre (en % de esas
+   coordenadas) caen siempre sobre la punta de su raíz. */
+.raiz-dibujo{position:relative;min-height:0;container-type:size}
+.raiz-lienzo{position:absolute;left:50%;top:0;transform:translateX(-50%);
+  width:min(100cqw, calc(100cqh * 600 / 640));aspect-ratio:600/640}
+.raiz-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 
-.sistemas{display:flex;flex-wrap:wrap;gap:.6rem;margin:1.6rem 0}
-.chip{
-  font-family:var(--mono);font-size:.78rem;letter-spacing:.06em;
-  padding:.6em 1.1em;border-radius:999px;background:transparent;
-  border:1px solid rgba(127,181,171,.35);color:var(--bruma);
-  transition:all .3s var(--ease-tierra);
-}
-.chip:hover,.chip:focus-visible{border-color:var(--bruma);color:var(--arena)}
-.chip.activo{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 0 24px rgba(14,124,107,.5)}
-.chip:focus-visible{outline:2px solid var(--bruma);outline-offset:3px}
+.raiz-tierra{fill:url(#raiz-tierra)}
+.raiz-superficie{fill:none;stroke:var(--duna);stroke-width:1.5;opacity:.7}
+.raiz-brote path{fill:none;stroke:var(--bruma);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.raiz-raiz{color:var(--c);transition:opacity .6s var(--ease-tierra)}
+.raiz-trazo,.raiz-bajada,.raiz-ramita,.raiz-filamento{fill:none;stroke-linecap:round}
+.raiz-trazo,.raiz-bajada,.raiz-ramita{stroke:currentColor}
+.raiz-trazo{stroke-width:3.2}
+.raiz-bajada{stroke-width:2.2;opacity:.85}
+.raiz-ramita{stroke-width:1.2;opacity:.7}
+.raiz-svg.enfocada .raiz-raiz{opacity:.32}
+.raiz-svg.enfocada .raiz-raiz.activa{opacity:1}
+.raiz-raiz.activa .raiz-trazo{filter:drop-shadow(0 0 6px currentColor)}
+.raiz-filamento{stroke:rgba(237,229,214,.5);stroke-width:1.1}
+.raiz-cruce{fill:var(--alba);opacity:0;transition:opacity .5s var(--ease-tierra)}
+.raiz-cruce.encendido{opacity:.95;filter:drop-shadow(0 0 5px var(--alba))}
+.raiz-nudo{fill:var(--alba);opacity:0;transform-origin:300px 590px;transform:scale(.4);
+  transition:opacity .8s var(--ease-tierra),transform .8s var(--ease-tierra)}
+.raiz-nudo.encendido{opacity:1;transform:scale(1);filter:drop-shadow(0 0 12px var(--alba))}
 
-.tarjeta-nodo{
-  border:1px solid rgba(127,181,171,.22);border-radius:18px;
-  background:rgba(12,43,40,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
-  padding:1.4rem 1.5rem;min-height:9.5rem;
-  transition:border-color .4s;
+.raiz-nombre{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);
+  font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
+  color:var(--c);background:rgba(8,31,29,.94);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
+  border-radius:999px;padding:.35em .9em;opacity:.4;transition:opacity .5s var(--ease-tierra),box-shadow .3s}
+.raiz-nombre.crecida{opacity:1}
+.raiz-nombre:hover,.raiz-nombre:focus-visible{opacity:1;box-shadow:0 0 18px color-mix(in srgb,var(--c) 40%,transparent)}
+.raiz-nombre:focus-visible{outline:2px solid var(--c);outline-offset:3px}
+/* Invitación a tocar: una iluminación mínima y lenta, cada etiqueta a destiempo
+   (el retraso lo pone el JS). La elegida queda encendida fija. */
+.raiz-nombre.parpadea{animation:raizInvita 2.8s ease-in-out infinite;cursor:pointer}
+@keyframes raizInvita{
+  0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 0%,transparent)}
+  50%{box-shadow:0 0 12px 1px color-mix(in srgb,var(--c) 42%,transparent);border-color:color-mix(in srgb,var(--c) 85%,transparent)}
 }
-.tarjeta-nodo h3{font-family:var(--display);font-weight:480;font-size:1.35rem;color:var(--arena);margin-bottom:.4rem}
-.tarjeta-nodo p{font-size:.98rem;color:rgba(237,229,214,.8)}
-.tarjeta-nodo .conexiones{margin-top:.8rem;font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal)}
-.raiz-cierre{margin-top:2rem;opacity:0;transform:translateY(16px);transition:opacity .9s var(--ease-tierra),transform .9s var(--ease-tierra)}
-.raiz-cierre.visible,body.reduced .raiz-cierre{opacity:1;transform:none}
-.raiz-cierre p{font-weight:600;font-size:1.15rem;color:var(--bruma);transition:color 1.2s var(--ease-tierra),text-shadow 1.2s var(--ease-tierra)}
-.raiz-cierre.dorado p{color:var(--alba);text-shadow:0 0 26px rgba(242,166,90,.4)}
-.raiz-progreso{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(127,181,171,.6);margin:-.4rem 0 1rem}
-.raiz-progreso b{color:var(--alba);font-weight:500}
+.raiz-nombre.elegida{animation:none;opacity:1;box-shadow:0 0 18px color-mix(in srgb,var(--c) 48%,transparent);border-color:var(--c)}
+body.reduced .raiz-nombre.parpadea{animation:none;box-shadow:0 0 8px color-mix(in srgb,var(--c) 30%,transparent)}
+
+/* Texto del sistema activo: a la derecha, a la altura de la punta de su
+   raíz (--y = alto de la punta en el viewBox / 640). */
+.raiz-textos{position:relative;min-height:0}
+.raiz-texto,.raiz-cierre{position:absolute;left:0;right:0;top:var(--y);max-width:26rem;opacity:0;
+  transform:translate(-12px,-50%);transition:opacity .6s var(--ease-tierra),transform .6s var(--ease-tierra);pointer-events:none}
+.raiz-texto.visible,.raiz-cierre.visible{opacity:1;transform:translate(0,-50%)}
+.raiz-texto h3{font-family:var(--display);font-weight:500;font-size:1.3rem;color:var(--c);margin-bottom:.4rem}
+.raiz-texto p{font-size:.98rem;color:rgba(237,229,214,.82)}
+.raiz-cierre p{font-weight:600;font-size:1.2rem;line-height:1.5;color:var(--alba);text-shadow:0 0 26px rgba(242,166,90,.35)}
+
+@media(max-width:920px){
+  /* abajo deja lugar a los botones flotantes (Sonido / asistente), que en
+     mobile quedan encima del texto del sistema activo */
+  .raiz-fijo{padding:4.8rem 1.25rem 5.5rem}
+  .raiz-escena{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;gap:.5rem}
+  .raiz-textos{min-height:9.5rem;padding-right:3.8rem} /* esquiva el botón flotante del asistente */
+  .raiz-texto,.raiz-cierre{top:0;right:3.8rem;transform:translateY(8px)}
+  .raiz-texto.visible,.raiz-cierre.visible{transform:none}
+  .raiz-nombre{font-size:.56rem}
+}
+body.reduced .raiz-pista{height:auto}
+body.reduced .raiz-fijo{position:relative;height:auto}
+body.reduced .raiz-escena{grid-template-rows:auto auto}
+body.reduced .raiz-dibujo{height:min(70vh,560px)}
+body.reduced .raiz-textos{display:flex;flex-direction:column;gap:1.2rem}
+body.reduced .raiz-texto,body.reduced .raiz-cierre{position:static;opacity:1;transform:none}
+body.reduced .raiz-svg.enfocada .raiz-raiz{opacity:1}
 
 /* ============ ACTO 4 · MÉTODO — una gota, una etapa ============ */
-.acto-metodo{position:relative;background:linear-gradient(180deg,#051512 0%,var(--tinta) 14%,var(--tinta-2) 100%);height:480vh}
+/* Una sola pantalla: un recorrido automático lleva la gota etapa por etapa
+   (ver "metodoCtl" en script.js); antes eran ~5 pantallas de scroll. */
+.acto-metodo{position:relative;background:linear-gradient(180deg,#051512 0%,var(--tinta) 14%,var(--tinta-2) 100%)}
 body.reduced .acto-metodo{height:auto}
-.metodo-escena{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
+.metodo-escena{position:relative;height:100vh;height:100svh;min-height:600px;overflow:hidden}
 body.reduced .metodo-escena{position:relative;height:auto;min-height:100svh;padding:5rem 0 3rem}
 #lienzo-gota{position:absolute;inset:0;width:100%;height:100%;z-index:0;touch-action:pan-y}
 @media(pointer:fine){#lienzo-gota{cursor:pointer}}
@@ -312,6 +378,12 @@ body.reduced .metodo-hint{display:none}
 .numeros-etapa button.activo{color:var(--arena);text-shadow:0 0 20px rgba(242,166,90,.55);transform:scale(1.22)}
 @media(max-width:920px){.numeros-etapa{left:auto;right:1.1rem;top:24%;transform:none;gap:1.1rem}}
 body.reduced .numeros-etapa{display:none}
+/* cuánto falta para pasar sola a la siguiente etapa */
+.metodo-progreso{position:absolute;z-index:3;left:calc(32% + 3.6rem);top:calc(52% + 9.4rem);width:3.2rem;height:2px;background:rgba(127,181,171,.18);border-radius:2px;overflow:hidden}
+.metodo-progreso span{display:block;height:100%;background:var(--bruma);transform-origin:left;transform:scaleX(0)}
+.metodo-progreso.pausado span{background:rgba(127,181,171,.45)}
+@media(max-width:920px){.metodo-progreso{left:auto;right:1.35rem;top:calc(24% + 11.4rem);width:2.2rem}}
+body.reduced .metodo-progreso{display:none}
 
 /* tarjeta cinematográfica: una a la vez, nace del impacto */
 .tarjeta-etapa{
@@ -329,7 +401,8 @@ body.reduced .numeros-etapa{display:none}
 .tarjeta-etapa.mostrada svg :is(path,circle){stroke-dasharray:200;stroke-dashoffset:200;animation:dibujar 1.4s var(--ease-tierra) .5s forwards}
 @keyframes dibujar{to{stroke-dashoffset:0}}
 @media(max-width:920px){
-  .tarjeta-etapa{left:1.25rem;right:1.25rem;top:auto;bottom:clamp(4.2rem,9vh,6.5rem);transform:none;width:auto}
+  /* right 4.4rem: deja libre la columna de los botones flotantes */
+  .tarjeta-etapa{left:1.25rem;right:4.4rem;top:auto;bottom:clamp(5.5rem,11vh,7rem);transform:none;width:auto}
   .tarjeta-etapa h3{font-size:clamp(2rem,9vw,2.8rem)}
   .tarjeta-etapa p{max-width:none}
 }
@@ -342,7 +415,18 @@ body.reduced .tarjeta-etapa svg :is(path,circle){stroke-dashoffset:0}
 .acto-doctora .contenedor{position:relative;z-index:1}
 .acto-doctora::before{content:'';position:absolute;top:0;left:0;right:0;height:110px;background:linear-gradient(180deg,#0C2B28,rgba(12,43,40,0));pointer-events:none;z-index:2}
 .doctora-grid{display:grid;grid-template-columns:5fr 7fr;gap:clamp(2rem,6vw,5rem);align-items:center}
-@media(max-width:920px){.doctora-grid{grid-template-columns:1fr}}
+@media(max-width:920px){
+  .doctora-grid{grid-template-columns:1fr}
+  /* el titular (eyebrow + h2) va ANTES de las fotos; el resto del texto, después.
+     display:contents deja a los hijos de .doctora-copy como items de la grilla. */
+  .doctora-grid{row-gap:0}
+  .doctora-copy{display:contents}
+  .doctora-copy>*{order:1}
+  .doctora-copy>.eyebrow{order:-2}
+  .doctora-copy>h2{order:-1;margin-bottom:2rem}
+  .doctora-copy>.chispa{display:none}
+  .retrato-envoltorio{order:0;margin-bottom:2rem}
+}
 .retrato-envoltorio{position:relative}
 .retrato{
   position:relative;z-index:1;border-radius:58% 42% 55% 45%/48% 55% 45% 52%;overflow:hidden;
@@ -378,7 +462,7 @@ body.reduced .tarjeta-etapa svg :is(path,circle){stroke-dashoffset:0}
   background:linear-gradient(150deg,var(--duna),#a8957a);
   box-shadow:0 16px 34px rgba(26,36,33,.22);
 }
-.foto-inclinada img{width:100%;height:100%;object-fit:cover;display:block}
+.foto-inclinada img{width:100%;height:100%;object-fit:cover;object-position:50% 28%;display:block}
 .foto-inclinada .fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center}
 .foto-inclinada .fallback svg{width:36%;height:36%;stroke:rgba(26,36,33,.3);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .foto-inclinada.sin-foto img{display:none}
@@ -483,164 +567,158 @@ body.reduced .chispa{display:none}
 }
 body.reduced .mota{animation:none;opacity:.4}
 
-/* ============ SERVICIOS · MOTOR DE SCROLL (Medicina Funcional) ============
-   12 escenas (Causa raíz + 10 áreas + cierre) mapeadas a una progresión
-   continua 0→11 dentro de .motor-pista (altura = 12 "pantallas"). El
-   escenario queda anclado (position:sticky, igual patrón que
-   .metodo-escena) mientras se recorre; script.js traduce el progreso del
-   ScrollTrigger en el anillo de arena activo y el contenido -ver "14 ·
-   MOTOR DE SCROLL". */
+/* ============ SERVICIOS · ÓRBITA (Medicina Funcional) ============
+   Una sola pantalla: "MEDICINA FUNCIONAL" al centro de una órbita con las
+   11 áreas alrededor; el trazo de arena las recorre solo, pasando siempre
+   por la palabra, y el panel de la derecha muestra el área activa. Al
+   final la palabra se dispersa y la frase de cierre ocupa su lugar. Ver
+   "14 · ÓRBITA DE SERVICIOS" en script.js. */
 .acto-motor{position:relative;z-index:1}
 .motor-cabecera{padding:clamp(2rem,5vh,4rem) 0 1.5rem;max-width:30rem}
 .motor-cabecera h2{font-size:clamp(1.8rem,3.2vw,2.6rem);margin-top:.7rem}
 .motor-cabecera h2 em{font-family:var(--script);font-style:normal;letter-spacing:normal;font-size:1.2em;color:var(--teal)}
 
-.motor-pista{position:relative;height:calc(12 * 85vh)}
-body.reduced .motor-pista{height:auto}
-.motor-fijo{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
-body.reduced .motor-fijo{position:relative;height:auto;min-height:70vh;padding:2rem 0}
-
-/* Anillo de arena: reemplaza al círculo sólido -mismo efecto de
-   partículas que #lienzo-polvo-textos en el hero (mismos tonos: duna,
-   bruma, alba), pero acá no trazan letras, trazan el contorno de una
-   elipse que gira sola sin parar y viaja (ver construirPolvoAro en el
-   JS) -pasando siempre por el centro- para envolver el panel que esté
-   activo. pointer-events:none para no tapar los clicks del riel/panel. */
+.motor-fijo{position:relative;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
+  gap:clamp(1.5rem,4vw,4rem);align-items:center;padding:.5rem clamp(1.25rem,5vw,5rem) clamp(3rem,8vh,5rem)}
+/* el lienzo cubre toda la escena: el trazo viaja entre la palabra, las
+   áreas de la órbita y la frase de cierre */
 .motor-polvo{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
 body.reduced .motor-polvo{display:none}
 
-/* Etiqueta fija en el mismo punto donde reposa el arco (36% del alto del
-   escenario, ver centro() en construirPolvoAro) -nunca se mueve, nunca
-   se oculta, ni siquiera cuando el arco viaja lejos a un panel lateral.
-   Vive fuera del canvas y fuera de las clases que cambian con cada
-   escena, así no depende de ninguna transición. */
-.motor-permanente{
-  position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);z-index:3;
-  margin:0;font-family:var(--mono);font-size:.72rem;letter-spacing:.22em;
-  text-transform:uppercase;color:rgba(26,36,33,.55);text-align:center;
-  pointer-events:none;
-}
-body.reduced .motor-permanente{position:static;transform:none;margin-bottom:.3rem}
+.motor-orbita{position:relative;height:min(66vh,580px);min-height:420px}
+.motor-permanente{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;margin:0;
+  font-family:var(--mono);font-size:.78rem;letter-spacing:.22em;text-transform:uppercase;white-space:nowrap;
+  color:rgba(26,36,33,.62);text-align:center;pointer-events:none}
+/* Letras sueltas para la dispersión del cierre (ver dispersarEtiqueta) */
+.motor-permanente-letra{display:inline-block;white-space:pre}
+.motor-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-/* Panel de contenido: uno solo activo a la vez, alterna izquierda/derecha
-   según la escena. El texto se apoya hacia el centro del escenario (el
-   panel izquierdo queda alineado a la derecha, y viceversa) para que
-   siempre "mire" hacia el árbol. */
-.motor-panel{
-  position:absolute;top:25%;z-index:3;width:min(320px,34vw);
-  opacity:0;transform:translateY(14px);
-  transition:opacity .5s var(--ease-tierra),transform .5s var(--ease-tierra);
-}
-.motor-panel.visible{opacity:1;transform:translateY(0)}
-/* Antes quedaban a una distancia FIJA del borde de la pantalla
-   (clamp(1.25rem,5vw,5rem)) -en una pantalla ancha eso los dejaba
-   pegados al lateral, muy lejos del centro. Ahora la distancia es
-   desde el CENTRO (50% + un margen que respeta al círculo), así el
-   texto queda cerca del centro sin importar qué tan ancha sea la
-   pantalla. */
-.motor-panel--izq{left:auto;right:calc(50% + clamp(90px,12vw,170px));text-align:right}
-.motor-panel--der{right:auto;left:calc(50% + clamp(90px,12vw,170px));text-align:left}
-/* Centrado con left/right/margin (no transform): el panel--centro es el
-   único que se centra horizontalmente -los demás usan left/right fijo-,
-   y left/right/margin NO están en la lista de `transition` de arriba, así
-   que se resuelven al instante. Si centráramos con transform:translateX(-50%)
-   (como antes), esa propiedad SÍ transiciona -viene de un transform sin
-   desplazamiento horizontal en la escena izq/der anterior- y elipseDe()
-   mediría el panel a mitad de esa transición, con el anillo terminando
-   descentrado hacia la derecha (bug real, visto con Playwright). */
-.motor-panel--centro{left:0;right:0;margin:0 auto;width:min(30rem,86vw);transform:translateY(14px);text-align:center;top:auto;bottom:10%}
-.motor-panel--centro.visible{transform:translateY(0)}
+/* Cada área, sobre la elipse (--x/--y los pone el JS). El transform
+   -50%,-50% es fijo en todos los estados: elipseDe() mide estos botones y
+   un transform que cambiara mientras se miden desplazaría el trazo. */
+.motor-area{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);z-index:3;
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.05em;white-space:nowrap;line-height:1.2;
+  color:rgba(26,36,33,.6);background:none;border:none;padding:.45em .75em;border-radius:999px;
+  transition:color .3s,opacity .5s var(--ease-tierra),background .3s}
+.motor-area::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;
+  opacity:.55;margin-right:.55em;vertical-align:middle;transition:transform .3s,opacity .3s,background .3s}
+.motor-area:hover{color:var(--teal)}
+.motor-area.activa{color:var(--texto-oscuro);font-weight:600}
+.motor-area.activa::before{background:var(--flor);opacity:1;transform:scale(1.6)}
+.motor-area:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+/* en el cierre la frase es la protagonista: las áreas se retiran */
+.motor-orbita.en-cierre .motor-area{opacity:.15}
+.motor-fijo.en-cierre .motor-progreso{opacity:0}
+.motor-progreso{transition:opacity .5s var(--ease-tierra)}
+
+.motor-lado{position:relative;z-index:3;max-width:26rem}
+.motor-panel{opacity:0;transform:translateY(14px);transition:opacity .5s var(--ease-tierra),transform .5s var(--ease-tierra)}
+.motor-panel.visible{opacity:1;transform:none}
+.motor-panel.sin-transicion{transition:none}
 .motor-kicker{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--flor)}
 .motor-kicker::after{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--flor);margin-left:.6em;vertical-align:middle}
-.motor-panel--izq .motor-kicker::after{order:-1;margin-left:0;margin-right:.6em}
-.motor-panel--izq .motor-kicker{display:inline-flex;flex-direction:row-reverse;align-items:center;justify-content:flex-end}
 .motor-titulo{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3vw,2.3rem);color:var(--texto-oscuro);margin:.35rem 0 .7rem}
-.motor-panel--centro .motor-titulo{font-family:var(--script);font-style:normal;font-weight:400;color:var(--teal);font-size:clamp(1.6rem,3vw,2.1rem)}
 .motor-filete{width:2.4rem;height:2px;background:var(--teal);margin:0 0 1rem}
-.motor-panel--izq .motor-filete{margin-left:auto}
-.motor-panel--der .motor-filete{margin-right:auto}
-.motor-panel--centro .motor-filete{margin:0 auto 1rem}
 .motor-desc{font-size:.96rem;line-height:1.6;color:rgba(26,36,33,.7)}
-body.reduced .motor-fijo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
-body.reduced .motor-panel{position:static;opacity:1;transform:none;width:100%;max-width:32rem;margin:0 auto;text-align:center}
-body.reduced .motor-panel .motor-filete{margin:0 auto 1rem}
-body.reduced .motor-panel .motor-kicker{display:block}
-.motor-panel--sin-kicker .motor-kicker{display:none}
-.motor-panel--sin-titulo .motor-titulo{display:none}
+/* cuánto falta para pasar sola a la siguiente área */
+.motor-progreso{margin-top:1.6rem;height:2px;background:rgba(26,36,33,.12);border-radius:2px;overflow:hidden}
+.motor-progreso span{display:block;height:100%;background:var(--teal);transform-origin:left;transform:scaleX(0)}
+.motor-progreso.pausado span{background:rgba(14,124,107,.45)}
 
-/* Riel: 12 puntos, solo el activo muestra su nombre -el resto queda
-   como marca de posición nada más, clicable para saltar directo. */
-.motor-rail{position:absolute;right:clamp(1rem,3.6vw,3rem);top:30%;z-index:3;display:flex;flex-direction:column;align-items:flex-end;gap:.85rem}
-.motor-rail-punto{
-  background:none;border:none;padding:.2rem;cursor:pointer;
-  display:flex;align-items:center;gap:.6rem;
-}
-.motor-rail-punto::after{
-  content:'';width:6px;height:6px;border-radius:50%;background:rgba(26,36,33,.28);
-  transition:background .3s,transform .3s var(--ease-tierra),box-shadow .3s;flex:none;
-}
-.motor-rail-punto:hover::after{background:rgba(199,92,132,.6)}
-.motor-rail-punto.activo::after{background:var(--flor);transform:scale(1.7);box-shadow:0 0 0 5px rgba(199,92,132,.16)}
-.motor-rail-nombre{
-  font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:var(--texto-oscuro);
-  white-space:nowrap;opacity:0;max-width:0;overflow:hidden;transition:opacity .3s,max-width .3s;
-}
-.motor-rail-punto.activo .motor-rail-nombre{opacity:1;max-width:12rem;font-weight:600}
-body.reduced .motor-rail{display:none}
+/* Frase de cierre: ocupa el lugar de la palabra, con la tipografía del H1
+   del hero. Su X (-50%) es fija en todos los estados -solo cambia la Y-,
+   por lo mismo que en .motor-area. */
+.motor-frase{position:absolute;left:50%;top:50%;z-index:3;width:min(34rem,94%);margin:0;text-align:center;
+  font-family:var(--display);font-weight:700;letter-spacing:-.05em;line-height:1.12;font-size:clamp(1.5rem,2.6vw,2.4rem);
+  color:var(--texto-oscuro);opacity:0;filter:blur(8px);transform:translate(-50%,calc(-50% + 14px));pointer-events:none;
+  transition:opacity .9s var(--ease-tierra),transform .9s var(--ease-tierra),filter .9s var(--ease-tierra)}
+.motor-frase.visible{opacity:1;filter:blur(0);transform:translate(-50%,-50%)}
+.motor-frase.sin-transicion{transition:none}
+.motor-frase em{display:block;font-family:var(--script);font-style:normal;font-weight:400;letter-spacing:normal;
+  font-size:1.15em;line-height:1.2;color:var(--teal);margin-top:.15em}
 
-.motor-hint{
-  position:absolute;bottom:clamp(2rem,6vh,3.5rem);left:50%;transform:translateX(-50%);z-index:2;
-  font-family:var(--mono);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;
-  color:rgba(26,36,33,.5);text-align:center;transition:opacity .6s;
-}
-.motor-hint::after{content:'';display:block;width:1px;height:1.6rem;background:rgba(26,36,33,.3);margin:.6rem auto 0}
-.motor-hint.oculto{opacity:0}
-body.reduced .motor-hint{display:none}
+body.reduced .motor-panel{opacity:1;transform:none}
+body.reduced .motor-progreso{display:none}
 
 @media(max-width:920px){
-  .motor-pista{height:calc(12 * 78vh)}
-  .motor-fijo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding-top:3.5rem}
-  .motor-panel{position:relative;top:auto;left:auto!important;right:auto!important;width:100%;
-    max-width:26rem;margin:0 auto;text-align:center!important;padding:0 1.5rem;transform:translateY(10px)}
-  .motor-panel.visible{transform:translateY(0)}
-  .motor-panel--centro{transform:translate(0,10px)}
-  .motor-panel--centro.visible{transform:translate(0,0)}
-  .motor-filete,.motor-panel--izq .motor-filete,.motor-panel--der .motor-filete{margin:0 auto 1rem!important}
-  .motor-kicker,.motor-panel--izq .motor-kicker{display:inline-flex!important;flex-direction:row!important;justify-content:center!important}
-  .motor-kicker::after{order:0!important;margin-left:.6em!important;margin-right:0!important}
-  .motor-panel--sin-kicker .motor-kicker{display:none!important}
-  .motor-rail{display:none}
-  .motor-hint{bottom:1rem}
-  .motor-permanente{position:absolute;top:5.5rem;left:50%;transform:translateX(-50%);margin:0}
+  .motor-fijo{grid-template-columns:1fr;gap:.8rem;padding:0 1.25rem 3rem}
+  .motor-orbita{height:min(52vh,360px);min-height:300px}
+  /* en mobile la órbita muestra puntos; el nombre solo en el área activa */
+  .motor-area{font-size:0;padding:.65rem}
+  .motor-area::before{margin-right:0;width:8px;height:8px}
+  .motor-area.activa{font-size:.62rem;padding:.4rem .7rem;background:rgba(251,247,239,.92);box-shadow:0 4px 14px rgba(26,36,33,.1)}
+  .motor-area.activa::before{margin-right:.5em;transform:scale(1.3)}
+  .motor-permanente{font-size:.64rem}
+  .motor-lado{max-width:none;min-height:14rem}
+  .motor-frase{font-size:clamp(1.2rem,5.4vw,1.6rem)}
 }
 
 /* ============ ACTO 6 · FLORACIONES ============ */
 .acto-flora{position:relative;z-index:1;padding:clamp(5rem,12vh,9rem) 0 clamp(4rem,10vh,7rem)}
-.flora-head{margin-bottom:2.5rem}
+/* Carrusel de historias (ref. Aceternity testimonials): tarjetas con un
+   paisaje generado + la flor de la historia; la activa (al centro) crece
+   y muestra la cita. Ver "5b · CARRUSEL DE HISTORIAS" en script.js. */
+.flora-head{margin-bottom:2.5rem;display:flex;align-items:flex-end;justify-content:space-between;gap:1.5rem}
 .flora-head .eyebrow{color:var(--teal)}
 .flora-head h2{font-size:clamp(2rem,3.8vw,3.4rem);margin-top:1rem}
+.flora-flechas{display:flex;gap:.6rem;flex-shrink:0}
+.flora-flecha{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;padding:0;
+  background:transparent;border:1px solid rgba(26,36,33,.22);color:var(--texto-oscuro);transition:background .25s,color .25s,opacity .25s}
+.flora-flecha svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.flora-flecha:hover:not(:disabled){background:var(--texto-oscuro);color:var(--arena)}
+.flora-flecha:disabled{opacity:.3;cursor:default}
+.flora-flecha:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+
 .carril{
-  display:flex;gap:1.4rem;overflow-x:auto;padding:1rem clamp(1.25rem,5vw,5rem) 2rem;
-  scroll-snap-type:x mandatory;scrollbar-width:none;cursor:grab;
+  --ancho-caso:min(380px,78vw);
+  position:relative;display:flex;align-items:flex-start;gap:1.1rem;overflow-x:auto;
+  /* --margen (lo fija el script) = borde izquierdo del título: la tarjeta
+     activa se alinea ahí y las siguientes asoman a la derecha. El relleno
+     derecho deja que la última también pueda llegar a ese borde. */
+  --margen:max(1.5rem,calc((100% - 1200px) / 2));
+  padding:.5rem calc(100% - var(--margen) - var(--ancho-caso)) 2rem var(--margen);
+  scroll-padding-left:var(--margen);
+  scroll-snap-type:x mandatory;scrollbar-width:none;cursor:grab;outline:none;
 }
 .carril::-webkit-scrollbar{display:none}
-.carril:active{cursor:grabbing}
+.carril.arrastrando{scroll-snap-type:none;cursor:grabbing}
+.carril:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
 .caso{
-  scroll-snap-align:start;flex:0 0 min(400px,84vw);
-  background:#FBF7EF;border-radius:20px;padding:2rem;
-  box-shadow:0 14px 40px rgba(26,36,33,.08);
-  display:flex;flex-direction:column;gap:1rem;
+  position:relative;flex:0 0 var(--ancho-caso);height:400px;scroll-snap-align:start;
+  border-radius:20px;overflow:hidden;background:#1d2b29;cursor:pointer;
+  box-shadow:0 14px 40px rgba(26,36,33,.14);
   opacity:0;transform:translateY(24px);
+  transition:height .55s var(--ease-tierra);
 }
-.caso.visible,body.reduced .caso{opacity:1;transform:none;transition:opacity .8s var(--ease-tierra),transform .8s var(--ease-tierra)}
-.caso .flor-svg{width:56px;height:56px}
-.caso .antes,.caso .hoy{font-size:.98rem;line-height:1.6}
-.caso .antes{color:rgba(26,36,33,.55)}
-.caso .antes b,.caso .hoy b{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;display:block;margin-bottom:.3rem}
-.caso .antes b{color:rgba(26,36,33,.45)}
-.caso .hoy b{color:var(--flor)}
-.caso .hoy{font-weight:600;font-size:1.02rem;color:var(--texto-oscuro)}
-.caso footer{margin-top:auto;font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;color:rgba(26,36,33,.55)}
+.caso.visible,body.reduced .caso{opacity:1;transform:none;
+  transition:opacity .8s var(--ease-tierra),transform .8s var(--ease-tierra),height .55s var(--ease-tierra)}
+.caso.activa{height:500px;cursor:default}
+.caso-paisaje{position:absolute;inset:0;width:100%;height:100%}
+/* resplandor detrás de la flor (sol del paisaje) */
+.caso::before{content:'';position:absolute;z-index:1;left:50%;top:15%;width:42%;aspect-ratio:1;
+  transform:translateX(-50%) scale(1.9);background:radial-gradient(circle,rgba(251,230,201,.42) 0%,rgba(251,230,201,0) 62%);pointer-events:none}
+.caso .flor-svg{position:absolute;z-index:2;left:50%;top:15%;width:42%;height:auto;aspect-ratio:1;transform:translateX(-50%);
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.25))}
+.caso-texto{position:absolute;z-index:3;left:0;right:0;bottom:0;padding:4.5rem 1.4rem 1.3rem;
+  background:linear-gradient(to bottom,rgba(10,22,20,0) 0%,rgba(10,22,20,.72) 38%,rgba(10,22,20,.9) 100%);color:#fff}
+.caso .antes,.caso .hoy{max-height:0;opacity:0;overflow:hidden;margin:0;
+  transition:max-height .55s var(--ease-tierra),opacity .45s var(--ease-tierra),margin .55s var(--ease-tierra)}
+.caso.activa .antes{max-height:5rem;opacity:1;margin-bottom:.7rem}
+.caso.activa .hoy{max-height:12rem;opacity:1;margin-bottom:1rem;transition-delay:.08s}
+.caso .antes{font-size:.82rem;line-height:1.45;color:rgba(255,255,255,.62)}
+.caso .antes b,.caso .hoy b{display:block;font-family:var(--mono);font-size:.62rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;margin-bottom:.25rem}
+.caso .antes b{color:rgba(255,255,255,.45)}
+.caso .hoy b{color:#F2A6C2}
+.caso .hoy{font-family:var(--display);font-weight:500;font-size:1.28rem;line-height:1.38;letter-spacing:-.01em}
+.caso footer{display:flex;flex-direction:column;gap:.1rem;font-size:.8rem;line-height:1.35}
+.caso footer b{font-weight:600;color:#fff}
+.caso footer span{color:rgba(255,255,255,.7)}
+@media(max-width:600px){
+  .caso{height:340px}
+  .caso.activa{height:470px}
+  .caso .hoy{font-size:1.12rem}
+}
+body.reduced .caso,body.reduced .caso *{transition:none!important}
 .flora-nota{padding:0 clamp(1.25rem,5vw,5rem);font-size:.8rem;color:rgba(26,36,33,.5);max-width:60ch}
 .flora-nota a{color:var(--teal)}
 
@@ -685,9 +763,16 @@ body.reduced .motor-hint{display:none}
    la suya sola), así que el respaldo tiene que decidirse por capa. */
 .blog-foto.sin-foto img{display:none}
 .blog-foto.sin-foto svg{display:block}
-.blog-foto--1{animation:blog-pila-1 6s ease-in-out infinite}
-.blog-foto--2{animation:blog-pila-2 6s ease-in-out infinite}
-.blog-foto--3{animation:blog-pila-3 6s ease-in-out infinite}
+/* El post activo lo marca el JS con data-i en la tarjeta (mismo índice que el
+   texto, así cambian a la vez, con el mismo tiempo en escritorio y móvil).
+   Escritorio: las de atrás asoman a la derecha; en móvil, a la izquierda. */
+.blog-foto{transition:transform .9s var(--ease-tierra),opacity .9s var(--ease-tierra)}
+.blog-card:not([data-i]) .blog-foto--1,.blog-card[data-i="0"] .blog-foto--1,.blog-card[data-i="1"] .blog-foto--2,.blog-card[data-i="2"] .blog-foto--3{
+  transform:translate(0,0) rotate(0deg) scale(1);opacity:1;z-index:2}
+.blog-card:not([data-i]) .blog-foto--2,.blog-card[data-i="0"] .blog-foto--2,.blog-card[data-i="1"] .blog-foto--3,.blog-card[data-i="2"] .blog-foto--1{
+  transform:translate(12%,5%) rotate(5deg) scale(.94);opacity:.94;z-index:1}
+.blog-card:not([data-i]) .blog-foto--3,.blog-card[data-i="0"] .blog-foto--3,.blog-card[data-i="1"] .blog-foto--1,.blog-card[data-i="2"] .blog-foto--2{
+  transform:translate(22%,12%) rotate(-6deg) scale(.89);opacity:.88;z-index:0}
 /* Mismos % de ciclo que foto-pila-1/2/3 de La doctora (25.64/33.33/58.97/
    66.67/92.3) -solo cambia la duración (6s en vez de 7.8s) para que cada
    rol dure exactamente 2s (6s / 3 posts), como se pidió. */
@@ -786,46 +871,53 @@ body.reduced .blog-foto--2,body.reduced .blog-foto--3{display:none}
   /* 88% y aspect-ratio 4/5 -no 16/9- para que apilada quede del mismo
      tamaño que .foto-inclinada en su propio quiebre móvil, no solo en
      desktop. */
-  .blog-img{width:88%;aspect-ratio:4/5}
-  .blog-foto{animation-duration:6s;animation-timing-function:ease-in-out;animation-iteration-count:infinite}
-  .blog-foto--1{animation-name:blog-texto-1}
-  .blog-foto--2{animation-name:blog-texto-2}
-  .blog-foto--3{animation-name:blog-texto-3}
+  .blog-img{width:80%;aspect-ratio:4/5;margin-left:auto}
+  /* Pila inclinada como la de La doctora (las de atrás asoman a la izquierda).
+     El post activo lo marca el JS con data-i en la tarjeta, así imagen y texto
+     cambian exactamente a la vez; cada tarjeta se desliza con transición. */
+  .blog-foto{animation:none;transition:transform .9s var(--ease-tierra),opacity .9s var(--ease-tierra)}
+  .blog-card:not([data-i]) .blog-foto--1,.blog-card[data-i="0"] .blog-foto--1,.blog-card[data-i="1"] .blog-foto--2,.blog-card[data-i="2"] .blog-foto--3{
+    transform:translate(0,0) rotate(0deg) scale(1);opacity:1;z-index:2}
+  .blog-card:not([data-i]) .blog-foto--2,.blog-card[data-i="0"] .blog-foto--2,.blog-card[data-i="1"] .blog-foto--3,.blog-card[data-i="2"] .blog-foto--1{
+    transform:translate(-12%,5%) rotate(-5deg) scale(.94);opacity:.94;z-index:1}
+  .blog-card:not([data-i]) .blog-foto--3,.blog-card[data-i="0"] .blog-foto--3,.blog-card[data-i="1"] .blog-foto--1,.blog-card[data-i="2"] .blog-foto--2{
+    transform:translate(-22%,12%) rotate(6deg) scale(.89);opacity:.88;z-index:0}
 }
 
 /* ============ FAQ ============ */
-.contenedor-angosta{max-width:760px}
+/* Estilo editorial (ref. Aceternity FAQ): título grande a la izquierda,
+   preguntas a la derecha como filas planas separadas por una línea fina,
+   con el "+" adelante que gira a "×" al abrir. */
 .acto-faq{position:relative;z-index:1;padding:clamp(5rem,11vh,8rem) 0}
-.acto-faq h2{font-size:clamp(2rem,3.6vw,3.2rem);margin:1rem 0 2.2rem}
-.faq-lista{display:flex;flex-direction:column;gap:.85rem}
+.faq-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:clamp(2rem,6vw,6rem);align-items:start}
+.faq-cab h2{font-size:clamp(2.2rem,4.2vw,3.8rem);line-height:1.02;margin-top:1rem}
+@media(max-width:920px){.faq-grid{grid-template-columns:1fr;gap:1.6rem}}
+.faq-lista{display:flex;flex-direction:column;border-top:1px solid rgba(26,36,33,.12)}
 .faq-item{
-  background:#FBF7EF;border-radius:16px;padding:.3rem 1.5rem;
-  box-shadow:0 6px 20px rgba(26,36,33,.05);border:1px solid transparent;
+  border-bottom:1px solid rgba(26,36,33,.12);
   opacity:0;transform:translateY(16px);
-  transition:opacity .7s var(--ease-tierra),transform .35s var(--ease-tierra),box-shadow .35s,border-color .35s;
+  transition:opacity .7s var(--ease-tierra),transform .35s var(--ease-tierra);
 }
 .faq-item.visible,body.reduced .faq-item{opacity:1;transform:none}
-.faq-item:hover{border-color:rgba(14,124,107,.2);box-shadow:0 14px 34px rgba(26,36,33,.09)}
 .faq-item summary{
-  list-style:none;cursor:pointer;padding:1.15rem 2.2rem 1.15rem 1.85rem;position:relative;
-  font-family:var(--display);font-weight:460;font-size:1.08rem;
-  -webkit-tap-highlight-color:transparent;
+  list-style:none;cursor:pointer;padding:1.2rem 0 1.2rem 2.2rem;position:relative;
+  font-family:var(--display);font-weight:500;font-size:1.06rem;line-height:1.45;color:var(--texto-oscuro);
+  transition:color .3s;-webkit-tap-highlight-color:transparent;
 }
-.faq-item summary::before{
-  content:'';position:absolute;left:0;top:1.5rem;width:7px;height:7px;border-radius:50%;
-  background:var(--flor);opacity:.7;
-}
+.faq-item summary:hover{color:var(--teal)}
 .faq-item summary::-webkit-details-marker{display:none}
 .faq-item summary::marker{content:''}
-.faq-item summary::after{
-  content:'+';position:absolute;right:.1rem;top:50%;transform:translateY(-50%);
-  font-family:var(--mono);font-size:1.3rem;color:var(--teal);transition:transform .35s var(--ease-tierra);
+.faq-item summary::before{
+  content:'+';position:absolute;left:.1rem;top:1.08rem;
+  font-family:var(--mono);font-weight:300;font-size:1.5rem;line-height:1;color:var(--teal);
+  transition:transform .35s var(--ease-tierra);
 }
-.faq-item[open] summary::after{transform:translateY(-50%) rotate(45deg)}
+.faq-item[open] summary::before{transform:rotate(45deg)}
 .faq-item summary:focus-visible{outline:2px solid var(--teal);outline-offset:4px;border-radius:6px}
-.faq-r{padding:0 0 1.3rem 1.85rem;font-size:.96rem;color:rgba(26,36,33,.75);max-width:60ch}
+.faq-r{overflow:hidden}
+.faq-r p{padding:0 0 1.3rem 2.2rem;font-size:.96rem;color:rgba(26,36,33,.72);max-width:60ch}
 .faq-r a{color:var(--teal);font-weight:500}
-body.reduced .faq-item summary::after{transition:none}
+body.reduced .faq-item summary::before{transition:none}
 
 /* ============ ACTO 7 · CTA FINAL ============ */
 .acto-cta{position:relative;min-height:100svh;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center}
@@ -1023,3 +1115,42 @@ body.reduced .velo-contenido > *{transition:none}
 .skip:focus{top:1rem}
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 :focus-visible{outline:2px solid var(--alba);outline-offset:3px}
+
+/* ============ AJUSTES MÓVIL ============
+   Pasada de revisión en 320–390px: nada tapa el texto, objetivos táctiles
+   de al menos ~40px y letra mínima legible. */
+@media(max-width:920px){
+  /* el párrafo del hero llegaba hasta el borde derecho */
+  .hero-copy{right:clamp(1.25rem,6vw,6rem)}
+  /* «Sonido» pasa al header (solo el ícono, junto a la hamburguesa): abajo
+     tapaba el texto fijo de las secciones y el pie de página */
+  .toggle-sonido{top:calc(1.1rem - 1px);bottom:auto;left:auto;right:calc(clamp(1.25rem,4vw,3rem) + 38px + .7rem);z-index:51;
+    width:40px;height:40px;padding:0;justify-content:center;background:rgba(8,31,29,.55)}
+  .toggle-sonido .etiqueta{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* el pie de página deja lugar a la barra inferior fija */
+  .footer{padding-bottom:calc(2.5rem + 5.5rem + env(safe-area-inset-bottom, 0px))}
+  .footer a{padding:.35rem 0;margin-bottom:.1rem}
+  .footer .legal{padding-right:4.2rem}   /* esquiva los botones flotantes */
+  .motor-lado{padding-right:3.8rem}   /* el texto de la escena no queda bajo los flotantes */
+  /* menú: si no cabe en pantalla (teléfonos chicos o apaisados) se desplaza en vez de cortarse */
+  .menu-movil{justify-content:flex-start;overflow-y:auto;overscroll-behavior:contain;padding:calc(5.2rem + env(safe-area-inset-top, 0px)) 1.5rem calc(2rem + env(safe-area-inset-bottom, 0px))}
+  .menu-movil>nav{margin-top:auto}
+  .menu-movil>.menu-social{margin-bottom:auto}
+  .menu-movil nav a{font-size:clamp(1.35rem,6.4vw,1.7rem);text-align:center}
+  /* texto chico sobre el degradado naranja: fondo propio para que se lea */
+  .cta-copy .micro{display:block;max-width:30rem;margin-left:auto;margin-right:auto;padding:.8rem 1rem;border-radius:12px;
+    background:rgba(5,21,18,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--arena);line-height:1.7}
+  #resenas-error a{display:inline-block;padding:.7rem .5rem}
+  /* zonas táctiles ampliadas sin cambiar el tamaño visible */
+  .motor-area::after,.raiz-nombre::after{content:'';position:absolute;inset:-8px}
+  /* letra mínima */
+  .raiz-nombre{font-size:.62rem;letter-spacing:.08em}
+  .motor-area.activa{font-size:.68rem}
+  .caso .antes b,.caso .hoy b{font-size:.68rem}
+}
+@media(max-width:920px) and (max-height:700px){
+  .menu-movil{gap:1.2rem}
+  .menu-movil nav{gap:.9rem}
+  .menu-movil nav a{font-size:1.3rem}
+  .menu-social a{width:42px;height:42px}
+}

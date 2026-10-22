@@ -252,6 +252,9 @@ var gotaFondo = (function(){
 
   function gotaPath(r, T){
     ctx.beginPath();
+    // casi sin cola (gota en caída libre): esfera apenas ovalada, sin la
+    // punta de lágrima -una gota que cae no tiene punta
+    if (T < r*1.15){ ctx.ellipse(0, (r-T)/2, r, (r+T)/2, 0, 0, 6.283); return; }
     ctx.moveTo(0,-T);
     ctx.bezierCurveTo( r*0.42, -T*0.5,  r, -r*0.6,  r, 0);
     ctx.bezierCurveTo( r, r*0.56,  r*0.56, r,  0, r);
@@ -259,19 +262,33 @@ var gotaFondo = (function(){
     ctx.bezierCurveTo(-r, -r*0.6, -r*0.42, -T*0.5, 0, -T);
     ctx.closePath();
   }
-  function pintaGota(px, py, r, T, alpha){
+  // sx/sy (opcionales): deformación de la gota -oscila al caer por la
+  // tensión superficial; sy negativo la invierte (reflejo en el agua).
+  function pintaGota(px, py, r, T, alpha, sx, sy){
     ctx.save();
     ctx.translate(px, py);
-    var gd = ctx.createRadialGradient(-r*0.35,-r*0.1,r*0.08, 0,0,r*1.15);
-    gd.addColorStop(0,'rgba(240,252,248,'+(0.95*alpha).toFixed(3)+')');
-    gd.addColorStop(0.45,'rgba(159,216,204,'+(0.78*alpha).toFixed(3)+')');
-    gd.addColorStop(0.8,'rgba(14,124,107,'+(0.6*alpha).toFixed(3)+')');
-    gd.addColorStop(1,'rgba(8,60,52,'+(0.55*alpha).toFixed(3)+')');
+    ctx.scale(sx || 1, sy || 1);
+    // cuerpo: agua clara al centro y borde más oscuro (la refracción
+    // oscurece los bordes de una gota real)
+    var gd = ctx.createRadialGradient(-r*0.25,-r*0.25,r*0.05, 0,r*0.05,r*1.2);
+    gd.addColorStop(0,'rgba(236,250,246,'+(0.9*alpha).toFixed(3)+')');
+    gd.addColorStop(0.38,'rgba(170,222,212,'+(0.7*alpha).toFixed(3)+')');
+    gd.addColorStop(0.74,'rgba(40,140,124,'+(0.62*alpha).toFixed(3)+')');
+    gd.addColorStop(1,'rgba(6,46,40,'+(0.78*alpha).toFixed(3)+')');
     ctx.fillStyle = gd;
     gotaPath(r, T);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(230,245,240,'+(0.4*alpha).toFixed(3)+')';
-    ctx.lineWidth = 1;
+    // cáustica: la gota funciona como lente y concentra la luz abajo
+    ctx.save();
+    gotaPath(r, T); ctx.clip();
+    var ca = ctx.createRadialGradient(r*0.12, r*0.58, 0, r*0.12, r*0.58, r*0.62);
+    ca.addColorStop(0,'rgba(255,250,232,'+(0.6*alpha).toFixed(3)+')');
+    ca.addColorStop(1,'rgba(255,250,232,0)');
+    ctx.fillStyle = ca;
+    ctx.fillRect(-r*1.2, -T, r*2.4, T + r*1.2);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(230,248,243,'+(0.3*alpha).toFixed(3)+')';
+    ctx.lineWidth = 0.8;
     ctx.stroke();
     // reflejo: antes era un brillo fijo siempre en el mismo punto, por eso
     // la gota en reposo (que es la mayor parte del tiempo, mientras el
@@ -282,11 +299,24 @@ var gotaFondo = (function(){
     var rx = Math.cos(faseReflejo) * r*0.3 - r*0.08;
     var ry = Math.sin(faseReflejo) * r*0.22 - r*0.14;
     var brilloReflejo = 0.72 + 0.18 * Math.sin(faseReflejo * 1.7);
-    ctx.fillStyle = 'rgba(255,255,255,'+(brilloReflejo*alpha).toFixed(3)+')';
+    ctx.fillStyle = 'rgba(255,255,255,'+(0.35*brilloReflejo*alpha).toFixed(3)+')';
     ctx.beginPath();
-    ctx.ellipse(rx, ry, r*0.17, r*0.3, faseReflejo*0.6, 0, 6.28);
+    ctx.ellipse(rx, ry, r*0.2, r*0.32, faseReflejo*0.6, 0, 6.28);
+    ctx.fill();
+    // y un punto especular nítido dentro del halo
+    ctx.fillStyle = 'rgba(255,255,255,'+(0.95*alpha).toFixed(3)+')';
+    ctx.beginPath();
+    ctx.ellipse(rx - r*0.02, ry - r*0.05, r*0.07, r*0.11, faseReflejo*0.6, 0, 6.28);
     ctx.fill();
     ctx.restore();
+  }
+  function gotita(px, py, rr, a){
+    if (a <= 0.01 || rr <= 0.2) return;
+    var g = ctx.createRadialGradient(px - rr*0.3, py - rr*0.3, 0, px, py, rr);
+    g.addColorStop(0,'rgba(240,252,248,'+a.toFixed(3)+')');
+    g.addColorStop(1,'rgba(127,181,171,'+(a*0.55).toFixed(3)+')');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(px, py, rr, 0, 6.28); ctx.fill();
   }
 
   function brote(x, y, k, tm){
@@ -400,83 +430,144 @@ var gotaFondo = (function(){
     }
 
     // ── ciclo de la gota de esta etapa ──
-    if (t < 0.18){
-      var ft = t/0.18;
-      ft = ft*ft*(3-2*ft);
-      var rr = r*(0.4 + 0.6*ft);
-      var T = rr*(0.85 + 1.05*ft*ft);
-      var sway = Math.sin(tm*0.9)*1.4*ft;
-      pintaGota(x + sway, yIni + T, rr, T, 0.55 + 0.45*ft);
+    // t 0→FORMA: se forma colgada del hilo · FORMA→CAE: cae con gravedad ·
+    // CAE→1: impacto (destello, corona, gotitas, chorro de rebote, ondas)
+    var FORMA = 0.24, CAE = 0.56, u = movil ? 0.62 : 1, ys = yFin + 6;
+    if (t < FORMA){
+      var ft = t/FORMA, e = ft*ft*(3-2*ft);
+      var rr = r*(0.35 + 0.7*e);
+      var Tf = rr*(1.0 + 1.15*e);                 // más pesada, más estirada
+      var corte = clamp((ft-0.72)/0.28, 0, 1);    // el cuello se afina y se corta
+      var cyF = yIni + Tf + 7*corte*corte;
+      var swF = Math.sin(tm*0.9)*1.2*e + Math.sin(tm*14)*0.6*corte; // tiembla antes de soltarse
+      if (corte < 1){
+        var cu = 1 - corte;
+        ctx.strokeStyle = 'rgba(190,235,226,'+(0.55*cu).toFixed(3)+')';
+        ctx.lineWidth = 0.6 + 2.6*cu*e;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(x, yIni); ctx.lineTo(x + swF*0.5, cyF - Tf + 1); ctx.stroke();
+      }
+      pintaGota(x + swF, cyF, rr, Tf, 0.6 + 0.4*e, 1 - 0.07*e, 1 + 0.07*e);
 
-    } else if (t <= 0.5){
-      var tf = (t-0.18)/0.32;
-      var yD = Math.pow(tf, 1.55);
-      var yDrop = yIni + yD*(yFin - yIni - r);
-      var T = r*(1.05 + 1.5*tf);
-      var ondula = Math.sin(tm*1.6 + tf*5)*1.6*(1-tf);
-
-      var gl = ctx.createRadialGradient(x,yDrop,0,x,yDrop,r*4.6);
-      gl.addColorStop(0,'rgba(127,181,171,0.22)');
+    } else if (t < CAE){
+      var tf = (t-FORMA)/(CAE-FORMA);
+      var y0 = yIni + r*2.25, y1 = ys - r*0.95;
+      var yDrop = y0 + tf*tf*(y1 - y0);           // gravedad: aceleración constante
+      var vel = tf;
+      // al soltarse pierde la cola y queda esférica, oscilando (tensión superficial)
+      var cola = Math.pow(1 - clamp(tf/0.32, 0, 1), 3);
+      var Tc = r*(1 + 1.05*cola);
+      var osc = Math.sin(tf*24)*Math.exp(-tf*4.5)*0.17;
+      // la gotita que queda en la punta del hilo se recoge
+      if (tf < 0.3){ var sk = 1 - tf/0.3; pintaGota(x, yIni + 2 + 3*sk, r*0.24*sk, r*0.3*sk, sk); }
+      // halo
+      var gl = ctx.createRadialGradient(x,yDrop,0,x,yDrop,r*4.2);
+      gl.addColorStop(0,'rgba(127,181,171,0.2)');
       gl.addColorStop(1,'rgba(127,181,171,0)');
       ctx.fillStyle = gl;
-      ctx.beginPath(); ctx.arc(x,yDrop,r*4.6,0,6.28); ctx.fill();
-
-      var est = ctx.createLinearGradient(0, yDrop-T-60, 0, yDrop-T);
-      est.addColorStop(0,'rgba(159,216,204,0)');
-      est.addColorStop(1,'rgba(159,216,204,'+(0.35*tf).toFixed(3)+')');
-      ctx.strokeStyle = est; ctx.lineWidth = 1.3;
-      ctx.beginPath(); ctx.moveTo(x, yDrop-T-60); ctx.lineTo(x+ondula*0.4, yDrop-T); ctx.stroke();
-
-      for (var sx=1;sx<=3;sx++){
-        var off = (yFin-yIni)*0.018*sx*(0.3+tf);
-        if (off < 3) continue;
-        pintaGota(x+ondula*(1-sx*0.25), yDrop-off, r*(1-0.2*sx), T*(1-0.16*sx), 0.14/sx + 0.02);
+      ctx.beginPath(); ctx.arc(x,yDrop,r*4.2,0,6.28); ctx.fill();
+      // estela: más larga cuanto más rápido cae
+      var largo = 8 + 90*vel*vel;
+      var est = ctx.createLinearGradient(0, yDrop - Tc - largo, 0, yDrop - Tc*0.4);
+      est.addColorStop(0,'rgba(190,235,226,0)');
+      est.addColorStop(1,'rgba(190,235,226,'+(0.3*vel).toFixed(3)+')');
+      ctx.strokeStyle = est; ctx.lineWidth = 0.8 + 1.4*vel; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x, yDrop - Tc - largo); ctx.lineTo(x, yDrop - Tc*0.4); ctx.stroke();
+      // su reflejo aparece en el agua a medida que se acerca
+      var cerca = clamp((tf-0.5)/0.5, 0, 1);
+      if (cerca > 0){
+        pintaGota(x, ys + (ys - yDrop)*0.22 + r*0.4, r*0.85, Tc*0.85, 0.22*cerca, 1 - osc, -0.32*(1 + osc));
       }
-      pintaGota(x+ondula, yDrop, r, T, 1);
+      pintaGota(x, yDrop, r, Tc, 1, 1 - osc, 1 + osc);
 
     } else {
-      // impacto + calma: aqui NACE la tarjeta de la etapa
-      var rt = (t-0.5)/0.5;
-
-      for (var k=0;k<4;k++){
-        var rr2 = clamp(rt*0.95 - k*0.13, 0, 1);
+      var rt = (t-CAE)/(1-CAE);
+      // destello del impacto
+      if (rt < 0.16){
+        var fk = 1 - rt/0.16;
+        var fl = ctx.createRadialGradient(x, ys, 0, x, ys, 46*u);
+        fl.addColorStop(0,'rgba(236,250,246,'+(0.55*fk).toFixed(3)+')');
+        fl.addColorStop(1,'rgba(236,250,246,0)');
+        ctx.fillStyle = fl;
+        ctx.beginPath(); ctx.ellipse(x, ys, 46*u, 14*u, 0, 0, 6.28); ctx.fill();
+      }
+      // ondas: cresta clara + valle oscuro, se separan y se desvanecen
+      for (var k=0;k<5;k++){
+        var rr2 = clamp(rt*1.05 - k*0.12, 0, 1);
         if (rr2 <= 0) continue;
         var eo = 1 - Math.pow(1-rr2, 2);
-        var rad = (movil?40:72) + eo*(movil?85:165);
-        ctx.strokeStyle = 'rgba(159,216,204,'+((1-eo)*0.5+0.05).toFixed(3)+')';
+        var rad = (16 + eo*200)*u;
+        var al = (1-eo);
         ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.ellipse(x, yFin+6, rad, rad*0.23, 0, 0, 6.28);
-        ctx.stroke();
+        ctx.strokeStyle = 'rgba(4,30,26,'+(al*0.4).toFixed(3)+')';
+        ctx.beginPath(); ctx.ellipse(x, ys + 1.6, rad*0.95, rad*0.95*0.23, 0, 0, 6.28); ctx.stroke();
+        ctx.strokeStyle = 'rgba(200,240,230,'+(al*0.55 + 0.04).toFixed(3)+')';
+        ctx.beginPath(); ctx.ellipse(x, ys, rad, rad*0.23, 0, 0, 6.28); ctx.stroke();
       }
-      if (rt < 0.45){
-        var ct = rt/0.45;
-        for (var i=0;i<8;i++){
-          var a = -Math.PI*0.88 + (i/7)*Math.PI*0.76;
-          var sp = (movil?38:62)*(0.65 + hash(s*9+i)*0.7);
-          var gx = x + Math.cos(a)*sp*ct;
-          var gy = yFin + Math.sin(a)*sp*ct + (movil?50:82)*ct*ct;
-          var gr = (1.5 + hash(s*5+i)*2.2)*(1 - ct*0.4);
-          ctx.fillStyle = 'rgba(220,244,238,'+((1-ct)*0.8).toFixed(3)+')';
-          ctx.beginPath(); ctx.arc(gx, gy, gr, 0, 6.28); ctx.fill();
+      // corona: un anillo de gotitas que sube sobre paredes de agua y cae
+      if (rt < 0.42){
+        var ck = rt/0.42, hc = Math.sin(ck*Math.PI);
+        for (var ci=0; ci<14; ci++){
+          var ac = ci/14*6.283 + 0.2;
+          var rc = (12 + ck*30)*u;
+          var bx = x + Math.cos(ac)*rc, by = ys + Math.sin(ac)*rc*0.23;
+          var tx = x + Math.cos(ac)*rc*1.12, ty = by - hc*(14 + hash(s*13+ci)*14)*u;
+          var aC = (1-ck);
+          ctx.strokeStyle = 'rgba(200,240,230,'+(aC*0.14).toFixed(3)+')';
+          ctx.lineWidth = 0.7;
+          ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tx, ty); ctx.stroke();
+          gotita(tx, ty, (1.1 + hash(s*17+ci)*1.5)*(1 - ck*0.4)*u + 0.4, aC*0.9);
         }
       }
-      var jt = Math.sin(clamp(rt/0.55, 0, 1)*Math.PI);
-      var jh = (movil?32:52)*jt;
-      if (jh > 2){
-        var jg = ctx.createLinearGradient(0, yFin-jh, 0, yFin);
-        jg.addColorStop(0,'rgba(220,244,238,'+(0.7*jt).toFixed(3)+')');
-        jg.addColorStop(1,'rgba(127,181,171,'+(0.28*jt).toFixed(3)+')');
-        ctx.strokeStyle = jg;
-        ctx.lineWidth = 2.2;
-        ctx.beginPath(); ctx.moveTo(x, yFin+4); ctx.lineTo(x, yFin-jh); ctx.stroke();
-        pintaGota(x, yFin-jh-7, r*0.32, r*0.42, jt);
+      // gotitas lanzadas en parábola hacia arriba; al caer dejan su onda
+      for (var gi=0; gi<7; gi++){
+        var dir = gi/6*2 - 1;                            // -1 izquierda … 1 derecha
+        var vx = dir*(36 + hash(s*7+gi)*40)*u;
+        var alto = (60 + hash(s*11+gi)*70)*u;
+        // profundidad: unas caen más cerca (más abajo) y otras más lejos
+        var vz = (hash(s*19+gi) - 0.5)*30*u;
+        var tg = (rt - 0.03)/0.55;
+        if (tg <= 0) continue;
+        if (tg < 1){
+          gotita(x + vx*tg, ys + vz*tg - alto*4*tg*(1-tg), (1.3 + hash(s*5+gi)*1.4)*u + 0.3, 0.85);
+        } else {
+          var tl = (tg - 1)/0.6;
+          if (tl < 1){
+            ctx.strokeStyle = 'rgba(190,235,226,'+((1-tl)*0.22).toFixed(3)+')';
+            ctx.lineWidth = 0.8;
+            var rl = (2 + tl*22)*u;
+            ctx.beginPath(); ctx.ellipse(x + vx, ys + vz, rl, rl*0.23, 0, 0, 6.28); ctx.stroke();
+          }
+        }
       }
-      var sg = ctx.createRadialGradient(x,yFin,0,x,yFin,70);
-      sg.addColorStop(0,'rgba(242,166,90,'+((1-rt)*0.14).toFixed(3)+')');
+      // chorro de rebote (Worthington): sube, se afina y suelta una gotita
+      var jt = clamp((rt-0.14)/0.5, 0, 1);
+      if (jt > 0 && jt < 1){
+        var jh = Math.sin(jt*Math.PI)*(54*u);
+        var jw = (4.5 - 2.5*jt)*u;
+        var jg = ctx.createLinearGradient(0, ys - jh, 0, ys);
+        jg.addColorStop(0,'rgba(225,246,240,0.8)');
+        jg.addColorStop(1,'rgba(127,181,171,0.3)');
+        ctx.fillStyle = jg;
+        ctx.beginPath();
+        ctx.moveTo(x - jw*1.8, ys);
+        ctx.quadraticCurveTo(x - jw*0.5, ys - jh*0.5, x, ys - jh);
+        ctx.quadraticCurveTo(x + jw*0.5, ys - jh*0.5, x + jw*1.8, ys);
+        ctx.closePath(); ctx.fill();
+        if (jt > 0.42){
+          // la gotita se desprende de la punta: sigue subiendo y vuelve a caer
+          var dt2 = (jt - 0.42)/0.58;
+          var py2 = ys - 54*u - 20*u*Math.sin(dt2*Math.PI) + dt2*dt2*54*u;
+          pintaGota(x, py2, r*0.3*u + 1, r*0.3*u + 1, 1 - dt2*0.5);
+        } else {
+          pintaGota(x, ys - jh - r*0.3*u, r*0.3*u + 1, r*0.42*u + 1, jt/0.42);
+        }
+      }
+      var sg = ctx.createRadialGradient(x,ys,0,x,ys,70);
+      sg.addColorStop(0,'rgba(242,166,90,'+((1-rt)*0.12).toFixed(3)+')');
       sg.addColorStop(1,'rgba(242,166,90,0)');
       ctx.fillStyle = sg;
-      ctx.beginPath(); ctx.arc(x,yFin,70,0,6.28); ctx.fill();
+      ctx.beginPath(); ctx.arc(x,ys,70,0,6.28); ctx.fill();
     }
 
     // brote final: el agua dio fruto (puente hacia la floracion)
@@ -559,7 +650,11 @@ var gotaFondo = (function(){
     if (sec) ioG.observe(sec);
   }
 
-  return { setP: function(p){
+  return {
+    // saltar: sin la inercia de setP -para volver a una etapa anterior sin
+    // ver la gota "subir" en reversa.
+    saltar: function(p){ objetivo = P = p; if (reduced) draw(performance.now()); },
+    setP: function(p){
     objetivo = p;
     if (p > 0.03){
       var hint = document.getElementById('metodo-hint');
@@ -658,275 +753,336 @@ if (gsapOK){
        onComplete: refrescarScrollTrigger});
   };
 
-  // Enjambre que viaja de frase en frase (H1 → espejismos → giro): un pool
-  // fijo de "drones" que no se crea de nuevo en cada viaje, sino que se
-  // reasigna de destino — la MISMA partícula que ayudó a formar una frase
-  // es la que después vuela a formar la siguiente.
+  // Textos de arena (H1 → espejismos → giro): el texto MISMO se deshace en
+  // arena y esa arena arma el texto siguiente. Cada frase se "fotografía"
+  // (cada letra con su tipografía, color y posición reales) en un lienzo
+  // propio y se corta en una grilla de pedacitos. Al irse, los pedacitos
+  // se desprenden de izquierda a derecha y el viento se los lleva como una
+  // nube; al llegar la frase siguiente, esos mismos granos vuelan en curva
+  // y la arman pedazo a pedazo (también de izquierda a derecha). Recién al
+  // completarse se muestra el texto real del DOM.
   //
-  // Disparado por EVENTOS (irA(grupo)), no por fracción de scroll: cada
-  // frase ahora se muestra/oculta con su propio controlador de índice
-  // (mismo patrón que etapasCtl en el Acto 4 — "anclar" cada frase con
-  // pausas de lectura reales, no atadas a la velocidad de scroll), y el
-  // vuelo del enjambre dura un tiempo real fijo (ms) en vez de una
-  // fracción de scroll — así el enjambre y el texto quedan sincronizados
-  // sin importar qué tan rápido o lento se scrollee. Ver más abajo el
-  // llamado a polvoTextos.medirEnFrio() una vez que existen todos los
-  // grupos de letras, y los distintos polvoTextos.irA(...) repartidos
-  // donde antes vivían los tramos de scroll.
-  function construirPolvoTextos(cv, gruposDeLetras){
-    if (!cv || reduced) return { medirEnFrio:function(){}, irA:function(){} };
+  // Un pool fijo de granos: el que se desprende de una frase es el mismo
+  // que arma la siguiente. Si llega otro pedido a mitad de camino (scroll
+  // rápido, scroll hacia atrás), cada grano parte desde donde está ahora.
+  //
+  // API: mostrar(g) arma el grupo g · soltar(g) deshace el grupo g en nube
+  // (solo si g es el que está a la vista o armándose) · medirEnFrio() al
+  // redimensionar. Grupos: 0 = H1, 1–5 = espejismos, 6 = giro.
+  function construirPolvoTextos(cv, gruposDeLetras, contenedores){
+    function verDOM(g, si){ var el = contenedores[g]; if (el) gsap.set(el, { opacity: si ? 1 : 0, y: 0 }); }
+    if (!cv || reduced){
+      return { medirEnFrio:function(){}, mostrar:function(g){ verDOM(g, true); }, soltar:function(g){ verDOM(g, false); } };
+    }
     var ctx = cv.getContext('2d');
     var escenarioEl = document.querySelector('.escenario');
-    var W = 0, H = 0, posiciones = [], drones = [];
-    // Antes eran muy pocos (40/70) repartidos uno por letra, así que se
-    // veían viajar como puntos sueltos en vez de trazar la palabra. Ahora
-    // el pool es mucho más denso y cada punto viene de muestrear la forma
-    // real de cada letra (ver muestrearLetra más abajo), no solo su centro.
-    var POOL = movil ? 280 : 650;
-    var TONOS = ['201,183,154','201,183,154','127,181,171','242,166,90'];
-    // Canvas descartable reutilizado para muestrear cada letra: crear
-    // cientos de <canvas> (uno por letra) sería más lento y le daría más
-    // trabajo al recolector de basura que reusar uno solo.
+    var W = 0, H = 0, visible = true;
+    var POOL = movil ? 1100 : 2200;
+    var MAX_CELDAS = movil ? 1600 : 2800;
+    // granos de arena sobre el fondo oscuro del hero: tonos claros y cálidos
+    var ARENA = [[226,206,170],[214,190,150],[240,222,190],[200,176,138],[226,206,170],[150,206,190],[244,186,120]];
     var offCv = document.createElement('canvas');
     var offCtx = offCv.getContext('2d', { willReadFrequently: true });
+    var grupos = [];   // medición por grupo (se invalida al redimensionar)
 
-    // Renderiza UNA letra tal cual se ve en la página (misma fuente/tamaño
-    // computada — funciona igual para las letras dentro de <em>, que usan
-    // otra tipografía) en el canvas descartable, y devuelve las posiciones
-    // (en coordenadas de viewport) de los píxeles con tinta — así el
-    // enjambre traza la forma real del glifo en vez de un solo punto por
-    // letra, que es lo que se leía como "viajando" y no "construyendo".
-    function muestrearLetra(el){
-      var texto = el.textContent;
-      if (!texto || texto === ' ') return [];
-      var r = el.getBoundingClientRect();
-      var w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
-      var pad = Math.ceil(h * 0.3); // margen para ascendentes/descendentes que salen de la caja de línea
-      var aw = w + pad * 2, ah = h + pad * 2;
-      if (offCv.width !== aw) offCv.width = aw;
-      if (offCv.height !== ah) offCv.height = ah;
-      offCtx.clearRect(0, 0, aw, ah);
-      var cs = getComputedStyle(el);
-      offCtx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + '/1 ' + cs.fontFamily;
-      offCtx.fillStyle = '#fff';
-      // 'middle' en vez de calcular a mano dónde cae el baseline: la caja
-      // real de la letra (getBoundingClientRect) mide la altura de LÍNEA,
-      // no la del glifo, y esa proporción varía según line-height de cada
-      // frase (1.1 en H1/giro, 1.25 en las espejismo) — adivinar una
-      // fracción fija se desalinea fácil. 'middle' centra el texto en el
-      // punto que se le pase, así que centrándolo en el medio real de la
-      // caja (h/2) el navegador hace el ajuste vertical correcto solo.
-      offCtx.textBaseline = 'middle';
-      offCtx.fillText(texto, pad, pad + h / 2);
-      var datos;
-      try { datos = offCtx.getImageData(0, 0, aw, ah).data; }
-      catch (e){ return []; } // por si algún navegador deja el canvas "tainted"
-      var puntos = [], paso = 2;
-      for (var y = 0; y < ah; y += paso){
-        for (var x = 0; x < aw; x += paso){
-          if (datos[(y * aw + x) * 4 + 3] > 90){
-            puntos.push({ x: r.left + (x - pad), y: r.top + (y - pad) });
-          }
-        }
-      }
-      return puntos;
+    // estado de cada grano (arrays planos: miles de granos, cada cuadro)
+    var sx = new Float32Array(POOL), sy = new Float32Array(POOL), tx = new Float32Array(POOL), ty = new Float32Array(POOL);
+    var dl = new Float32Array(POOL), bd = new Float32Array(POOL), tam = new Float32Array(POOL);
+    var r1 = new Float32Array(POOL), r2 = new Float32Array(POOL), r3 = new Float32Array(POOL);
+    var gt = new Int8Array(POOL);      // grupo de texto donde estaba "pegado" al empezar (-1 = suelto)
+    var ya = new Uint8Array(POOL);     // ya estaba en su lugar del texto destino
+    var ca = new Uint8Array(POOL * 3), cb = new Uint8Array(POOL * 3); // color de partida y de llegada
+    for (var i = 0; i < POOL; i++){
+      r1[i] = Math.random(); r2[i] = Math.random(); r3[i] = Math.random();
+      var u = Math.random();
+      tam[i] = u < 0.7 ? 0.8 + Math.random() * 0.6 : 1.4 + Math.random() * 0.9;  // arena fina
+      var a = ARENA[(Math.random() * ARENA.length) | 0];
+      cb[i * 3] = a[0]; cb[i * 3 + 1] = a[1]; cb[i * 3 + 2] = a[2];
+      gt[i] = -1;
     }
+    var asentado = 0;   // grupo que el DOM muestra ahora (al cargar: el H1)
+    var tr = null;      // transición en curso
+    var vistaNube = 0;  // cuánto se ve la nube suelta (se apaga si nadie la usa)
 
-    var visible = true;
-
-    // El viento/grano se tunearon mirando el H1 a su tamaño CSS máximo
-    // (5rem = 80px, ver .hero-copy h1 en style.css). Como el font-size real
-    // usa clamp(min, vw, max), en anchos intermedios (~920–1540px: laptops
-    // chicos, ventana sin maximizar, tablets en horizontal) el texto se
-    // renderiza más chico que ese tope, y la misma amplitud/grano en px
-    // absolutos se sale de la silueta de la letra — se ve el "viento"
-    // desbordando el trazo. Este factor mide cuánto más chico está el H1
-    // ahora mismo respecto a su máximo, para escalar viento y grano en la
-    // misma proporción: da 1 (sin cambios) desde ~1540px hacia arriba —
-    // donde el clamp ya toca su tope — y baja junto con el texto por
-    // debajo de eso. No toca la rama móvil (esa se ajusta aparte).
-    var ALTURA_H1_MAX_PX = 80; // 5rem al tamaño de raíz por defecto (16px)
-    var escalaTexto = 1;
-    function actualizarEscalaTexto(){
-      var referencia = (gruposDeLetras[0] || [])[0];
-      if (!referencia) return;
-      var actual = parseFloat(getComputedStyle(referencia).fontSize) || ALTURA_H1_MAX_PX;
-      escalaTexto = clamp(actual / ALTURA_H1_MAX_PX, 0.44, 1);
-    }
+    function sm(t){ t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
 
     function resize(){
       W = escenarioEl.clientWidth; H = escenarioEl.clientHeight;
       cv.width = W * DPR; cv.height = H * DPR;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      actualizarEscalaTexto();
+      ctx.imageSmoothingEnabled = false;   // pedacitos 1:1, sin suavizado ni costuras
+      grupos = [];
     }
 
-    // Junta los puntos muestreados de TODAS las letras de un grupo y
-    // reparte el pool parejo entre ellos (con wraparound si una frase
-    // corta no llega a juntar POOL puntos) — así la densidad de drones es
-    // siempre la misma sin importar cuántas letras tenga cada frase.
-    function medir(){
+    // "Fotografía" del grupo g: cada letra dibujada con su fuente y color
+    // reales en un lienzo del tamaño del grupo, y una grilla de pedacitos
+    // sobre la tinta, ordenada de izquierda a derecha.
+    function medir(g){
+      if (grupos[g]) return grupos[g];
+      var letras = gruposDeLetras[g] || [];
       var base = escenarioEl.getBoundingClientRect();
-      posiciones = gruposDeLetras.map(function(letras){
-        var candidatos = [];
-        for (var i = 0; i < letras.length; i++){
-          var puntos = muestrearLetra(letras[i]);
-          for (var j = 0; j < puntos.length; j++) candidatos.push(puntos[j]);
-        }
-        // Red de seguridad: si el muestreo de píxeles no juntó casi nada
-        // para esta frase (fuente todavía sin cargar del todo, letra muy
-        // chica, algún caso raro de navegador), se cae al menos al centro
-        // de cada letra — mejor un enjambre menos denso que uno invisible.
-        if (candidatos.length < letras.length){
-          for (var m = 0; m < letras.length; m++){
-            var r = letras[m].getBoundingClientRect();
-            candidatos.push({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+      var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, rects = [];
+      for (var i = 0; i < letras.length; i++){
+        var r = letras[i].getBoundingClientRect();
+        rects.push(r);
+        if (!r.width || !letras[i].textContent.trim()) continue;
+        x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+      }
+      if (x0 > x1) return (grupos[g] = { n: 0, celdas: [] });
+      // Línea base real de cada letra: una sonda de tamaño cero sobre la línea
+      // de base. Dibujar con textBaseline 'middle' en el centro del rect la
+      // dejaba unos píxeles más arriba que el texto real (que "bajaba" al final).
+      var sondas = [], bases = [];
+      for (var q = 0; q < letras.length; q++){
+        var sd = document.createElement('i');
+        sd.style.cssText = 'display:inline-block;width:0;height:0';
+        letras[q].appendChild(sd); sondas.push(sd);
+      }
+      for (q = 0; q < letras.length; q++) bases.push(sondas[q].getBoundingClientRect().bottom);
+      for (q = 0; q < letras.length; q++) letras[q].removeChild(sondas[q]);
+      var pad = 24;
+      x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
+      // el origen cae en un píxel entero del dispositivo: así cada pedacito se
+      // dibuja sin fracciones y los vecinos no dejan líneas entre sí
+      x0 = base.left + Math.floor((x0 - base.left) * DPR) / DPR;
+      y0 = base.top + Math.floor((y0 - base.top) * DPR) / DPR;
+      var bw = Math.ceil(x1 - x0), bh = Math.ceil(y1 - y0);
+      var c = document.createElement('canvas');
+      c.width = Math.ceil(bw * DPR); c.height = Math.ceil(bh * DPR);
+      var cc = c.getContext('2d', { willReadFrequently: true });
+      cc.setTransform(DPR, 0, 0, DPR, 0, 0);
+      cc.textBaseline = 'alphabetic';
+      for (var j = 0; j < letras.length; j++){
+        var ch = letras[j].textContent;
+        if (!ch || !ch.trim()) continue;
+        var cs = getComputedStyle(letras[j]), rr = rects[j];
+        cc.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + '/1 ' + cs.fontFamily;
+        cc.fillStyle = cs.color;
+        cc.fillText(ch, rr.left - x0, bases[j] - y0);
+      }
+      var datos;
+      try { datos = cc.getImageData(0, 0, c.width, c.height).data; }
+      catch (e){ return (grupos[g] = { n: 0, celdas: [] }); }
+      var paso = Math.max(2, Math.round(2.5 * DPR)), celdas;
+      for (;;){
+        celdas = [];
+        for (var py = 0; py < c.height; py += paso){
+          for (var px = 0; px < c.width; px += paso){
+            var w = Math.min(paso, c.width - px), h = Math.min(paso, c.height - py), hit = -1;
+            for (var yy = py; yy < py + h && hit < 0; yy++) for (var xx = px; xx < px + w; xx++){
+              var idx = (yy * c.width + xx) * 4;
+              if (datos[idx + 3] > 70){ hit = idx; break; }
+            }
+            if (hit >= 0) celdas.push({ sx: px, sy: py, sw: w, sh: h,
+              dx: x0 - base.left + px / DPR, dy: y0 - base.top + py / DPR,
+              x: x0 - base.left + (px + w / 2) / DPR, y: y0 - base.top + (py + h / 2) / DPR,
+              r: datos[hit], g: datos[hit + 1], b: datos[hit + 2] });
           }
         }
-        if (!candidatos.length) return [];
-        var out = [];
-        for (var k = 0; k < POOL; k++){
-          var p = candidatos[Math.floor(k * candidatos.length / POOL) % candidatos.length];
-          out.push({ x: p.x - base.left, y: p.y - base.top });
-        }
-        return out;
-      });
+        if (celdas.length <= MAX_CELDAS) break;
+        paso++;
+      }
+      celdas.sort(function(a, b){ return a.x - b.x; });
+      return (grupos[g] = { c: c, n: celdas.length, celdas: celdas });
+    }
+    function celdaDe(G, k){ return G.celdas[Math.floor(k * G.n / POOL)]; }
+
+    function ltDe(k, now){
+      if (!tr || ya[k]) return 1;
+      return clamp(((now - tr.t0) / tr.dur - dl[k] * 0.55) / 0.45, 0, 1);
+    }
+    // Posición actual del grano k. Los que flotan sueltos en la nube se
+    // mecen un poco; la mecida entra y sale suave al empezar/terminar el vuelo.
+    var P = { x: 0, y: 0 };
+    function posicion(k, now){
+      var lt = ltDe(k, now);
+      var e = lt < 0.5 ? 4 * lt * lt * lt : 1 - Math.pow(-2 * lt + 2, 3) / 2;
+      var ax = sx[k], ay = sy[k], bx = tx[k], by = ty[k];
+      var dx = bx - ax, dy = by - ay, L = Math.sqrt(dx * dx + dy * dy) || 1;
+      var arco = Math.sin(e * Math.PI) * bd[k];
+      var x = ax + dx * e + (-dy / L) * arco, y = ay + dy * e + (dx / L) * arco;
+      var mece = (gt[k] < 0 && tr && !ya[k] ? 1 - e : 0) + (tr && tr.tipo === 'soltar' ? e : 0);
+      if (mece > 0){
+        x += Math.sin(now * 0.0008 * (0.6 + r1[k]) + r2[k] * 6.28) * 6 * mece;
+        y += Math.cos(now * 0.0007 * (0.6 + r2[k]) + r3[k] * 6.28) * 4 * mece;
+      }
+      P.x = x; P.y = y;
+      return lt;
     }
 
-    // Antes de medir hay que neutralizar el x/rotation del viento: las
-    // letras que todavía no entraron (espejismos posteriores al primero)
-    // arrancan con ese transform ya aplicado por el fromTo de tlSup
-    // (immediateRender), así que sin este reset se mediría su posición
-    // "soplada", no la real. Se fuerza un refresh después para que tlSup
-    // vuelva a pintar el estado correcto (si no, las letras quedarían
-    // ancladas en x:0 hasta el próximo scroll).
+    // Arranca una transición. tipo 'soltar': lo que está a la vista se
+    // deshace en nube. tipo 'armar': los granos arman el grupo B.
+    function iniciar(tipo, B){
+      var now = performance.now(), k, c;
+      var colorTmp = new Uint8Array(POOL * 3), nuevoGt = new Int8Array(POOL);
+      if (asentado >= 0){
+        // desde un texto quieto: cada grano está en su pedacito
+        var G0 = medir(asentado);
+        verDOM(asentado, false);
+        for (k = 0; k < POOL; k++){
+          c = G0.n ? celdaDe(G0, k) : null;
+          sx[k] = c ? c.x : W / 2; sy[k] = c ? c.y : H / 2;
+          nuevoGt[k] = c ? asentado : -1;
+          colorTmp[k * 3] = c ? c.r : 230; colorTmp[k * 3 + 1] = c ? c.g : 220; colorTmp[k * 3 + 2] = c ? c.b : 200;
+        }
+        vistaNube = 1;
+        asentado = -1;
+      } else {
+        // a mitad de otra transición (o desde la nube): desde donde esté cada grano
+        for (k = 0; k < POOL; k++){
+          var lt = posicion(k, now);
+          sx[k] = P.x; sy[k] = P.y;
+          var en = -1;
+          if (tr){
+            if (lt <= 0 && gt[k] >= 0) en = gt[k];                 // todavía no se había ido de su texto
+            else if (tr.tipo === 'armar' && lt >= 1) en = tr.B;     // ya había llegado
+          }
+          nuevoGt[k] = en;
+          var m = sm(lt);
+          for (var q = 0; q < 3; q++){
+            colorTmp[k * 3 + q] = tr ? Math.round(ca[k * 3 + q] + (cb[k * 3 + q] - ca[k * 3 + q]) * m) : cb[k * 3 + q];
+          }
+        }
+      }
+      var eros = [];
+      for (k = 0; k < POOL; k++){
+        gt[k] = nuevoGt[k];
+        if (gt[k] >= 0 && eros.indexOf(gt[k]) < 0) eros.push(gt[k]);
+        ca[k * 3] = colorTmp[k * 3]; ca[k * 3 + 1] = colorTmp[k * 3 + 1]; ca[k * 3 + 2] = colorTmp[k * 3 + 2];
+      }
+      var GB = tipo === 'armar' ? medir(B) : null;
+      var minX = 1e9, maxX = -1e9;
+      for (k = 0; k < POOL; k++){
+        if (GB){
+          c = GB.n ? celdaDe(GB, k) : null;
+          tx[k] = c ? c.x : sx[k]; ty[k] = c ? c.y : sy[k];
+          ya[k] = gt[k] === B ? 1 : 0;
+          if (c){ cb[k * 3] = c.r; cb[k * 3 + 1] = c.g; cb[k * 3 + 2] = c.b; }
+        } else {
+          // el viento se lleva la arena a la derecha y un poco hacia arriba
+          tx[k] = sx[k] + 50 + r1[k] * 120; ty[k] = sy[k] - 28 + r2[k] * 34;
+          ya[k] = 0;
+          var ar = ARENA[(r3[k] * ARENA.length) | 0];
+          cb[k * 3] = ar[0]; cb[k * 3 + 1] = ar[1]; cb[k * 3 + 2] = ar[2];
+        }
+        var ref = GB ? tx[k] : sx[k];
+        if (ref < minX) minX = ref;
+        if (ref > maxX) maxX = ref;
+      }
+      for (k = 0; k < POOL; k++){
+        // arena: barrido de izquierda a derecha
+        var nx = ((GB ? tx[k] : sx[k]) - minX) / Math.max(1, maxX - minX);
+        dl[k] = nx * 0.6 + r3[k] * 0.18;
+        var ddx = tx[k] - sx[k], ddy = ty[k] - sy[k];
+        bd[k] = (r1[k] - 0.5) * clamp(Math.sqrt(ddx * ddx + ddy * ddy) * 0.25, 20, 140);
+      }
+      tr = { tipo: tipo, B: GB ? B : -1, t0: now, dur: GB ? 1500 : 1150, eros: eros, nube0: vistaNube, fin: 0 };
+    }
+
+    function mostrar(g){
+      if (asentado === g) return;
+      if (tr && tr.tipo === 'armar' && tr.B === g) return;
+      iniciar('armar', g);
+    }
+    function soltar(g){
+      var aLaVista = asentado === g || (tr && tr.tipo === 'armar' && tr.B === g);
+      if (!aLaVista) return;
+      iniciar('soltar', -1);
+    }
+
+    function pintar(now){
+      ctx.clearRect(0, 0, W, H);
+      if (!tr) return;
+      var k, j, c, lt, a;
+      // pedacitos de texto que todavía no se desprendieron
+      for (var e = 0; e < tr.eros.length; e++){
+        var g = tr.eros[e];
+        if (g === tr.B) continue;
+        var G = grupos[g];
+        if (!G || !G.n) continue;
+        for (j = 0; j < G.n; j++){
+          k = Math.floor(j * POOL / G.n);
+          if (gt[k] !== g) continue;
+          a = 1 - sm(ltDe(k, now) / 0.18);
+          if (a <= 0.003) continue;
+          c = G.celdas[j];
+          ctx.globalAlpha = a;
+          ctx.drawImage(G.c, c.sx, c.sy, c.sw, c.sh, c.dx, c.dy, c.sw / DPR, c.sh / DPR);
+        }
+      }
+      // pedacitos del texto destino que ya se armaron
+      if (tr.B >= 0){
+        var GB = grupos[tr.B];
+        if (GB && GB.n){
+          for (j = 0; j < GB.n; j++){
+            k = Math.floor(j * POOL / GB.n);
+            a = ya[k] ? 1 : sm((ltDe(k, now) - 0.82) / 0.18);
+            if (a <= 0.003) continue;
+            c = GB.celdas[j];
+            ctx.globalAlpha = a;
+            ctx.drawImage(GB.c, c.sx, c.sy, c.sw, c.sh, c.dx, c.dy, c.sw / DPR, c.sh / DPR);
+          }
+        }
+      }
+      // la nube suelta se apaga sola si nadie la vuelve a usar
+      if (tr.tipo === 'soltar' && tr.fin) vistaNube = 1 - sm((now - tr.fin - 1800) / 1600);
+      // granos
+      for (k = 0; k < POOL; k++){
+        lt = posicion(k, now);
+        var desdeTexto = gt[k] >= 0;
+        if (lt <= 0){
+          if (desdeTexto) continue;              // escondido: se ve su pedacito de texto
+          a = 0.5 * tr.nube0;
+        } else if (lt < 1){
+          if (tr.tipo === 'soltar'){
+            a = desdeTexto ? 0.9 * sm(lt / 0.12) : 0.5 * tr.nube0;
+            a += (0.5 - a) * sm(lt);
+          } else {
+            a = desdeTexto ? 0.9 * sm(lt / 0.12) : 0.5 * tr.nube0 + (0.9 - 0.5 * tr.nube0) * sm(lt);
+            a *= 1 - sm((lt - 0.82) / 0.18);       // se funde con su pedacito al llegar
+          }
+        } else {
+          if (tr.tipo !== 'soltar') continue;
+          a = 0.5 * vistaNube;
+        }
+        if (a <= 0.01) continue;
+        var m = sm(lt), i3 = k * 3;
+        var cr = Math.round(ca[i3] + (cb[i3] - ca[i3]) * m), cg = Math.round(ca[i3 + 1] + (cb[i3 + 1] - ca[i3 + 1]) * m),
+            cbb = Math.round(ca[i3 + 2] + (cb[i3 + 2] - ca[i3 + 2]) * m);
+        var lado = tam[k];
+        ctx.globalAlpha = a;
+        ctx.fillStyle = 'rgb(' + cr + ',' + cg + ',' + cbb + ')';
+        ctx.fillRect(P.x - lado / 2, P.y - lado / 2, lado, lado);
+      }
+      ctx.globalAlpha = 1;
+      // fin de la transición
+      if ((now - tr.t0) / tr.dur >= 1){
+        if (tr.tipo === 'armar'){
+          verDOM(tr.B, true);
+          asentado = tr.B;
+          for (k = 0; k < POOL; k++){ gt[k] = tr.B; ya[k] = 1; }
+          tr = null;
+          ctx.clearRect(0, 0, W, H);
+        } else if (!tr.fin){
+          tr.fin = now;
+        } else if (vistaNube <= 0){
+          vistaNube = 0;
+          for (k = 0; k < POOL; k++){ sx[k] = tx[k]; sy[k] = ty[k]; gt[k] = -1; }
+          tr = null;
+          ctx.clearRect(0, 0, W, H);
+        }
+      }
+    }
+
     function medirEnFrio(){
       var todas = [].concat.apply([], gruposDeLetras);
       gsap.set(todas, { x: 0, y: 0, rotation: 0 });
       resize();
-      medir();
       refrescarScrollTrigger();
-    }
-
-    // Pool fijo, creado UNA sola vez. Cada partícula VIAJA de su letra de
-    // origen a su letra de destino, con textura de viento (nx/ny) montada
-    // encima del camino recto. `retraso`/`duracion` (fracciones 0–1 del
-    // vuelo, no de un tramo de scroll) escalonan cuándo arranca y cuánto
-    // tarda cada una — el enjambre se desprende como enjambre, no como un
-    // bloque. retraso+duracion se mantiene siempre por debajo de 1 para
-    // que cada partícula alcance a llegar (e=1) antes de que el vuelo
-    // termine.
-    for (var i = 0; i < POOL; i++){
-      drones.push({
-        tono: TONOS[(Math.random() * TONOS.length) | 0],
-        r: 0.3 + Math.random() * 0.6, // fino, como arena — no bolitas
-        retraso: Math.random() * 0.18,
-        duracion: 0.48 + Math.random() * 0.28,
-        fase: Math.random() * 6.283,
-        nx: makeNoise((i * 2 + 1) * 13.7),
-        ny: makeNoise((i * 2 + 2) * 13.7)
-      });
-    }
-
-    // Punto de fuga para la dispersión final del giro — estable por dron
-    // (no se recalcula cada frame) para que cada uno vuele en línea recta.
-    function fuga(semilla){
-      var ang = (semilla * 2.399963) % 6.283;
-      var dist = 0.9 + (semilla % 7) / 7 * 0.6;
-      return { x: W / 2 + Math.cos(ang) * W * dist, y: H / 2 + Math.sin(ang) * H * dist };
-    }
-
-    function centro(){ return { x: W / 2, y: H / 2 }; }
-
-    // grupoActual: índice del grupo donde están "posadas" las partículas
-    // ahora mismo (0 = H1, 1-5 = espejismos, 6 = giro). vuelo: null cuando
-    // no hay ningún viaje en curso (las partículas no se dibujan — el texto
-    // real ya está formado y quieto vía CSS, no hace falta nada encima).
-    //
-    // irA() reemplaza al viejo setP(progreso de scroll): ahora el disparador
-    // es un EVENTO puntual (una frase empieza a formarse) y el vuelo dura un
-    // tiempo REAL fijo (ms), no una fracción de scroll — así el enjambre
-    // siempre tarda lo mismo en volar sin importar qué tan rápido se
-    // scrollee.
-    var grupoActual = 0, vuelo = null;
-
-    function irA(nuevoGrupo, duracionMs){
-      if (reduced) return;
-      var esFuga = nuevoGrupo === -1;
-      // Si se pide volver al MISMO grupo donde ya estaba posado (típico:
-      // el usuario vaciló con el scroll cerca del borde de una frase y esa
-      // misma frase se volvió a formar — el texto igual se re-anima desde
-      // cero con gsap.fromTo), no hay un "grupo anterior" real del que
-      // partir: usar la posición del grupo actual como origen daría un
-      // vuelo de un punto a sí mismo, invisible. Antes esto directamente
-      // se descartaba (if nuevoGrupo === grupoActual) — así que el polvo
-      // solo se veía la primera vez que cada frase aparecía, y con
-      // cualquier vaivén de scroll (normal en mouse/trackpad real) el
-      // texto se re-formaba sin su acompañamiento de polvo.
-      var mismoDestino = nuevoGrupo === grupoActual;
-      vuelo = {
-        origen: mismoDestino ? drones.map(function(_, d){ return fuga(d); }) : (posiciones[grupoActual] || []),
-        destino: esFuga ? null : (posiciones[nuevoGrupo] || []),
-        esFuga: esFuga,
-        t0: performance.now(),
-        duracion: duracionMs || 900
-      };
-      grupoActual = nuevoGrupo;
-    }
-
-    function pintar(now){
-      if (!W || !H || !posiciones.length) return;
-      // Estela: en vez de borrar de un golpe (clearRect), se le resta un
-      // poco de alfa a lo que ya había — dibujar con destination-out no
-      // pinta color encima (el lienzo es transparente y va SOBRE el resto
-      // de la página, no se lo puede ir tapando con un color opaco). Con
-      // destination-out el área que ya estaba vacía sigue vacía — solo se
-      // desvanece lo dibujado.
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.fillRect(0, 0, W, H);
-
-      if (!vuelo){ ctx.globalCompositeOperation = 'source-over'; return; }
-      var fracVuelo = clamp((now - vuelo.t0) / vuelo.duracion, 0, 1);
-      // qué tanto se desvía del camino recto por el "viento" — en desktop se
-      // escala por escalaTexto para que no se salga de letras más chicas en
-      // anchos intermedios (ver actualizarEscalaTexto más arriba).
-      var amplitud = movil ? 20 : 32 * escalaTexto;
-      ctx.globalCompositeOperation = 'lighter';
-      for (var d = 0; d < drones.length; d++){
-        var dr = drones[d];
-        // e: avance propio de ESTA partícula dentro del vuelo (0 recién
-        // sale de su letra vieja, 1 ya llegó a la nueva).
-        var e = clamp((fracVuelo - dr.retraso) / dr.duracion, 0, 1);
-        var suave = e < 0.5 ? 4 * e * e * e : 1 - Math.pow(-2 * e + 2, 3) / 2; // easeInOutCubic
-        var o = vuelo.origen[d] || centro();
-        var t = vuelo.esFuga ? fuga(d) : (vuelo.destino[d] || centro());
-        // Textura de viento: nula en las puntas del viaje (nítida al salir
-        // y al llegar) y máxima a mitad de camino — así no es una línea
-        // recta prolija, se lee como polvo arrastrado, no como un dron.
-        var textura = Math.sin(e * Math.PI);
-        var ox = (dr.nx(e * 2.6 + dr.fase) - 0.5) * 2 * amplitud * textura;
-        var oy = (dr.ny(e * 2.6 + dr.fase + 50) - 0.5) * 2 * amplitud * textura;
-        var x = o.x + (t.x - o.x) * suave + ox;
-        var y = o.y + (t.y - o.y) * suave + oy;
-        var a = clamp(0.8 * (0.45 + 0.55 * Math.sin(clamp(e, 0.04, 0.96) * Math.PI)), 0, 1);
-        if (e <= 0 || e >= 1) a = 0; // fuera de su ventana de vuelo, invisible del todo
-        if (a <= 0.02) continue;
-        ctx.fillStyle = 'rgba(' + dr.tono + ',' + a.toFixed(3) + ')';
-        ctx.beginPath();
-        ctx.arc(x, y, movil ? dr.r : dr.r * escalaTexto, 0, 6.283);
-        ctx.fill();
-      }
-      ctx.globalCompositeOperation = 'source-over';
-      if (fracVuelo >= 1) vuelo = null; // vuelo terminado: deja de dibujar hasta el próximo irA()
     }
 
     resize();
     window.addEventListener('resize', medirEnFrio);
-
-    // Bucle propio (mismo patrón que terreno/gotaFondo): la estela necesita
-    // desvanecerse a un ritmo constante de cuadros, y el vuelo se mide en
-    // tiempo real (performance.now()), no en eventos de scroll.
     (function bucle(now){
       if (visible && pagVisible) pintar(now);
       requestAnimationFrame(bucle);
@@ -935,13 +1091,14 @@ if (gsapOK){
     var secP = cv.closest('.acto-superficie');
     if (secP) ioP.observe(secP);
 
-    return { medirEnFrio: medirEnFrio, irA: irA };
+    return { medirEnFrio: medirEnFrio, mostrar: mostrar, soltar: soltar };
   }
 
   // timeline scrubbed de la superficie
   var polvoTextos; // se arma más abajo, después de tener todos los grupos de letras
   var espejismosCtl; // ídem — controlador de índice de las frases-espejismo
   var giroCtl;       // ídem — controlador (mostrar/ocultar) del giro
+  var h1Fuera = false;
   var tlSup = gsap.timeline({
     scrollTrigger: {
       trigger: '.acto-superficie',
@@ -952,23 +1109,17 @@ if (gsapOK){
         terreno.setP(self.progress);
         if (espejismosCtl) espejismosCtl.update(self.progress);
         if (giroCtl) giroCtl.update(self.progress);
+        // el H1 se deshace en arena justo donde entra la primera frase (0.13)
+        // y se rearma al volver: sin tramo intermedio con solo arena a la vista
+        var fuera = self.progress >= 0.13;
+        if (polvoTextos && fuera !== h1Fuera){ h1Fuera = fuera; if (fuera) polvoTextos.soltar(0); else polvoTextos.mostrar(0); }
       }
     }
   });
-  // Desplazamientos al azar por letra para el efecto de viento/polvo: entra
-  // desde la izquierda, se dispersa hacia la derecha — mismo criterio que el
-  // eyebrow del hero.
-  function vientoIzq(){ return -(14 + Math.random() * 26); }
-  function vientoDer(){ return 14 + Math.random() * 26; }
-  function vientoGiro(){ return Math.random() * 20 - 10; }
-
-  // El título inicial casi no se mueve: se queda quieto y legible durante
-  // prácticamente todo el tramo previo a las frases-espejismo, y solo en el
-  // último tramo se desliza hacia arriba y se desvanece. La opacidad la
-  // sigue manejando el contenedor (como antes) — las letras solo aportan
-  // el movimiento/blur del viento encima. Si la opacidad se moviera a las
-  // letras, cualquier cosa que no sea texto partido en letras (por ejemplo
-  // la rayita ::before del eyebrow) se quedaría visible por su cuenta.
+  // El título inicial se queda quieto y legible durante prácticamente todo
+  // el tramo previo a las frases-espejismo; en 0.115 se deshace en arena
+  // (lo dispara el onUpdate de tlSup, no un tween) y el resto del bloque
+  // (eyebrow, párrafo, CTAs) se desliza hacia arriba y se desvanece.
   var letrasH1 = splitLetters(document.getElementById('h1'));
   // fromTo, no to: '#hero-copy .eyebrow'/'p'/'.hero-ctas' arrancan en
   // opacity:0 por el gsap.set(...) de más arriba (para que lanzarHero() los
@@ -980,11 +1131,9 @@ if (gsapOK){
   // opacity:0 "desde" que grabó, no al 1 real — el hero no reaparecía.
   // Con fromTo el "desde" (opacity:1) queda explícito, sin depender de en
   // qué momento tlSup evalúe el tween por primera vez.
-  tlSup.fromTo(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas', '#h1'],
+  tlSup.fromTo(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas'],
         { opacity:1, y:0 },
         { opacity:0, y:-70, duration:0.015, ease:'none' }, 0.115)
-       .to(letrasH1,
-        { x:vientoDer, rotation:vientoGiro, filter:'blur(6px)', duration:0.015, stagger:0.0006, ease:'none' }, 0.115)
        .to('.indicador-scroll', { opacity:0, duration:0.04 }, 0.04);
   // Las espejismo y el giro ya no ponen tweens en tlSup (ahora las manejan
   // sus controladores por su cuenta con self.progress), así que el último
@@ -1007,44 +1156,40 @@ if (gsapOK){
   // la salida en sí siempre tardan lo mismo, sin importar qué tan rápido se
   // scrollee.
   var frases = ['.e1','.e2','.e3','.e4','.e5'];
-  var ini = 0.13, paso = 0.115; // mismo rango total de scroll que ocupaban antes (0.13 a 0.705)
+  var ini = 0.13, paso = 0.115;
+  // Tramo de scroll de cada frase, en múltiplos de `paso`. La e5 («Mis
+  // exámenes salen normales… pero yo no me siento normal.») es ~1.5×
+  // más larga que las demás y va en dos líneas: con el mismo tramo
+  // terminaba de formarse tarde y se iba antes de alcanzar a leerla. Su
+  // tramo extra sale del hueco libre antes del giro (que entra en 0.86):
+  // las frases ahora van de 0.13 a ~0.774.
+  var pesos = [1, 1, 1, 1, 1.6];
+  var bordes = [ini];
+  for (var b = 0; b < pesos.length; b++) bordes.push(bordes[b] + paso * pesos[b]);
+  var finFrases = bordes[pesos.length];
   var letrasEspejismos = frases.map(function(sel){ return splitLetters(document.querySelector(sel)); });
 
   espejismosCtl = (function(){
     var mostrada = [false, false, false, false, false];
-    var DUR_ENTRA = 0.9, DUR_SALE = 0.55; // segundos reales
 
-    function entra(i){
-      var sel = frases[i], letras = letrasEspejismos[i];
-      gsap.killTweensOf(sel); gsap.killTweensOf(letras);
-      gsap.fromTo(sel, {opacity:0, y:70}, {opacity:1, y:0, duration:DUR_ENTRA, ease:'power3.out', overwrite:'auto'});
-      gsap.fromTo(letras,
-        {x:vientoIzq, rotation:vientoGiro, filter:'blur(8px)'},
-        {x:0, rotation:0, filter:'blur(0px)', duration:DUR_ENTRA, stagger:0.01, ease:'power3.out', overwrite:'auto'});
-      if (polvoTextos) polvoTextos.irA(i + 1, DUR_ENTRA * 1000);
-    }
-    function sale(i){
-      var sel = frases[i], letras = letrasEspejismos[i];
-      gsap.killTweensOf(sel); gsap.killTweensOf(letras);
-      gsap.to(sel, {opacity:0, y:-55, duration:DUR_SALE, ease:'power2.in', overwrite:'auto'});
-      gsap.to(letras,
-        {x:vientoDer, rotation:vientoGiro, filter:'blur(6px)', duration:DUR_SALE, stagger:0.006, ease:'power2.in', overwrite:'auto'});
-    }
+    // la arena hace todo: la frase se arma con los granos de la anterior
+    // y al irse se deshace en una nube que espera a la siguiente
+    function entra(i){ if (polvoTextos) polvoTextos.mostrar(i + 1); }
+    function sale(i){ if (polvoTextos) polvoTextos.soltar(i + 1); }
 
     return {
       // p: progreso global 0–1 de .acto-superficie (viene de tlSup.onUpdate).
       update: function(p){
-        if (p < ini || p >= ini + paso * 5){
+        if (p < ini || p >= finFrases){
           for (var k = 0; k < 5; k++){ if (mostrada[k]){ mostrada[k] = false; sale(k); } }
           return;
         }
-        var pl = (p - ini) / (paso * 5); // 0–1 dentro de todo el bloque de 5 frases
-        var s = clamp(Math.floor(pl * 5), 0, 4);
-        var t = pl * 5 - s; // 0–1 dentro del segmento de ESTA frase
-        // Ventana visible angosta en los bordes (10%/5%) — el resto del
-        // segmento es la frase "anclada": ya se formó y se lee tranquila
-        // hasta que el scroll avanza lo suficiente para soltarla.
-        var visible = (t >= 0.1 && t <= 0.95) ? s : -1;
+        var s = 0;
+        while (s < 4 && p >= bordes[s + 1]) s++;
+        // Cada frase ocupa su segmento COMPLETO: en el borde la arena de la
+        // que se va viaja directo a armar la siguiente. Con una ventana más
+        // angosta quedaba un tramo sin ninguna frase y solo la nube a la vista.
+        var visible = s;
         for (var i = 0; i < 5; i++){
           if (i === visible && !mostrada[i]){ mostrada[i] = true; entra(i); }
           if (i !== visible && mostrada[i]){ mostrada[i] = false; sale(i); }
@@ -1063,28 +1208,13 @@ if (gsapOK){
   // quedarse anclado y legible hasta casi el final de la sección.
   var letrasGiro = splitLetters(document.getElementById('giro'));
   giroCtl = (function(){
-    var el = document.getElementById('giro');
     var mostrado = false;
-    var DUR_ENTRA = 1.0, DUR_SALE = 0.55; // segundos reales
 
-    function entra(){
-      gsap.killTweensOf(el); gsap.killTweensOf(letrasGiro);
-      gsap.fromTo(el, {opacity:0, scale:0.97}, {opacity:1, scale:1, duration:DUR_ENTRA, ease:'power2.out', overwrite:'auto'});
-      gsap.fromTo(letrasGiro,
-        {x:vientoIzq, rotation:vientoGiro, filter:'blur(6px)'},
-        {x:0, rotation:0, filter:'blur(0px)', duration:DUR_ENTRA, stagger:0.006, ease:'power3.out', overwrite:'auto'});
-      if (polvoTextos) polvoTextos.irA(6, DUR_ENTRA * 1000);
-    }
-    function sale(){
-      gsap.killTweensOf(el); gsap.killTweensOf(letrasGiro);
-      gsap.to(el, {opacity:0, duration:DUR_SALE, ease:'power2.in', overwrite:'auto'});
-      gsap.to(letrasGiro,
-        {x:vientoDer, rotation:vientoGiro, filter:'blur(6px)', duration:DUR_SALE, stagger:0.005, ease:'power2.in', overwrite:'auto'});
-      if (polvoTextos) polvoTextos.irA(-1, 700);
-    }
+    function entra(){ if (polvoTextos) polvoTextos.mostrar(6); }
+    function sale(){ if (polvoTextos) polvoTextos.soltar(6); }
 
     return {
-      // Ventana de scroll del giro: se muestra al entrar en [0.86, 1] (queda
+      // Ventana de scroll del giro: se muestra al entrar en [finFrases ≈ 0.77, 1] (queda
       // anclado y legible hasta el final de .acto-superficie), y se oculta
       // al salir de ella. El fundido de salida en sí lo maneja sale() en
       // tiempo real.
@@ -1104,7 +1234,7 @@ if (gsapOK){
       // desplazarse con el scroll (ya no está pegado) hasta que la
       // siguiente sección lo tapa, en vez de dejar la pantalla vacía.
       update: function(p){
-        var dentro = p >= 0.86 && p <= 1;
+        var dentro = p >= finFrases && p <= 1;
         if (dentro && !mostrado){ mostrado = true; entra(); }
         if (!dentro && mostrado){ mostrado = false; sale(); }
       }
@@ -1118,9 +1248,22 @@ if (gsapOK){
   // medición de reset no tendría nada que neutralizar).
   polvoTextos = construirPolvoTextos(
     document.getElementById('lienzo-polvo-textos'),
-    [letrasH1].concat(letrasEspejismos).concat([letrasGiro])
+    [letrasH1].concat(letrasEspejismos).concat([letrasGiro]),
+    [document.getElementById('h1')].concat(frases.map(function(sel){ return document.querySelector(sel); })).concat([document.getElementById('giro')])
   );
   polvoTextos.medirEnFrio();
+
+  // «Comenzar el viaje»: lleva a la primera frase. El ancla #sintomas queda a
+  // unos 270px del tope, tan cerca que el botón parecía no hacer nada.
+  var btnViaje = document.getElementById('btn-viaje');
+  if (btnViaje) btnViaje.addEventListener('click', function(e){
+    var sup = document.querySelector('.acto-superficie');
+    if (!sup) return;
+    e.preventDefault();
+    var total = sup.offsetHeight - window.innerHeight;
+    var y = sup.getBoundingClientRect().top + window.scrollY + total * (ini + 0.02);
+    window.scrollTo({ top: y, behavior: reduced ? 'auto' : 'smooth' });
+  });
 
   // ─── Acto 4: una gota por etapa + tarjetas cinematográficas ───
   var etapasCtl = (function(){
@@ -1150,14 +1293,9 @@ if (gsapOK){
       gsap.to(t, {opacity:0, duration:0.55, ease:'power2.in', overwrite:'auto',
         onComplete:function(){ t.style.visibility='hidden'; }});
     }
-    nums.forEach(function(b, i){
-      b.addEventListener('click', function(){
-        var sec = document.querySelector('.acto-metodo');
-        var total = sec.offsetHeight - window.innerHeight;
-        window.scrollTo({ top: sec.offsetTop + total*((i + 0.66)/4), behavior:'smooth' });
-      });
-    });
     return {
+      nums: nums,
+      tarjetas: tarjetas,
       update: function(p){
         var s = clamp(Math.floor(p*4), 0, 3);
         var t = p*4 - s;
@@ -1174,15 +1312,67 @@ if (gsapOK){
     };
   })();
 
-  ScrollTrigger.create({
-    trigger: '.acto-metodo',
-    start: 'top top',
-    end: 'bottom bottom',
-    onUpdate: function(self){
-      gotaFondo.setP(self.progress);
-      etapasCtl.update(self.progress);
+  // ─── Recorrido automático del método (una sola pantalla) ───
+  // Mismo concepto que la órbita de Servicios: en vez de atar la gota al
+  // scroll (~5 pantallas), un reloj recorre las 4 etapas. En cada una la
+  // gota se forma, cae y salpica (progreso de etapa 0 → 0.24 en ~2.4s; la
+  // tarjeta nace en el impacto) y se queda a la vista hasta completar
+  // DUR_ETAPA. Se pausa con el cursor sobre la tarjeta o los números, con
+  // la sección fuera de pantalla, y 12s después de tocar un número.
+  var metodoCtl = (function(){
+    var escena = document.querySelector('.metodo-escena');
+    var progreso = document.getElementById('metodo-progreso');
+    var barra = progreso && progreso.querySelector('span');
+    var DUR_ETAPA = 7500, DUR_FINAL = 9000, CAIDA = 3.4, TRAMO = 0.24;
+    var actual = 0, prog = { p: 0 }, tweenGota = null;
+    var transcurrido = 0, ultimoT = 0, enPantalla = false, encima = false, pausaHasta = 0, arranco = false;
+
+    function aplicar(){ gotaFondo.setP(prog.p); etapasCtl.update(prog.p); }
+    function ir(i, desdeCero){
+      actual = i;
+      transcurrido = 0;
+      if (tweenGota) tweenGota.kill();
+      var inicio = i / 4;
+      // hacia atrás o volviendo a empezar: salto directo al inicio de la etapa
+      if (desdeCero || prog.p > inicio + TRAMO){ prog.p = inicio; gotaFondo.saltar(inicio); etapasCtl.update(inicio); }
+      // ease lineal: el ciclo de la gota ya tiene su propia física (gravedad)
+      tweenGota = gsap.to(prog, { p: inicio + TRAMO, duration: CAIDA, ease: 'none', onUpdate: aplicar });
     }
-  });
+    function bucle(now){
+      var dt = ultimoT ? Math.min(now - ultimoT, 100) : 0;
+      ultimoT = now;
+      if (arranco && enPantalla){
+        var pausado = encima || now < pausaHasta;
+        var dur = actual === 3 ? DUR_FINAL : DUR_ETAPA;
+        if (!pausado){
+          transcurrido += dt;
+          if (transcurrido >= dur) ir(actual === 3 ? 0 : actual + 1, actual === 3);
+        }
+        if (progreso) progreso.classList.toggle('pausado', pausado);
+        if (barra) barra.style.transform = 'scaleX(' + clamp(transcurrido / dur, 0, 1).toFixed(3) + ')';
+      }
+      requestAnimationFrame(bucle);
+    }
+
+    etapasCtl.nums.forEach(function(b, i){
+      b.addEventListener('click', function(){
+        pausaHasta = performance.now() + 12000;
+        arranco = true;
+        if (i !== actual || prog.p < i / 4 + TRAMO - 0.01) ir(i);
+      });
+    });
+    etapasCtl.tarjetas.concat([document.querySelector('.numeros-etapa')]).forEach(function(el){
+      if (!el) return;
+      el.addEventListener('mouseenter', function(){ encima = true; });
+      el.addEventListener('mouseleave', function(){ encima = false; });
+    });
+    new IntersectionObserver(function(ents){
+      enPantalla = ents[0].intersectionRatio >= 0.5;
+      if (enPantalla && !arranco){ arranco = true; ir(0, true); }
+    }, { threshold: [0, 0.5] }).observe(escena);
+    requestAnimationFrame(bucle);
+    return { ir: ir };
+  })();
 
   // la chispa de luz aterriza junto a la doctora (elemento que viaja entre mundos)
   ScrollTrigger.create({
@@ -1222,321 +1412,129 @@ if (gsapOK){
 }
 
 /* ============================================================
-   3 · RED DE RAÍCES (Acto 3) — versión premium
+   3 · BAJO LA SUPERFICIE (Acto 3) — raíces que crecen solas al llegar
+   Un solo escenario (sin pista de scroll): al entrar en pantalla las 4
+   raíces se arman automáticamente y cada sistema se abre al tocar su
+   etiqueta. Cada raíz es un path SVG que se "dibuja"
+   moviendo su stroke-dashoffset; los filamentos entre raíces (quién
+   conversa con quién) se arman acá midiendo esas raíces.
 ============================================================ */
-(function(){
-  var cv = document.getElementById('lienzo-red');
-  var ctx = cv.getContext('2d');
-  var W=0, H=0, visible = false, t0 = performance.now();
-  var nf = makeNoise(7);
+try{ (function(){
+  var pista = document.getElementById('raiz-pista');
+  var svg = document.getElementById('raiz-svg');
+  if (!pista || !svg) return;
+  var NS = 'http://www.w3.org/2000/svg';
+  var raices = [].slice.call(svg.querySelectorAll('.raiz-raiz'));
+  var trazos = raices.map(function(g){ return g.querySelector('.raiz-trazo'); });
+  var bajadas = raices.map(function(g){ return g.querySelector('.raiz-bajada'); });
+  var ramitas = raices.map(function(g){ return [].slice.call(g.querySelectorAll('.raiz-ramita')); });
+  var nudo = svg.querySelector('.raiz-nudo');
+  var nombres = [].slice.call(document.querySelectorAll('.raiz-nombre'));
+  var textos = [].slice.call(document.querySelectorAll('.raiz-texto'));
+  var cierre = document.querySelector('.raiz-cierre');
 
-  var nodos = [
-    { nombre:'Sistema neuroendocrino', x:0.50, y:0.14, msg:'El estrés crónico enciende la inflamación y altera tu digestión. Integra cerebro, cortisol, tiroides y hormonas — tu eje cerebro-cuerpo dirige la orquesta.', con:[1,2] },
-    { nombre:'Sistema digestivo',      x:0.18, y:0.62, msg:'Tu microbiota conversa con tu cerebro. Literalmente: ansiedad y digestión suelen ser la misma historia.', con:[0,2] },
-    { nombre:'Sistema inmune',         x:0.82, y:0.62, msg:'Un sistema inmune desregulado deja de proteger y empieza a atacar. Su equilibrio se decide en gran parte en tu intestino.', con:[0,1] },
-    { nombre:'Sistema metabólico',     x:0.50, y:0.86, msg:'La resistencia a la insulina te roba la energía antes de que la sientas. Es el pilar silencioso detrás de la fatiga.', con:[0,1,2] }
+  // Quién conversa con quién (los mismos "con" de la red anterior) y en
+  // qué punto de cada raíz nace el filamento (fracción de su largo),
+  // elegidos a mano para que no se encimen.
+  var CONVERSAN = [
+    { a:0, b:1, fa:0.55, fb:0.45 },
+    { a:0, b:2, fa:0.85, fb:0.40 },
+    { a:1, b:2, fa:0.75, fb:0.70 },
+    { a:3, b:0, fa:0.35, fb:0.70 },
+    { a:3, b:1, fa:0.80, fb:0.95 },
+    { a:3, b:2, fa:0.60, fb:0.92 }
   ];
-  var aristas = [[0,1],[0,2],[1,2],[3,0],[3,1],[3,2]];
 
-  var pulsos = [];
-  var activo = -1, explorados = {}, nExpl = 0;
-  var sincronizado = false, sincroT = -1;
-  var glow = nodos.map(function(){ return 0; });
-  var ptX = -9999, ptY = -9999;       // puntero en coords del canvas
-  var esporas = [];
-
-  function resize(){
-    W = cv.clientWidth; H = cv.clientHeight;
-    cv.width = W*DPR; cv.height = H*DPR;
-    ctx.setTransform(DPR,0,0,DPR,0,0);
-    esporas = [];
-    var nE = Math.round((movil ? 16 : 30) * (tierBajo ? 0.55 : 1));
-    for (var i=0;i<nE;i++){
-      esporas.push({ x:Math.random()*W, y:Math.random()*H, z:0.35+Math.random()*0.65, ph:Math.random()*6.28 });
-    }
+  // Un path se "dibuja" moviendo su dashoffset entre su largo (oculto) y 0.
+  function preparar(path){
+    var L = path.getTotalLength();
+    path.style.strokeDasharray = L + ' ' + L;
+    path.style.strokeDashoffset = L;
+    path._largo = L;
+    return path;
   }
+  function trazar(path, f){ path.style.strokeDashoffset = path._largo * (1 - f); }
+  function tramo(v, a, b){ return clamp((v - a) / (b - a), 0, 1); }
 
-  // posición con flotación + magnetismo de proximidad al puntero
-  function pos(i, t){
-    var n = nodos[i];
-    var px = n.x*W + (nf(t*0.12 + i*13) - 0.5) * 10;
-    var py = n.y*H + (nf(t*0.10 + i*31 + 50) - 0.5) * 10;
-    var inf = 0;
-    if (ptX > -999){
-      var dx = ptX - px, dy = ptY - py;
-      var d = Math.sqrt(dx*dx + dy*dy) || 1;
-      inf = clamp(1 - d/(movil?150:200), 0, 1);
-      inf *= inf;
-      px += dx * inf * 0.11;
-      py += dy * inf * 0.11;
-    }
-    return [px, py, inf];
-  }
-  function ctrl(p1, p2){
-    return [ lerp((p1[0]+p2[0])/2, W*0.5, 0.34), lerp((p1[1]+p2[1])/2, H*0.52, 0.34) ];
-  }
-  function bez(p1, c, p2, t){
-    var u = 1-t;
-    return [ u*u*p1[0] + 2*u*t*c[0] + t*t*p2[0], u*u*p1[1] + 2*u*t*c[1] + t*t*p2[1] ];
-  }
+  trazos.forEach(preparar);
+  bajadas.forEach(preparar);
+  ramitas.forEach(function(rs){ rs.forEach(preparar); });
 
-  function raicillas(p, i, t){
-    ctx.strokeStyle = 'rgba(127,181,171,0.2)';
-    ctx.lineWidth = 1;
-    for (var k=0;k<4;k++){
-      var a = (i*1.3 + k*1.7) + Math.sin(t*0.3+k)*0.08;
-      var len = 26 + hash(i*10+k)*22;
-      ctx.beginPath();
-      ctx.moveTo(p[0], p[1]);
-      ctx.quadraticCurveTo(
-        p[0] + Math.cos(a)*len*0.6, p[1] + Math.sin(a)*len*0.6 + 6,
-        p[0] + Math.cos(a)*len,     p[1] + Math.sin(a)*len + 14
-      );
-      ctx.stroke();
-    }
-  }
-
-  function draw(now){
-    var t = (now - t0)/1000;
-    ctx.clearRect(0,0,W,H);
-
-    var enSincro = sincroT >= 0 && (now - sincroT) < 3400;
-    var st = enSincro ? (now - sincroT)/3400 : 0;
-
-    // ── esporas de fondo con parallax sutil ──
-    var parx = (ptX > -999 ? (ptX/W - 0.5) : 0) * 12;
-    var pary = (ptY > -999 ? (ptY/H - 0.5) : 0) * 8;
-    for (var e=0;e<esporas.length;e++){
-      var sp = esporas[e];
-      sp.y -= sp.z*0.12;
-      sp.x += (nf(t*0.2 + sp.ph*10) - 0.5)*0.4;
-      if (sp.y < -6){ sp.y = H+6; sp.x = Math.random()*W; }
-      ctx.fillStyle = 'rgba(159,216,204,'+(0.05 + sp.z*0.11).toFixed(3)+')';
-      ctx.beginPath();
-      ctx.arc(sp.x + parx*sp.z, sp.y + pary*sp.z, sp.z*1.9, 0, 6.28);
-      ctx.fill();
-    }
-
-    // ── niebla volumétrica que respira ──
-    var fogA = 0.05 + 0.02*Math.sin(t*0.4) + (enSincro ? (1-st)*0.1 : 0);
-    var fog = ctx.createRadialGradient(W/2, H*0.52, 0, W/2, H*0.52, Math.max(W,H)*0.55);
-    fog.addColorStop(0, 'rgba(14,124,107,'+fogA.toFixed(3)+')');
-    fog.addColorStop(1, 'rgba(14,124,107,0)');
-    ctx.fillStyle = fog;
-    ctx.fillRect(0,0,W,H);
-
-    var P = nodos.map(function(_, i){ return pos(i, t); });
-
-    // ── aristas: estructura + flujo vivo ──
-    aristas.forEach(function(a){
-      var p1 = P[a[0]], p2 = P[a[1]], c = ctrl(p1, p2);
-      var act = enSincro || activo === a[0] || activo === a[1];
-      // trazo base
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.moveTo(p1[0],p1[1]);
-      ctx.quadraticCurveTo(c[0],c[1],p2[0],p2[1]);
-      ctx.strokeStyle = 'rgba(127,181,171,'+(act?0.22:0.09)+')';
-      ctx.lineWidth = act ? 1.6 : 1;
-      ctx.stroke();
-      // energía circulando
-      ctx.setLineDash([2, 11]);
-      ctx.lineDashOffset = -t*(act?26:13);
-      ctx.beginPath();
-      ctx.moveTo(p1[0],p1[1]);
-      ctx.quadraticCurveTo(c[0],c[1],p2[0],p2[1]);
-      ctx.strokeStyle = act ? 'rgba(159,216,204,0.6)' : 'rgba(127,181,171,0.25)';
-      ctx.lineWidth = act ? 1.6 : 1.1;
-      ctx.stroke();
-      ctx.setLineDash([]);
-    });
-
-    // ── pulsos viajeros ──
-    for (var i=pulsos.length-1;i>=0;i--){
-      var pl = pulsos[i];
-      var pt = (now - pl.t0)/pl.dur;
-      if (pt < 0) continue;
-      if (pt >= 1){ glow[pl.b] = 1; pulsos.splice(i,1); continue; }
-      var p1 = P[pl.a], p2 = P[pl.b], c = ctrl(p1,p2);
-      var pp = bez(p1,c,p2, pt);
-      var rg = ctx.createRadialGradient(pp[0],pp[1],0,pp[0],pp[1],16);
-      rg.addColorStop(0,'rgba(242,166,90,0.95)');
-      rg.addColorStop(0.45,'rgba(199,92,132,0.45)');
-      rg.addColorStop(1,'rgba(199,92,132,0)');
-      ctx.fillStyle = rg;
-      ctx.beginPath(); ctx.arc(pp[0],pp[1],16,0,6.28); ctx.fill();
-      for (var s=1;s<=3;s++){
-        var sp2 = bez(p1,c,p2, clamp(pt - s*0.045, 0, 1));
-        ctx.fillStyle = 'rgba(242,166,90,'+(0.25/s).toFixed(2)+')';
-        ctx.beginPath(); ctx.arc(sp2[0],sp2[1],5-s,0,6.28); ctx.fill();
-      }
-    }
-
-    // ── anillo de sincronía (recompensa por explorar los 4) ──
-    if (enSincro){
-      for (var rg2=0;rg2<2;rg2++){
-        var rk = clamp(st*1.15 - rg2*0.18, 0, 1);
-        if (rk <= 0) continue;
-        var eo = 1 - Math.pow(1-rk, 2);
-        ctx.strokeStyle = 'rgba(242,166,90,'+((1-eo)*0.45).toFixed(3)+')';
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.arc(W/2, H*0.52, eo*Math.max(W,H)*0.52, 0, 6.28);
-        ctx.stroke();
-      }
-    }
-
-    // ── nodos con profundidad (orden por z) ──
-    var orden = nodos.map(function(_,i){ return i; });
-    var zs = orden.map(function(i){ return 0.86 + 0.14*Math.sin(t*0.35 + i*2.2); });
-    orden.sort(function(a,b){ return zs[a] - zs[b]; });
-
-    orden.forEach(function(i){
-      var n = nodos[i];
-      var p = P[i];
-      var z = zs[i];
-      glow[i] = Math.max(0, glow[i] - 0.012, p[2]*0.55, enSincro ? (1-st)*0.9 : 0);
-      var act = (activo === i);
-      var g = act ? 1 : glow[i];
-      var lat = 1 + Math.sin(t*1.4 + i*1.9)*0.05;
-      var R = (movil ? 17 : 22) * lat * z * (act ? 1.22 : 1 + p[2]*0.1);
-      var alfa = 0.7 + 0.3*z;
-
-      raicillas(p, i, t);
-
-      var halo = ctx.createRadialGradient(p[0],p[1],0,p[0],p[1],R*3.4);
-      halo.addColorStop(0,'rgba(14,124,107,'+((0.16 + g*0.4)*alfa).toFixed(3)+')');
-      halo.addColorStop(1,'rgba(14,124,107,0)');
-      ctx.fillStyle = halo;
-      ctx.beginPath(); ctx.arc(p[0],p[1],R*3.4,0,6.28); ctx.fill();
-
-      var cuerpo = ctx.createRadialGradient(p[0]-R*0.3,p[1]-R*0.3,R*0.1,p[0],p[1],R);
-      cuerpo.addColorStop(0, mix('#9FD8CC','#FBE6C9', g*0.6));
-      cuerpo.addColorStop(0.6, mix('#0E7C6B','#C75C84', g*0.5));
-      cuerpo.addColorStop(1, '#0A2F2A');
-      ctx.fillStyle = cuerpo;
-      ctx.globalAlpha = alfa;
-      ctx.beginPath(); ctx.arc(p[0],p[1],R,0,6.28); ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = 'rgba(237,229,214,'+((0.25+g*0.5)*alfa).toFixed(3)+')';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-
-      // membrana orbital (segmento que gira)
-      var ang = t*0.6 + i*1.3;
-      ctx.strokeStyle = 'rgba(242,166,90,'+(0.15 + g*0.45).toFixed(3)+')';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(p[0], p[1], R*1.45, ang, ang + 1.7);
-      ctx.stroke();
-
-      ctx.font = '600 '+(movil?10:11)+'px "Poppins", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = act ? 'rgba(237,229,214,0.95)' : 'rgba(127,181,171,'+(0.55+0.35*z).toFixed(2)+')';
-      var ly = p[1] + R + (n.y > 0.6 ? 22 : -R - 12);
-      ctx.fillText(n.nombre.toUpperCase(), p[0], ly);
-    });
-  }
-
-  function sincronia(){
-    sincroT = performance.now();
-    var now = sincroT;
-    aristas.forEach(function(a, k){
-      pulsos.push({ a:a[0], b:a[1], t0: now + k*120, dur: 1100 });
-      pulsos.push({ a:a[1], b:a[0], t0: now + k*120 + 60, dur: 1100 });
-    });
-    var card = document.getElementById('tarjeta-nodo');
-    card.querySelector('h3').textContent = 'La red completa';
-    card.querySelector('p').textContent = 'Ahora lo ves: nada funciona aislado. Así trabaja la medicina funcional — leyendo todas las conversaciones de tu cuerpo a la vez.';
-    card.querySelector('.conexiones').textContent = 'Neuroendocrino · Digestivo · Inmune · Metabólico';
-    var cierre = document.getElementById('raiz-cierre');
-    cierre.classList.add('visible','dorado');
-  }
-
-  function activar(i, anuncia){
-    activo = i;
-    var n = nodos[i];
-    glow[i] = 1;
-    var now = performance.now();
-    var objetivo = (i === 3) ? [0,1,2] : n.con;
-    objetivo.forEach(function(j, k){
-      pulsos.push({ a:i, b:j, t0: now + k*180, dur: 950 });
-    });
-    document.querySelectorAll('.chip').forEach(function(c){
-      c.classList.toggle('activo', +c.dataset.nodo === i);
-    });
-    var card = document.getElementById('tarjeta-nodo');
-    var nombres = objetivo.map(function(j){ return nodos[j].nombre; }).join(' · ');
-    card.querySelector('h3').textContent = n.nombre;
-    card.querySelector('p').textContent = n.msg;
-    card.querySelector('.conexiones').textContent = 'Conversa con: ' + nombres;
-    if (anuncia !== false){
-      if (!explorados[i]){
-        explorados[i] = 1; nExpl++;
-        var cont = document.getElementById('raiz-contador');
-        if (cont) cont.textContent = nExpl;
-      }
-      if (nExpl >= 2) document.getElementById('raiz-cierre').classList.add('visible');
-      if (nExpl >= 4 && !sincronizado){
-        sincronizado = true;
-        setTimeout(sincronia, 700);
-      }
-    }
-  }
-
-  document.querySelectorAll('.chip').forEach(function(c){
-    c.addEventListener('click', function(){ activar(+c.dataset.nodo); });
+  var capa = svg.querySelector('.raiz-filamentos');
+  var filamentos = CONVERSAN.map(function(c){
+    var pa = trazos[c.a].getPointAtLength(trazos[c.a]._largo * c.fa);
+    var pb = trazos[c.b].getPointAtLength(trazos[c.b]._largo * c.fb);
+    // la curva cuelga un poco: es una raicilla, no una línea tensa
+    var mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2 + 18;
+    var p = document.createElementNS(NS, 'path');
+    p.setAttribute('class', 'raiz-filamento');
+    p.setAttribute('d', 'M' + pa.x.toFixed(1) + ',' + pa.y.toFixed(1) +
+      ' Q' + mx.toFixed(1) + ',' + my.toFixed(1) + ' ' + pb.x.toFixed(1) + ',' + pb.y.toFixed(1));
+    capa.appendChild(p);
+    preparar(p);
+    var mid = p.getPointAtLength(p._largo / 2);
+    var k = document.createElementNS(NS, 'circle');
+    k.setAttribute('class', 'raiz-cruce');
+    k.setAttribute('cx', mid.x.toFixed(1)); k.setAttribute('cy', mid.y.toFixed(1)); k.setAttribute('r', '3.2');
+    capa.appendChild(k);
+    // aparece cuando termina de crecer la MÁS tardía de las dos raíces
+    return { path: p, cruce: k, tras: Math.max(c.a, c.b) };
   });
 
-  function nodoEn(x, y){
-    var t = (performance.now()-t0)/1000;
-    for (var i=0;i<nodos.length;i++){
-      var p = pos(i,t);
-      var R = (movil?17:22)*2.0;
-      var dx = x-p[0], dy = y-p[1];
-      if (dx*dx + dy*dy < R*R) return i;
+  // Las raíces crecen SOLAS al llegar a la sección (sin pista de scroll). Al
+  // terminar, las etiquetas de cada sistema laten suave para invitar a tocarlas:
+  // el texto de ese sistema aparece al hacer clic (otro clic lo cierra y vuelve
+  // la frase de cierre). s va de 0 a S_FIN y reparte el crecimiento en pasos.
+  var S_FIN = 5.7, listo = false, sel = -1;
+  function crecer(s){
+    for (var i = 0; i < 4; i++){
+      var g = tramo(s, i + 1, i + 1.6);
+      trazar(trazos[i], g);
+      for (var r = 0; r < ramitas[i].length; r++) trazar(ramitas[i][r], tramo(g, 0.55, 1));
+      trazar(bajadas[i], tramo(s, 5, 5.6));
+      nombres[i].classList.toggle('crecida', g > 0.9);
     }
-    return -1;
+    filamentos.forEach(function(f){
+      var gf = tramo(s, f.tras + 1.35, f.tras + 1.75);
+      trazar(f.path, gf);
+      f.cruce.classList.toggle('encendido', gf >= 1);
+    });
+    nudo.classList.toggle('encendido', s >= 5.6);
   }
-  cv.addEventListener('pointermove', function(e){
-    var r = cv.getBoundingClientRect();
-    ptX = e.clientX - r.left; ptY = e.clientY - r.top;
-    cv.style.cursor = nodoEn(ptX, ptY) >= 0 ? 'pointer' : 'default';
-  });
-  cv.addEventListener('pointerleave', function(){ ptX = -9999; ptY = -9999; });
-  cv.addEventListener('pointerdown', function(e){
-    var r = cv.getBoundingClientRect();
-    var i = nodoEn(e.clientX - r.left, e.clientY - r.top);
-    if (i >= 0) activar(i);
-  });
-
-  resize();
-  window.addEventListener('resize', resize);
-
-  setInterval(function(){
-    if (!visible || reduced) return;
-    if (activo === -1 && pulsos.length === 0 && sincroT < 0){
-      var a = aristas[Math.floor(Math.random()*aristas.length)];
-      pulsos.push({ a:a[0], b:a[1], t0: performance.now(), dur: 1400 });
-    }
-  }, 4200);
-
-  var io = new IntersectionObserver(function(en){
-    visible = en[0].isIntersecting;
-    if (visible && reduced){ draw(performance.now()); }
-  }, { threshold: 0.15 });
-  io.observe(cv);
-
-  if (!reduced){
-    (function loop(now){
-      if (visible && pagVisible) draw(now);
-      requestAnimationFrame(loop);
-    })(performance.now());
-  } else {
-    activar(0, false);
-    setTimeout(function(){ draw(performance.now()); }, 300);
+  function elegir(i){
+    sel = i;
+    textos.forEach(function(t, j){ t.classList.toggle('visible', listo && j === i); });
+    raices.forEach(function(rz, j){ rz.classList.toggle('activa', j === i); });
+    svg.classList.toggle('enfocada', i >= 0);
+    cierre.classList.toggle('visible', listo && i < 0);
+    nombres.forEach(function(n){ n.classList.toggle('elegida', +n.dataset.i === i); });
   }
-})();
+  function terminar(){
+    if (listo) return;
+    listo = true;
+    crecer(S_FIN);
+    nombres.forEach(function(n, k){ n.classList.add('parpadea'); n.style.animationDelay = (k * 0.7) + 's'; });
+    elegir(-1);
+  }
+  nombres.forEach(function(b){
+    b.addEventListener('click', function(){
+      if (!listo){ if (anim) anim.progress(1); terminar(); }
+      var i = +b.dataset.i;
+      elegir(sel === i ? -1 : i);
+    });
+  });
+
+  var anim = null;
+  crecer(0);
+  if (reduced || !window.gsap || !window.ScrollTrigger){ terminar(); return; }
+  var proxy = { s: 0.9 };
+  anim = gsap.to(proxy, {
+    s: S_FIN - 0.05, duration: 5, ease: 'none', paused: true,
+    onUpdate: function(){ crecer(proxy.s); },
+    onComplete: terminar
+  });
+  ScrollTrigger.create({ trigger: pista, start: 'top 55%', once: true, onEnter: function(){ anim.play(); } });
+})(); }catch(e){ console.error('Kairal: raíces no disponibles.', e); }
 
 /* ============================================================
    4 · FLORACIÓN FINAL (Acto 7)
@@ -1679,6 +1677,129 @@ document.querySelectorAll('.flor-svg').forEach(function(svg){
 });
 
 /* ============================================================
+   5b · CARRUSEL DE HISTORIAS (testimonios)
+   Cada tarjeta lleva un paisaje del desierto generado acá (sin fotos:
+   son historias con datos protegidos), sembrado por la historia para que
+   siempre salga igual. La tarjeta más cercana al centro es la "activa":
+   crece y muestra la cita. Se navega con flechas, arrastre (mouse),
+   deslizamiento (touch, scroll nativo), clic en una tarjeta o teclado.
+============================================================ */
+try{ (function(){
+  var carril = document.getElementById('carril');
+  if (!carril) return;
+  var casos = [].slice.call(carril.querySelectorAll('.caso'));
+  if (!casos.length) return;
+  var flechas = [].slice.call(document.querySelectorAll('.flora-flecha'));
+
+  // cielo (arriba → horizonte) distinto por historia, dentro de la paleta del sitio
+  var CIELOS = [['#2b3f5c','#c97b6b'], ['#1d4a4a','#e0a463'], ['#3a2f55','#e3876a'], ['#22403a','#d9b26f']];
+  var DUNAS = [['#b9845c', .55], ['#7a4a30', .8], ['#3a2418', .95]];
+  casos.forEach(function(caso, i){
+    var svg = caso.querySelector('.caso-paisaje');
+    if (!svg) return;
+    var seed = +svg.dataset.seed || i + 1;
+    var cielo = CIELOS[i % CIELOS.length], id = 'caso-cielo-' + i;
+    var h = '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="' + cielo[0] + '"/><stop offset=".72" stop-color="' + cielo[1] + '"/></linearGradient></defs>' +
+      '<rect width="400" height="520" fill="url(#' + id + ')"/>';
+    // granos de arena suspendidos / primeras estrellas
+    for (var g = 0; g < 40; g++){
+      h += '<circle cx="' + (hash(seed * 31 + g) * 400).toFixed(1) + '" cy="' + (hash(seed * 37 + g) * 300).toFixed(1) +
+        '" r="' + (0.4 + hash(seed * 41 + g) * 1.1).toFixed(2) + '" fill="#fbe6c9" opacity="' + (0.25 + hash(seed * 43 + g) * 0.5).toFixed(2) + '"/>';
+    }
+    // tres capas de dunas, cada vez más cerca y más oscuras
+    for (var k = 0; k < 3; k++){
+      var base = 330 + k * 55;
+      var a = (hash(seed * 11 + k) - 0.5) * 60, b = (hash(seed * 13 + k) - 0.5) * 60, cc = (hash(seed * 17 + k) - 0.5) * 50;
+      h += '<path fill="' + DUNAS[k][0] + '" opacity="' + DUNAS[k][1] + '" d="M0,' + (base + a).toFixed(0) +
+        ' C110,' + (base - 40 + b).toFixed(0) + ' 190,' + (base + 30 + cc).toFixed(0) + ' 280,' + (base - 10 + a / 2).toFixed(0) +
+        ' S400,' + (base + b / 2).toFixed(0) + ' 400,' + (base + 10) + ' L400,520 L0,520 Z"/>';
+    }
+    svg.innerHTML = h;
+  });
+
+  // La tarjeta activa se alinea con el borde izquierdo del título.
+  var cabecera = document.querySelector('.flora-head');
+  var mg = 0;
+  function medirMargen(){
+    if (!cabecera) return;
+    var cs = getComputedStyle(cabecera);
+    mg = cabecera.getBoundingClientRect().left - carril.getBoundingClientRect().left + parseFloat(cs.paddingLeft);
+    carril.style.setProperty('--margen', mg + 'px');
+  }
+  function izquierdaDe(c){ return c.offsetLeft - mg; }
+  function masCercana(){
+    var x = carril.scrollLeft, mejor = 0, dist = Infinity;
+    casos.forEach(function(c, j){ var d = Math.abs(izquierdaDe(c) - x); if (d < dist){ dist = d; mejor = j; } });
+    return mejor;
+  }
+  var activa = -1;
+  function marcar(i){
+    if (i === activa) return;
+    activa = i;
+    casos.forEach(function(c, j){
+      c.classList.toggle('activa', j === i);
+      c.setAttribute('aria-current', j === i ? 'true' : 'false');
+    });
+    flechas.forEach(function(f){
+      var dir = +f.dataset.dir;
+      f.disabled = (dir < 0 && i === 0) || (dir > 0 && i === casos.length - 1);
+    });
+  }
+  function ir(i, instantaneo){
+    i = clamp(i, 0, casos.length - 1);
+    carril.scrollTo({ left: izquierdaDe(casos[i]), behavior: (instantaneo || reduced) ? 'auto' : 'smooth' });
+    marcar(i);
+  }
+
+  var pendiente = false;
+  carril.addEventListener('scroll', function(){
+    if (pendiente) return;
+    pendiente = true;
+    requestAnimationFrame(function(){ pendiente = false; marcar(masCercana()); });
+  }, { passive: true });
+
+  flechas.forEach(function(f){ f.addEventListener('click', function(){ ir(activa + (+f.dataset.dir)); }); });
+  carril.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight'){ e.preventDefault(); ir(activa + 1); }
+    if (e.key === 'ArrowLeft'){ e.preventDefault(); ir(activa - 1); }
+  });
+
+  // Arrastre con mouse (touch y trackpad ya usan el scroll nativo). Mientras
+  // se arrastra se apaga el snap; al soltar se centra la tarjeta más cercana.
+  // Un arrastre no debe contar como clic sobre la tarjeta donde se soltó.
+  var arrastre = null, ignorarClic = false;
+  carril.addEventListener('pointerdown', function(e){
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    arrastre = { x: e.clientX, s: carril.scrollLeft, movio: false };
+  });
+  window.addEventListener('pointermove', function(e){
+    if (!arrastre) return;
+    var dx = e.clientX - arrastre.x;
+    if (!arrastre.movio && Math.abs(dx) > 5){ arrastre.movio = true; carril.classList.add('arrastrando'); }
+    if (arrastre.movio) carril.scrollLeft = arrastre.s - dx;
+  });
+  window.addEventListener('pointerup', function(){
+    if (!arrastre) return;
+    var movio = arrastre.movio;
+    arrastre = null;
+    if (!movio) return;
+    carril.classList.remove('arrastrando');
+    ignorarClic = true;
+    setTimeout(function(){ ignorarClic = false; }, 0);
+    ir(masCercana());
+  });
+  casos.forEach(function(c, j){
+    c.addEventListener('click', function(){ if (!ignorarClic && j !== activa) ir(j); });
+  });
+
+  // arranca con la primera historia centrada y activa
+  medirMargen();
+  ir(0, true);
+  window.addEventListener('resize', function(){ medirMargen(); if (activa >= 0) ir(activa, true); });
+})(); }catch(e){ console.error('Kairal: carrusel de historias no disponible.', e); }
+
+/* ============================================================
    6 · REVELADOS, HEADER, NAV, FLOTANTES
 ============================================================ */
 var revelables = [
@@ -1692,10 +1813,20 @@ var ioRev = new IntersectionObserver(function(ents){
 revelables.forEach(function(r){
   var el = document.querySelector(r[0]); if (el) ioRev.observe(el);
 });
-document.querySelectorAll('.caso').forEach(function(c, i){
-  c.style.transitionDelay = (i*0.12)+'s';
-  ioRev.observe(c);
-});
+// Las tarjetas se revelan todas juntas (escalonadas) cuando el carrusel entra
+// en pantalla: con la alineada a la izquierda, la siguiente apenas asoma y no
+// alcanzaría el umbral de visibilidad por sí sola.
+var carrilRev = document.getElementById('carril');
+if (carrilRev){
+  var tarjetasRev = [].slice.call(carrilRev.querySelectorAll('.caso'));
+  tarjetasRev.forEach(function(c, i){ c.style.transitionDelay = (i*0.12)+'s'; });
+  var ioCarril = new IntersectionObserver(function(ents){
+    if (!ents[0].isIntersecting) return;
+    tarjetasRev.forEach(function(c){ c.classList.add('visible'); });
+    ioCarril.disconnect();
+  }, { threshold: 0.25 });
+  ioCarril.observe(carrilRev);
+}
 document.querySelectorAll('.blog-card').forEach(function(c, i){
   c.style.transitionDelay = (i*0.1)+'s';
   ioRev.observe(c);
@@ -1704,6 +1835,30 @@ document.querySelectorAll('.faq-item').forEach(function(c, i){
   c.style.transitionDelay = (i*0.07)+'s';
   ioRev.observe(c);
 });
+// FAQ: la respuesta se despliega/pliega deslizándose en vez de saltar de
+// golpe (lo que hace el <details> nativo). Se sigue usando <details>
+// (accesible, funciona con teclado); solo se anima la altura. Arranca
+// siempre desde la altura que tenga en ese momento, así un clic a mitad
+// de animación no salta.
+if (!reduced){
+  document.querySelectorAll('.faq-item').forEach(function(item){
+    var sum = item.querySelector('summary'), cuerpo = item.querySelector('.faq-r');
+    if (!sum || !cuerpo || !cuerpo.animate) return;
+    var abierto = item.open, anim = null;
+    sum.addEventListener('click', function(ev){
+      ev.preventDefault();
+      var desde = item.open ? cuerpo.getBoundingClientRect().height : 0;
+      if (anim){ anim.onfinish = null; anim.cancel(); }
+      abierto = !abierto;
+      if (abierto) item.open = true;
+      var hasta = abierto ? cuerpo.scrollHeight : 0;
+      anim = cuerpo.animate(
+        [{ height: desde + 'px', opacity: abierto ? 0.2 : 1 }, { height: hasta + 'px', opacity: abierto ? 1 : 0 }],
+        { duration: 380, easing: 'cubic-bezier(.22,1,.36,1)' });
+      anim.onfinish = function(){ anim = null; if (!abierto) item.open = false; };
+    });
+  });
+}
 
 // header + flotantes por scroll
 var header = document.getElementById('header');
@@ -1763,7 +1918,7 @@ if (window.matchMedia('(pointer:fine)').matches && !reduced){
     el.addEventListener('mouseleave', function(){ cur.classList.remove('grande'); });
   });
   // cursor que habla: contexto por zona interactiva
-  [['#lienzo-red','Explorar'], ['#carril','Arrastrar'], ['#lienzo-gota','Llover'], ['#lienzo-flor','Florecer']].forEach(function(par){
+  [['.raiz-lienzo','Explorar'], ['#carril','Arrastrar'], ['#lienzo-gota','Llover'], ['#lienzo-flor','Florecer']].forEach(function(par){
     var el = document.querySelector(par[0]);
     if (!el) return;
     el.addEventListener('mouseenter', function(){ tagEl.textContent = par[1]; cur.classList.add('tagged'); });
@@ -2056,30 +2211,31 @@ try{ (function(){
 })(); }catch(e){ console.error('Kairal: jardín no disponible.', e); }
 
 /* ============================================================
-   14 · MOTOR DE SCROLL: Medicina Funcional
-   12 escenas (Causa raíz + 10 áreas + cierre) ancladas a .motor-pista
-   -misma técnica que etapasCtl del Método (sección 2): un solo
-   ScrollTrigger con start:'top top'/end:'bottom bottom' entrega un
-   progress 0→1 continuo, que acá se traduce en el contenido del panel
-   (alternando izquierda/derecha), el punto activo del riel, y a dónde
-   viaja el anillo de arena (ver construirPolvoAro). Es su propia IIFE
-   -sin acceso por clausura a gsapOK/reduced/DPR/etc de otras
-   secciones-, así que todo se recalcula localmente.
+   14 · ÓRBITA DE SERVICIOS: Medicina Funcional
+   Una sola pantalla: "MEDICINA FUNCIONAL" al centro de una órbita con las
+   11 áreas alrededor. Un recorrido automático (6.5s por área, pausable)
+   lleva el trazo de arena de área en área -pasando siempre por la
+   palabra- y el panel muestra el área activa; tocar un área lleva el
+   trazo ahí. Después de la última, la palabra se dispersa y la frase de
+   cierre ocupa su lugar; luego vuelve a empezar. Es su propia IIFE -sin
+   acceso por clausura a gsapOK/DPR/etc de otras secciones-, así que todo
+   se recalcula localmente.
 ============================================================ */
 try{ (function(){
-  if (!window.gsap || !window.ScrollTrigger) return; // sin motor: la sección se ve estática (escena 0, ver CSS body.reduced)
-  gsap.registerPlugin(ScrollTrigger);
+  if (!window.gsap) return; // sin GSAP: la sección se ve estática con la primera área
   var reducedLocal = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  var pista = document.getElementById('motor-pista');
   var fijo = document.getElementById('motor-fijo');
+  var orbita = document.getElementById('motor-orbita');
   var panel = document.getElementById('motor-panel');
+  var frase = document.getElementById('motor-frase');
   var kickerEl = document.getElementById('motor-kicker-texto');
   var tituloEl = document.getElementById('motor-titulo');
   var descEl = document.getElementById('motor-desc');
-  var hint = document.getElementById('motor-hint');
-  if (!pista || !fijo || !panel) return;
-  var railPuntos = pista.querySelectorAll('.motor-rail-punto');
+  var progreso = document.getElementById('motor-progreso');
+  if (!fijo || !orbita || !panel || !frase) return;
+  var areas = [].slice.call(orbita.querySelectorAll('.motor-area'));
+  var barra = progreso && progreso.querySelector('span');
 
   // Anillo de arena: mismo efecto de partículas que #lienzo-polvo-textos
   // del hero (mismos tonos), pero acá no dibujan letras -trazan el
@@ -2091,14 +2247,23 @@ try{ (function(){
   // viaja de una letra a otra distinta; acá todas comparten la misma
   // elipse en todo momento).
   function construirPolvoAro(cv, stage){
-    if (!cv || reducedLocal) return { irACentro:function(){}, irA:function(){}, vueltaInicial:function(onDone){ if (onDone) onDone(); } };
+    if (!cv || reducedLocal) return {
+      irA:function(){},
+      viajar:function(prepararPanel, mostrarPanel){ prepararPanel(); mostrarPanel(); },
+      vueltaInicial:function(onDone){ if (onDone) onDone(); }
+    };
     var ctx = cv.getContext('2d');
     var DPR = Math.min(window.devicePixelRatio || 1, 1.75);
     var W = 0, H = 0;
     var movilLocal = window.matchMedia('(max-width:920px)').matches;
+    // Trazo SUTIL: casi una línea fina de arena, no una franja. Pocos granos
+    // diminutos (cuadraditos de ~1px con fillRect), banda angosta y tenue.
     var N = movilLocal ? 260 : 460;
-    var BANDA_PX = movilLocal ? 9 : 16;
-    var TONOS = ['201,183,154', '201,183,154', '127,181,171', '242,166,90'];
+    var BANDA_PX = movilLocal ? 2 : 3;
+    // Tonos de arena sobre fondo claro (más oscuros que los del hero, que
+    // está sobre fondo oscuro), con pocos granos turquesa y dorados.
+    var TONOS = ['168,138,96', '168,138,96', '140,112,74', '140,112,74', '118,92,60', '196,162,112',
+                 '196,162,112', '52,122,112', '196,118,48'];
 
     // El arco NUNCA cubre el círculo completo -siempre queda un hueco
     // visible-. COBERTURA_REPOSO es el barrido normal (~275°, deja un
@@ -2111,17 +2276,25 @@ try{ (function(){
 
     var particulas = [];
     for (var i = 0; i < N; i++){
+      // ~15% es "polvo": más suelto y tenue, se escapa del trazo hacia
+      // los lados como arena soplada
+      var polvo = Math.random() < 0.03;
+      // banda con forma de campana (suma de 3 azares): densa en el
+      // centro del trazo y rala hacia los bordes, no una franja pareja
+      var campana = (Math.random() + Math.random() + Math.random()) / 3 * 2 - 1;
+      var tam = Math.random();
       particulas.push({
         t: i / N,
-        tono: TONOS[(Math.random() * TONOS.length) | 0],
-        r: 0.6 + Math.random() * 0.9,
+        color: 'rgb(' + TONOS[(Math.random() * TONOS.length) | 0] + ')',
+        r: 0.3 + tam * tam * 0.4,                    // casi todos diminutos, pocos un poco mayores
+        alfa: polvo ? 0.14 + Math.random() * 0.2 : 0.3 + Math.random() * 0.45,
         jFase: Math.random() * 6.283,
         jVel: 0.5 + Math.random() * 0.6,
-        jAmp: 1.6 + Math.random() * 2.6,
+        jAmp: (polvo ? 0.9 : 0.2) + Math.random() * 0.7,
         // Offset radial FIJO por partícula (no cambia cuadro a cuadro):
         // todas al mismo radio se ve como una línea; con esta banda se
         // ve como una franja de arena de varios granos de espesor.
-        banda: (Math.random() * 2 - 1) * BANDA_PX
+        banda: campana * BANDA_PX * (polvo ? 1.6 : 1)
       });
     }
 
@@ -2130,8 +2303,13 @@ try{ (function(){
     // impulso extra de la vuelta inicial, Task 4). rotacion (abajo,
     // variable de closure) es el giro ambiente continuo -independiente
     // de a dónde esté viajando la elipse o de la vuelta completa.
-    var estado = { cx: 0, cy: 0, rx: 90, ry: 90, opacidad: 0, coberturaRad: COBERTURA_REPOSO, rotacionBoost: 0 };
-    var rotacion = 0, ultimoNow = 0, activo = false, tween = null;
+    // modoTrazo: 0 = las partículas dibujan el arco en reposo, 1 = dibujan
+    // el trazo en viaje (ver "Trazo" más abajo). Entre medio, cada
+    // partícula se mezcla entre sus dos posiciones -así el traspaso entre
+    // arco quieto y trazo en marcha no salta.
+    var estado = { cx: 0, cy: 0, rx: 90, ry: 90, opacidad: 0, coberturaRad: COBERTURA_REPOSO, rotacionBoost: 0, modoTrazo: 0 };
+    var rotacion = 0, ultimoNow = 0, activo = false, viajes = 0, grosor = 1;
+    var etiqueta = stage.querySelector('.motor-permanente');
 
     function resize(){
       W = stage.clientWidth; H = stage.clientHeight;
@@ -2141,10 +2319,19 @@ try{ (function(){
     window.addEventListener('resize', resize);
     resize();
 
-    // Estado de reposo: mismo punto donde vivía el círculo sólido que
-    // reemplaza este efecto (36% del alto del escenario) -y donde vive
-    // ahora también el texto permanente .motor-permanente.
+    // Estado de reposo y parada obligada entre párrafos: un círculo
+    // alrededor del texto permanente "MEDICINA FUNCIONAL", medido sobre
+    // la etiqueta real (no un % fijo -en mobile la etiqueta no está en el
+    // 36% del alto). En mobile es una elipse aplanada: un círculo del
+    // ancho de la etiqueta se metería debajo del header fijo.
     function centro(){
+      var r = etiqueta && etiqueta.getBoundingClientRect();
+      if (r && r.width){
+        var base = stage.getBoundingClientRect();
+        var cx = r.left + r.width / 2 - base.left, cy = r.top + r.height / 2 - base.top;
+        var rx = r.width / 2 + (movilLocal ? 22 : 26);
+        return { cx: cx, cy: cy, rx: rx, ry: movilLocal ? r.height / 2 + 30 : rx };
+      }
       var radio = Math.min(95, W * 0.085, H * 0.16);
       return { cx: W / 2, cy: H * 0.36, rx: radio, ry: radio };
     }
@@ -2155,12 +2342,265 @@ try{ (function(){
     function elipseDe(el){
       var r = el.getBoundingClientRect();
       var base = stage.getBoundingClientRect();
+      // las áreas de la órbita son chicas y están juntas: margen más justo
+      // para que el arco que las envuelve no tape a las vecinas
+      var chico = el.classList.contains('motor-area');
       return {
         cx: r.left + r.width / 2 - base.left,
         cy: r.top + r.height / 2 - base.top,
-        rx: r.width / 2 + 30,
-        ry: r.height / 2 + 26
+        rx: r.width / 2 + (chico ? 16 : 30),
+        ry: r.height / 2 + (chico ? 14 : 26)
       };
+    }
+
+    /* ---------- Trazo ----------
+       Un viaje entre párrafos es un trazo continuo, como un lápiz: se
+       arma una RUTA (arco del párrafo actual → recta → vuelta alrededor
+       de "MEDICINA FUNCIONAL" → recta → arco del párrafo nuevo) y la
+       punta avanza por ella; cada partícula va a una distancia fija
+       detrás de la punta (t=1 es la punta, t=0 la cola), así todo el
+       trazo pasa por el mismo camino que dibujó la punta. Las rectas
+       salen y entran TANGENTES a las curvas (tangente común), sin quiebres.
+       Cada viaje se recorre en un solo sentido (sg = 1 horario, -1
+       antihorario), el que le permita dejar el párrafo viejo antes: así
+       sale casi derecho en vez de dar media vuelta al párrafo primero. */
+    var VEL = 1350;      // px/s de crucero de la punta
+    var T_ACEL = 0.45;   // s hasta llegar a crucero (arranca suave)
+    var FRENO = 260;     // px antes del final en que empieza a frenar
+    var viaje = null, tweenModo = null, puntoTmp = { x: 0, y: 0, tx: 1, ty: 0 };
+
+    function pElipse(E, th){ return { x: E.cx + E.rx * Math.cos(th), y: E.cy + E.ry * Math.sin(th) }; }
+    function tElipse(E, th, sg){
+      var x = -E.rx * Math.sin(th) * sg, y = E.ry * Math.cos(th) * sg, n = Math.sqrt(x * x + y * y) || 1;
+      return { x: x / n, y: y / n };
+    }
+    // Ángulo donde una recta que viene de P entra tangente a E, ya
+    // moviéndose en el sentido sg. Se resuelve como si E fuera un círculo
+    // unitario (escalando por rx/ry: la escala conserva las tangencias).
+    // null si P está dentro de E.
+    function entradaTangente(P, E, sg){
+      var ux = (P.x - E.cx) / E.rx, uy = (P.y - E.cy) / E.ry, d = Math.sqrt(ux * ux + uy * uy);
+      if (d <= 1.02) return null;
+      return Math.atan2(uy, ux) + sg * Math.acos(1 / d);
+    }
+    // Recorriendo E desde `desde` en el sentido sg, primer ángulo en que
+    // la tangente de E apunta a la entrada tangente de D: ahí el trazo
+    // deja E y va en recta hasta D sin quiebre. Devuelve también dónde
+    // entra a D y cuánto tuvo que seguir por E (extra).
+    function salidaHacia(E, desde, D, sg){
+      var mejor = null, mejorAng = 9;
+      for (var k = 0; k <= 180; k++){
+        var th = desde + sg * k * (Math.PI / 90);
+        var P = pElipse(E, th), thD = entradaTangente(P, D, sg);
+        if (thD === null) continue;
+        var Q = pElipse(D, thD), vx = Q.x - P.x, vy = Q.y - P.y, n = Math.sqrt(vx * vx + vy * vy) || 1;
+        var t = tElipse(E, th, sg), c = (t.x * vx + t.y * vy) / n;
+        if (c <= 0) continue;
+        var ang = Math.acos(Math.min(1, c));
+        if (ang < 0.07) return { th: th, thD: thD, extra: k };
+        if (ang < mejorAng){ mejorAng = ang; mejor = { th: th, thD: thD, extra: k }; }
+      }
+      if (mejor) return mejor;
+      var P0 = pElipse(E, desde), th0 = entradaTangente(P0, D, sg);
+      return { th: desde, thD: th0 === null ? Math.atan2(P0.y - D.cy, P0.x - D.cx) : th0, extra: 0 };
+    }
+
+    // Ruta: polilínea densa (un punto cada ~2.5px) con largo acumulado,
+    // para ubicar cualquier distancia s sobre ella con búsqueda binaria.
+    function Ruta(){ this.x = []; this.y = []; this.s = []; }
+    Ruta.prototype.punto = function(x, y){
+      var n = this.x.length;
+      if (n){
+        var dx = x - this.x[n - 1], dy = y - this.y[n - 1], d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 0.5) return;
+        this.s.push(this.s[n - 1] + d);
+      } else this.s.push(0);
+      this.x.push(x); this.y.push(y);
+    };
+    Ruta.prototype.largo = function(){ return this.s.length ? this.s[this.s.length - 1] : 0; };
+    Ruta.prototype.elipse = function(E, th0, th1){
+      var pasos = Math.max(2, Math.ceil(Math.abs(th1 - th0) * Math.max(E.rx, E.ry) / 2.5));
+      for (var i = 0; i <= pasos; i++){ var p = pElipse(E, th0 + (th1 - th0) * i / pasos); this.punto(p.x, p.y); }
+    };
+    // Curva suave (Bézier cúbica) desde el último punto, saliendo en la
+    // dirección (t0x,t0y) y llegando a (x3,y3) en la dirección (t3x,t3y):
+    // empalma sin quiebres con lo que viene antes y con lo que sigue. Si
+    // las dos direcciones apuntan parecido, es casi una recta.
+    Ruta.prototype.curva = function(t0x, t0y, x3, y3, t3x, t3y){
+      var n = this.x.length, x0 = this.x[n - 1], y0 = this.y[n - 1];
+      var d = Math.sqrt((x3 - x0) * (x3 - x0) + (y3 - y0) * (y3 - y0)), h = d * 0.38;
+      var x1 = x0 + t0x * h, y1 = y0 + t0y * h, x2 = x3 - t3x * h, y2 = y3 - t3y * h;
+      var pasos = Math.max(2, Math.ceil(d / 2.5));
+      for (var i = 1; i <= pasos; i++){
+        var u = i / pasos, w = 1 - u;
+        this.punto(w * w * w * x0 + 3 * w * w * u * x1 + 3 * w * u * u * x2 + u * u * u * x3,
+                   w * w * w * y0 + 3 * w * w * u * y1 + 3 * w * u * u * y2 + u * u * u * y3);
+      }
+    };
+    Ruta.prototype.linea = function(x1, y1){
+      var n = this.x.length, x0 = this.x[n - 1], y0 = this.y[n - 1];
+      var d = Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0)), pasos = Math.max(1, Math.ceil(d / 3));
+      for (var i = 1; i <= pasos; i++) this.punto(x0 + (x1 - x0) * i / pasos, y0 + (y1 - y0) * i / pasos);
+    };
+    // Posición y tangente unitaria en la distancia s (acotada a la ruta).
+    Ruta.prototype.en = function(s, out){
+      var S = this.s, n = S.length;
+      if (n < 2){ out.x = this.x[0] || 0; out.y = this.y[0] || 0; out.tx = 1; out.ty = 0; return out; }
+      if (s <= 0) s = 0; else if (s >= S[n - 1]) s = S[n - 1];
+      var lo = 0, hi = n - 1;
+      while (hi - lo > 1){ var mid = (lo + hi) >> 1; if (S[mid] <= s) lo = mid; else hi = mid; }
+      var seg = (S[hi] - S[lo]) || 1, f = (s - S[lo]) / seg;
+      var dx = this.x[hi] - this.x[lo], dy = this.y[hi] - this.y[lo], dn = Math.sqrt(dx * dx + dy * dy) || 1;
+      out.x = this.x[lo] + dx * f; out.y = this.y[lo] + dy * f; out.tx = dx / dn; out.ty = dy / dn;
+      return out;
+    };
+
+    // Dónde dejar el párrafo viejo: lo antes posible recorriendo A desde
+    // la punta en el sentido sg, apenas la dirección del trazo apunte más
+    // o menos (±60°) a su entrada en la palabra. El resto lo absorbe la
+    // curva de salida -no hace falta rodear el párrafo hasta la tangente
+    // exacta-. Devuelve el punto de salida, la entrada a C y cuánto
+    // tuvo que seguir por A (extra, en pasos de 2°).
+    function partida(A, desde, C, sg){
+      for (var k = 0; k <= 180; k++){
+        var th = desde + sg * k * (Math.PI / 90);
+        var P = pElipse(A, th), thC = entradaTangente(P, C, sg);
+        if (thC === null) continue;
+        var Q = pElipse(C, thC), vx = Q.x - P.x, vy = Q.y - P.y, n = Math.sqrt(vx * vx + vy * vy) || 1;
+        var t = tElipse(A, th, sg);
+        if ((t.x * vx + t.y * vy) / n >= 0.5) return { th: th, thD: thC, extra: k };
+      }
+      var P0 = pElipse(A, desde), th0 = entradaTangente(P0, C, sg);
+      return { th: desde, thD: th0 === null ? Math.atan2(P0.y - C.cy, P0.x - C.cx) : th0, extra: 999 };
+    }
+
+    function animarModo(valor, dur){
+      if (tweenModo) tweenModo.kill();
+      tweenModo = gsap.to(estado, { modoTrazo: valor, duration: dur, ease: 'power1.inOut' });
+    }
+
+    // Arranca un viaje hacia el párrafo que prepare `prep`, pasando por
+    // "MEDICINA FUNCIONAL". El párrafo de destino recién se elige cuando
+    // la punta entra a la vuelta de la palabra (elegirDestino): ahí el
+    // panel viejo ya se apagó y se puede cargar y medir el nuevo.
+    function iniciarViaje(prep, mostrar){
+      var C = centro();
+      if (viaje && !viaje.terminado){
+        // Todavía no eligió destino: sigue su camino y en la palabra
+        // va al párrafo más nuevo.
+        if (viaje.total === null){ viaje.prep = prep; viaje.mostrar = mostrar; return; }
+        rerutear(viaje, prep, mostrar, C); return;
+      }
+      var A = { cx: estado.cx, cy: estado.cy, rx: estado.rx, ry: estado.ry };
+      var th0 = rotacion + estado.rotacionBoost, th1 = th0 + estado.coberturaRad;
+      var r = new Ruta(), sg, sal = null;
+      var enPalabra = Math.abs(A.cx - C.cx) < 6 && Math.abs(A.cy - C.cy) < 6;
+      if (enPalabra) sg = 1;
+      else {
+        // Horario sale por la punta del arco (th1), antihorario por la
+        // cola (th0): gana el que deja el párrafo con menos rodeo.
+        var horario = partida(A, th1, C, 1), anti = partida(A, th0, C, -1);
+        sg = horario.extra <= anti.extra ? 1 : -1;
+        sal = sg > 0 ? horario : anti;
+      }
+      // El trazo arranca siendo exactamente el arco quieto, recorrido en
+      // el sentido del viaje (la punta queda del lado por el que sale).
+      if (sg > 0) r.elipse(A, th0, th1); else r.elipse(A, th1, th0);
+      var v = { ruta: r, sg: sg, cabeza: r.largo(), LA: r.largo(), L: r.largo(), t: 0, C: C,
+                prep: prep, mostrar: mostrar, total: null, terminado: false, mostrado: false };
+      if (enPalabra){
+        // Ya está rodeando la palabra (primer viaje, después de la vuelta
+        // inicial): sigue girando un poco y sale.
+        v.sC = v.cabeza; v.thCin = th1; v.minVuelta = 0.3 * Math.PI;
+      } else {
+        r.elipse(A, sg > 0 ? th1 : th0, sal.th);
+        var Q = pElipse(C, sal.thD), tA = tElipse(A, sal.th, sg), tC = tElipse(C, sal.thD, sg);
+        r.curva(tA.x, tA.y, Q.x, Q.y, tC.x, tC.y);
+        v.sC = r.largo(); v.thCin = sal.thD;
+        // al menos ~1¼ vuelta alrededor de la palabra: tiene que leerse
+        // que la rodea, no que la roza
+        v.minVuelta = 1.25 * Math.PI;
+      }
+      vueltaMinima(v);
+      viaje = v;
+      animarModo(1, 0.25);
+    }
+
+    // La vuelta mínima alrededor de la palabra no depende del destino:
+    // queda en la ruta desde el arranque, así la punta tiene por dónde
+    // seguir mientras se espera para elegir el párrafo nuevo.
+    function vueltaMinima(v){
+      v.thLoop = v.thCin + v.sg * v.minVuelta;
+      v.ruta.elipse(v.C, v.thCin, v.thLoop);
+      v.sLoop = v.ruta.largo();
+      v.reloj = 0;
+    }
+
+    // Cambio de escena con el destino viejo ya elegido: el trazo actual
+    // (de la cola a la punta) se copia a una ruta nueva que desde la
+    // punta va directo a la palabra, y desde ahí al párrafo más nuevo.
+    function rerutear(v, prep, mostrar, C){
+      var r = new Ruta(), cola = Math.max(0, v.cabeza - v.L);
+      for (var s = cola; s < v.cabeza; s += 3){ v.ruta.en(s, puntoTmp); r.punto(puntoTmp.x, puntoTmp.y); }
+      v.ruta.en(v.cabeza, puntoTmp); r.punto(puntoTmp.x, puntoTmp.y);
+      var punta = { x: puntoTmp.x, y: puntoTmp.y }, dirX = puntoTmp.tx, dirY = puntoTmp.ty, cabeza = r.largo();
+      var thIn = entradaTangente(punta, C, v.sg);
+      if (thIn === null) thIn = Math.atan2((punta.y - C.cy) / C.ry, (punta.x - C.cx) / C.rx);
+      var Q = pElipse(C, thIn), tC = tElipse(C, thIn, v.sg);
+      r.curva(dirX, dirY, Q.x, Q.y, tC.x, tC.y);
+      viaje = { ruta: r, sg: v.sg, cabeza: cabeza, LA: v.L, L: v.L, t: T_ACEL, C: C, sC: r.largo(), thCin: thIn,
+                minVuelta: 1.25 * Math.PI, prep: prep, mostrar: mostrar, total: null, terminado: false, mostrado: false };
+      vueltaMinima(viaje);
+      animarModo(1, 0.25);
+    }
+
+    function elegirDestino(v){
+      v.sElegido = v.cabeza; // desde acá el largo del trazo pasa al del arco nuevo
+      var B = elipseDe(v.prep());
+      var sal = salidaHacia(v.C, v.thLoop, B, v.sg);
+      v.ruta.elipse(v.C, v.thLoop, sal.th);               // termina de rodear la palabra
+      var Q = pElipse(B, sal.thD); v.ruta.linea(Q.x, Q.y); // recta al párrafo nuevo
+      v.sB = v.ruta.largo();
+      v.ruta.elipse(B, sal.thD, sal.thD + v.sg * COBERTURA_REPOSO); // y lo envuelve
+      v.total = v.ruta.largo();
+      v.LB = v.total - v.sB;
+      v.B = B; v.thBin = sal.thD;
+    }
+
+    function avanzar(v, dt){
+      if (v.terminado) return;
+      v.t += dt; v.reloj += dt;
+      var a = Math.min(1, v.t / T_ACEL), vel = VEL * Math.max(0.08, a * a * (3 - 2 * a));
+      if (v.total !== null) vel = Math.min(vel, VEL * Math.max(0.06, Math.sqrt(Math.max(0, v.total - v.cabeza) / FRENO)));
+      v.cabeza += vel * dt;
+      // El párrafo nuevo se elige ya rodeando la palabra y con el viejo
+      // casi apagado (su fade dura .5s) -o, como muy tarde, al completar
+      // la vuelta mínima, para que la punta nunca se quede sin ruta.
+      if (v.total === null && ((v.cabeza >= v.sC && v.reloj >= 0.45) || v.cabeza >= v.sLoop)){
+        if (v.cabeza > v.sLoop) v.cabeza = v.sLoop;
+        elegirDestino(v);
+      }
+      if (v.total !== null){
+        // el largo del trazo pasa del largo del arco viejo al del nuevo
+        // a lo largo del camino desde la palabra, sin saltos
+        var f = Math.min(1, Math.max(0, (v.cabeza - v.sElegido) / ((v.total - v.sElegido) || 1)));
+        v.L = v.LA + (v.LB - v.LA) * f;
+        if (!v.mostrado && v.cabeza >= v.sB - 140){ v.mostrado = true; v.mostrar(); }
+        if (v.cabeza >= v.total - 0.5){ v.cabeza = v.total; terminar(v); }
+      }
+    }
+
+    // Llegó: el arco quieto toma la posición exacta en que quedó el trazo
+    // (misma elipse, empezando donde quedó la cola) y se devuelve el
+    // dibujo al modo arco.
+    function terminar(v){
+      v.terminado = true;
+      if (!v.mostrado){ v.mostrado = true; v.mostrar(); }
+      estado.cx = v.B.cx; estado.cy = v.B.cy; estado.rx = v.B.rx; estado.ry = v.B.ry; estado.opacidad = 1;
+      // el arco quieto va de anguloBase a anguloBase+cobertura: en horario
+      // eso arranca donde entró el trazo; en antihorario, donde terminó
+      rotacion = (v.sg > 0 ? v.thBin : v.thBin - COBERTURA_REPOSO) - estado.rotacionBoost;
+      animarModo(0, 0.4);
     }
 
     function dibujar(now){
@@ -2169,9 +2609,18 @@ try{ (function(){
       ultimoNow = now;
       rotacion += dt * 0.00015;
       var anguloBase = rotacion + estado.rotacionBoost;
+      if (viaje) avanzar(viaje, dt / 1000);
+      var m = viaje ? estado.modoTrazo : 0;
+      // Grosor de la banda proporcional a lo que rodea: ±16px alrededor de
+      // un párrafo se ve bien, alrededor de una etiqueta chica de la órbita
+      // se ve tosco. Se mueve suave hacia el del destino del viaje en curso.
+      var ref = (viaje && viaje.B) ? viaje.B : estado;
+      var objetivo = clamp(Math.min(ref.rx, ref.ry) / 70, 0.3, 1);
+      grosor += (objetivo - grosor) * Math.min(1, dt / 220);
 
       ctx.clearRect(0, 0, W, H);
-      ctx.globalCompositeOperation = 'lighter';
+      // mezcla normal: 'lighter' (suma de luz) sirve sobre fondo oscuro,
+      // sobre este fondo claro aclaraba los granos en vez de marcarlos
       for (var i = 0; i < particulas.length; i++){
         var p = particulas[i];
         // Los extremos del arco (cerca de t=0 o t=1, junto al hueco) se
@@ -2182,15 +2631,32 @@ try{ (function(){
         var borde = Math.min(1, distExtremo / 0.06);
         if (borde <= 0.02) continue;
         var ang = p.t * estado.coberturaRad + anguloBase;
-        var jx = Math.sin(now * 0.001 * p.jVel + p.jFase) * p.jAmp;
-        var jy = Math.cos(now * 0.0011 * p.jVel + p.jFase) * p.jAmp;
-        var x = estado.cx + Math.cos(ang) * (estado.rx + p.banda) + jx;
-        var y = estado.cy + Math.sin(ang) * (estado.ry + p.banda) + jy;
-        var a = 0.6 * estado.opacidad * borde;
+        var jx = Math.sin(now * 0.001 * p.jVel + p.jFase) * p.jAmp * grosor;
+        var jy = Math.cos(now * 0.0011 * p.jVel + p.jFase) * p.jAmp * grosor;
+        var banda = p.banda * grosor;
+        var x = estado.cx + Math.cos(ang) * (estado.rx + banda) + jx;
+        var y = estado.cy + Math.sin(ang) * (estado.ry + banda) + jy;
+        // En viaje: la partícula va detrás de la punta, sobre la ruta, a
+        // una distancia proporcional a t (horario: t=1 es la punta, como
+        // en el arco; antihorario: t=0). La banda va perpendicular al
+        // camino y del lado de afuera de la curva, igual que en el arco.
+        // El afinado de bordes de arriba afina también la cola y la punta.
+        if (m > 0){
+          var sg = viaje.sg;
+          viaje.ruta.en(viaje.cabeza - (sg > 0 ? 1 - p.t : p.t) * viaje.L, puntoTmp);
+          var xT = puntoTmp.x + sg * puntoTmp.ty * banda + jx;
+          var yT = puntoTmp.y - sg * puntoTmp.tx * banda + jy;
+          x += (xT - x) * m;
+          y += (yT - y) * m;
+        }
+        var a = p.alfa * estado.opacidad * borde;
         if (a <= 0.01) continue;
-        ctx.fillStyle = 'rgba(' + p.tono + ',' + a.toFixed(3) + ')';
-        ctx.beginPath(); ctx.arc(x, y, p.r * (0.55 + 0.45 * borde), 0, 6.283); ctx.fill();
+        var lado = 2 * p.r * (0.55 + 0.45 * borde);
+        ctx.globalAlpha = a;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(x - lado / 2, y - lado / 2, lado, lado);
       }
+      ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
       requestAnimationFrame(dibujar);
     }
@@ -2200,25 +2666,26 @@ try{ (function(){
       requestAnimationFrame(dibujar);
     }
 
-    function irAEstado(destino, duracion){
-      if (tween) tween.kill();
-      tween = gsap.to(estado, {
-        cx: destino.cx, cy: destino.cy, rx: destino.rx, ry: destino.ry, opacidad: 1,
-        duration: duracion, ease: 'power3.inOut'
-      });
-    }
-
     var c0 = centro();
     estado.cx = c0.cx; estado.cy = c0.cy; estado.rx = c0.rx; estado.ry = c0.ry; estado.opacidad = 1;
     arrancar();
 
     return {
-      // fase 1 del viaje entre escenas: pasa por el centro, ya formado
-      // en círculo -mismo estado de reposo inicial-.
-      irACentro: function(){ resize(); irAEstado(centro(), 0.5); },
-      // fase 2: envuelve el panel (se llama recién cuando el panel ya
-      // tiene el contenido/tamaño de la escena nueva, para medir bien).
-      irA: function(panelEl){ if (panelEl) irAEstado(elipseDe(panelEl), 0.6); },
+      // Primer viaje, al terminar la vuelta inicial: el aro ya rodea la
+      // palabra y el panel de la escena 0 ya está a la vista.
+      irA: function(panelEl){ if (panelEl) iniciarViaje(function(){ return panelEl; }, function(){}); },
+      // Viaje entre párrafos como trazo continuo (ver "Trazo"). El
+      // contenido del panel nuevo se carga recién cuando la punta llega a
+      // "MEDICINA FUNCIONAL" (prepararPanel, con el panel todavía oculto,
+      // así se mide con su tamaño real) y aparece cuando la punta está
+      // por llegar al párrafo (mostrarPanel). Si el usuario cambia de
+      // escena a mitad de camino, el trazo no se corta: sigue desde donde
+      // está y pasa por la palabra antes de ir al párrafo más nuevo.
+      viajar: function(prepararPanel, mostrarPanel){
+        viajes++;
+        resize();
+        iniciarViaje(prepararPanel, mostrarPanel);
+      },
       // Vuelta completa: pasa UNA sola vez, al arrancar el scroll (ver
       // "arrancoAro" más abajo). Dos tramos en una sola timeline:
       // 1) impulso de rotación de 360° (rotacionBoost 0→2π) MIENTRAS el
@@ -2229,8 +2696,15 @@ try{ (function(){
       //    tamaño normal (coberturaRad baja de vuelta a COBERTURA_REPOSO).
       // onDone se llama después de la reapertura -ahí, y no antes, debe
       // arrancar el viaje hacia el panel de la primera escena.
+      // Si mientras giraba arrancó un viaje entre párrafos (scroll rápido o
+      // click en el riel), onDone NO se llama: ese viaje ya lleva el aro a
+      // su destino, y pisarlo dejaría su panel sin mostrarse nunca.
       vueltaInicial: function(onDone){
-        var tl = gsap.timeline({ onComplete: function(){ rotacion += estado.rotacionBoost; estado.rotacionBoost = 0; if (onDone) onDone(); } });
+        var viajesAlEmpezar = viajes;
+        var tl = gsap.timeline({ onComplete: function(){
+          rotacion += estado.rotacionBoost; estado.rotacionBoost = 0;
+          if (onDone && viajes === viajesAlEmpezar) onDone();
+        } });
         tl.to(estado, { rotacionBoost: Math.PI * 2, coberturaRad: COBERTURA_VUELTA, duration: 1.2, ease: 'power2.inOut' }, 0);
         tl.to(estado, { coberturaRad: COBERTURA_REPOSO, duration: 0.35, ease: 'power2.out' });
       }
@@ -2264,85 +2738,171 @@ try{ (function(){
       desc:'Su trabajo es distinguir amigo de enemigo. Cuando pierde esa claridad, aparecen alergias, sensibilidades y enfermedad autoinmune.' },
     { kicker:'El reflejo', titulo:'Salud cardiovascular', lado:'izq',
       desc:'El corazón no trabaja aislado: refleja la inflamación y el desgaste metabólico y hormonal acumulados durante años.' },
-    // Sin kicker ni título: "Medicina Funcional" ya está siempre visible
-    // como texto permanente (.motor-permanente) -repetirlo acá quedaría
-    // duplicado en pantalla al mismo tiempo.
+    // Cierre: la frase toma el lugar de "MEDICINA FUNCIONAL" (que se
+    // dispersa, ver dispersarEtiqueta) y es la protagonista, con la misma
+    // tipografía del H1 del hero: negrita + caligrafía en el <em>.
     { kicker:'', titulo:'', lado:'centro',
-      desc:'Una mirada integral para comprender qué está detrás de tus síntomas.' }
+      desc:'Una mirada integral para comprender qué está detrás de tus síntomas.',
+      descHtml:'Una mirada integral <em>para comprender qué está detrás de tus síntomas.</em>' }
   ];
 
-  function mostrarEscena(i, instantaneo){
-    var e = escenas[i];
-    function cambiar(){
+  // La etiqueta permanente se parte en letras para poder dispersarla al
+  // llegar al cierre (splitLetters vive en otra IIFE, sin acceso desde acá).
+  // El texto completo queda en un span solo para lectores de pantalla.
+  var etiqueta = fijo.querySelector('.motor-permanente');
+  var letrasEtiqueta = [];
+  if (etiqueta){
+    var textoEtiqueta = etiqueta.textContent.trim();
+    etiqueta.textContent = '';
+    var lectora = document.createElement('span');
+    lectora.className = 'motor-sr';
+    lectora.textContent = textoEtiqueta;
+    etiqueta.appendChild(lectora);
+    textoEtiqueta.split('').forEach(function(ch){
+      var s = document.createElement('span');
+      s.className = 'motor-permanente-letra';
+      s.setAttribute('aria-hidden', 'true');
+      s.textContent = ch;
+      etiqueta.appendChild(s);
+      if (ch !== ' ') letrasEtiqueta.push(s);
+    });
+  }
+  // Mismo lenguaje que la salida de las frases del hero: cada letra se va
+  // por su cuenta (desplazada, girada, desenfocada) y vuelve igual.
+  var etiquetaDispersa = false;
+  function dispersarEtiqueta(si){
+    if (!letrasEtiqueta.length || si === etiquetaDispersa) return;
+    etiquetaDispersa = si;
+    gsap.killTweensOf(letrasEtiqueta);
+    if (si){
+      gsap.to(letrasEtiqueta, {
+        x: function(){ return (Math.random() * 2 - 1) * 70; },
+        y: function(){ return (Math.random() * 2 - 1) * 32; },
+        rotation: function(){ return Math.random() * 50 - 25; },
+        filter: 'blur(6px)', opacity: 0,
+        // ~0.9s en total: tiene que haberse ido antes de que la frase que
+        // la reemplaza termine de enfocarse encima
+        duration: 0.6, stagger: { each: 0.018, from: 'random' }, ease: 'power2.in'
+      });
+    } else {
+      gsap.to(letrasEtiqueta, {
+        x: 0, y: 0, rotation: 0, filter: 'blur(0px)', opacity: 1,
+        duration: 0.8, stagger: { each: 0.025, from: 'random' }, ease: 'power3.out'
+      });
+    }
+  }
+
+  // Las 11 áreas sobre una elipse alrededor de la palabra, empezando arriba
+  // y en sentido horario (mismo orden que los datos de `escenas`).
+  function ubicarAreas(){
+    var esMovil = window.matchMedia('(max-width:920px)').matches;
+    var rx = esMovil ? 40 : 34, ry = esMovil ? 42 : 40;
+    areas.forEach(function(b, i){
+      var a = -Math.PI / 2 + i * 2 * Math.PI / areas.length;
+      b.style.setProperty('--x', (50 + Math.cos(a) * rx).toFixed(2) + '%');
+      b.style.setProperty('--y', (50 + Math.sin(a) * ry).toFixed(2) + '%');
+    });
+  }
+  ubicarAreas();
+  window.addEventListener('resize', ubicarAreas);
+
+  var CIERRE = escenas.length - 1;   // la última escena es la frase de cierre
+  var DUR_AREA = 6500, DUR_CIERRE = 8000;
+  var actual = 0;
+
+  function marcarArea(i){
+    areas.forEach(function(b, j){
+      b.classList.toggle('activa', j === i);
+      b.setAttribute('aria-pressed', j === i ? 'true' : 'false');
+    });
+  }
+  function aparecer(el){
+    void el.offsetWidth; // aplica el estado oculto antes de devolverle la transición
+    el.classList.remove('sin-transicion');
+    void el.offsetWidth;
+    el.classList.add('visible');
+  }
+
+  // Lleva el trazo al área i (o a la frase de cierre). El contenido nuevo se
+  // carga recién cuando la punta llega a la palabra (prep, con el panel ya
+  // oculto) y aparece cuando está por llegar (mostrar) -ver viajar() en
+  // construirPolvoAro.
+  function ir(i){
+    var e = escenas[i], esCierre = i === CIERRE, veniaDelCierre = actual === CIERRE;
+    actual = i;
+    transcurrido = 0;
+    marcarArea(esCierre ? -1 : i);
+    if (veniaDelCierre && !esCierre){
+      // la palabra se rearma ya: el trazo va a pasar por ella
+      dispersarEtiqueta(false);
+      frase.classList.remove('visible');
+      orbita.classList.remove('en-cierre'); fijo.classList.remove('en-cierre');
+    }
+    panel.classList.remove('visible');
+    polvoAro.viajar(function(){
+      if (esCierre){
+        // el trazo está rodeando la palabra: se dispersa y la frase toma su lugar
+        dispersarEtiqueta(true);
+        orbita.classList.add('en-cierre'); fijo.classList.add('en-cierre');
+        frase.classList.add('sin-transicion');
+        return frase;
+      }
       kickerEl.textContent = e.kicker;
       tituloEl.textContent = e.titulo;
       descEl.textContent = e.desc;
-      panel.className = 'motor-panel motor-panel--' + e.lado;
-      // Escena de cierre: sin kicker/título (ver dato de la escena 12) -
-      // estas clases los ocultan del todo para que no quede el puntito
-      // decorativo del kicker huérfano ni un hueco de layout.
-      panel.classList.toggle('motor-panel--sin-kicker', !e.kicker);
-      panel.classList.toggle('motor-panel--sin-titulo', !e.titulo);
-      void panel.offsetWidth; // fuerza reflow para que la transición vuelva a correr
-      panel.classList.add('visible');
-      // recién ahora el panel tiene el tamaño/posición de ESTA escena
-      // (contenido y clase --izq/--der/--centro ya aplicados), así que
-      // recién ahora se puede medir bien para el anillo. Excepto la
-      // primerísima llamada (instantaneo, al cargar la página, todavía
-      // sin scroll): ahí el anillo se queda quieto en el centro -recién
-      // viaja cuando el usuario empieza a desplazarse de verdad, ver el
-      // "primer viaje" en el ScrollTrigger de abajo.
-      if (!instantaneo) polvoAro.irA(panel);
-    }
-    if (instantaneo){ cambiar(); }
-    else {
-      panel.classList.remove('visible');
-      polvoAro.irACentro(); // fase 1: se recoge al centro mientras el panel viejo se apaga
-      setTimeout(cambiar, 260); // fase 2 (adentro de cambiar): viaja al panel nuevo
-    }
-    railPuntos.forEach(function(b){
-      b.classList.toggle('activo', parseInt(b.getAttribute('data-i'), 10) === i);
-    });
+      panel.classList.add('sin-transicion');
+      return areas[i];
+    }, function(){ aparecer(esCierre ? frase : panel); });
   }
 
-  function saltarAEscena(i){
-    // offsetTop es relativo al ancestro posicionado más cercano (acá,
-    // .acto-motor), no a la página -con eso el salto caía en cualquier
-    // parte. getBoundingClientRect().top + scrollY da la posición real.
-    var top = pista.getBoundingClientRect().top + window.scrollY;
-    var total = pista.offsetHeight - window.innerHeight;
-    window.scrollTo({ top: top + total * (i / (escenas.length - 1)), behavior: 'smooth' });
+  // ---------- Recorrido automático ----------
+  // Avanza solo, con una barra que muestra cuánto falta. Se congela con el
+  // cursor encima (de la órbita o del panel), con la sección fuera de
+  // pantalla, y durante 12s después de que alguien toca un área.
+  var transcurrido = 0, ultimoT = 0, enPantalla = false, encima = false, pausaHasta = 0, arranco = false;
+  function bucle(now){
+    var dt = ultimoT ? Math.min(now - ultimoT, 100) : 0;
+    ultimoT = now;
+    if (arranco && enPantalla){
+      var pausado = encima || now < pausaHasta;
+      var dur = actual === CIERRE ? DUR_CIERRE : DUR_AREA;
+      if (!pausado){
+        transcurrido += dt;
+        if (transcurrido >= dur) ir(actual === CIERRE ? 0 : actual + 1);
+      }
+      if (progreso) progreso.classList.toggle('pausado', pausado);
+      if (barra) barra.style.transform = 'scaleX(' + clamp(transcurrido / dur, 0, 1).toFixed(3) + ')';
+    }
+    requestAnimationFrame(bucle);
   }
-  railPuntos.forEach(function(b){
-    b.addEventListener('click', function(){ saltarAEscena(parseInt(b.getAttribute('data-i'), 10)); });
+
+  areas.forEach(function(b, i){
+    b.addEventListener('click', function(){
+      pausaHasta = performance.now() + 12000;
+      if (i !== actual) ir(i);
+    });
+  });
+  [orbita, panel.parentNode].forEach(function(el){
+    el.addEventListener('mouseenter', function(){ encima = true; });
+    el.addEventListener('mouseleave', function(){ encima = false; });
   });
 
-  var actual = 0, arrancoAro = false;
-  mostrarEscena(0, true);
+  marcarArea(0);
+  if (reducedLocal) return; // sin recorrido automático: tocar un área cambia el panel al instante
 
-  if (!reducedLocal){
-    ScrollTrigger.create({
-      trigger: pista,
-      start: 'top top',
-      end: 'bottom bottom',
-      onUpdate: function(self){
-        var p = self.progress;
-        // Primer viaje del anillo: recién cuando el usuario empieza a
-        // scrollear de verdad (no en el mostrarEscena(0,true) del
-        // arranque, que corre con la sección todavía fuera de pantalla).
-        // idx sigue en 0 en este punto, así que mostrarEscena(idx) más
-        // abajo no se dispara solo -este es el único momento en que la
-        // escena 0 recibe su viaje.
-        // La vuelta completa (una sola vez) pasa ANTES del viaje: recién
-        // cuando termina de reabrirse el hueco (onDone) arranca irA().
-        if (!arrancoAro && p > 0.002){ arrancoAro = true; polvoAro.vueltaInicial(function(){ polvoAro.irA(panel); }); }
-        var idx = Math.max(0, Math.min(escenas.length - 1, Math.round(p * (escenas.length - 1))));
-        if (idx !== actual){ actual = idx; mostrarEscena(idx, false); }
-        if (hint) hint.classList.toggle('oculto', p > 0.035);
-      }
-    });
-  }
-})(); }catch(e){ console.error('Kairal: motor de scroll no disponible.', e); }
+  // Arranca la primera vez que la sección está a la vista: la vuelta
+  // completa alrededor de la palabra y el primer viaje al área 1 (que el
+  // panel ya muestra desde el principio).
+  new IntersectionObserver(function(ents){
+    enPantalla = ents[0].intersectionRatio >= 0.5;
+    if (enPantalla && !arranco){
+      arranco = true;
+      transcurrido = 0;
+      polvoAro.vueltaInicial(function(){ polvoAro.irA(areas[0]); });
+    }
+  }, { threshold: [0, 0.5] }).observe(fijo);
+  requestAnimationFrame(bucle);
+})(); }catch(e){ console.error('Kairal: órbita de servicios no disponible.', e); }
 
 /* ============================================================
    10 · MENÚ MÓVIL
@@ -2350,6 +2910,7 @@ try{ (function(){
 try{
   var menuBtn = document.getElementById('menu-btn');
   var menuMovil = document.getElementById('menu-movil');
+  var menuCerrar = document.getElementById('menu-cerrar');
   if (menuBtn && menuMovil){
     function toggleMenu(abrir){
       var open = abrir !== undefined ? abrir : !menuMovil.classList.contains('abierto');
@@ -2357,8 +2918,11 @@ try{
       menuBtn.setAttribute('aria-expanded', String(open));
       menuMovil.setAttribute('aria-hidden', String(!open));
       document.documentElement.classList.toggle('menu-abierto', open);
+      if (open && menuCerrar) setTimeout(function(){ menuCerrar.focus({ preventScroll:true }); }, 60);
+      else if (!open && abrir === undefined) menuBtn.focus({ preventScroll:true });
     }
     menuBtn.addEventListener('click', function(){ toggleMenu(); });
+    if (menuCerrar) menuCerrar.addEventListener('click', function(){ toggleMenu(false); menuBtn.focus({ preventScroll:true }); });
     menuMovil.querySelectorAll('a').forEach(function(a){
       a.addEventListener('click', function(){ toggleMenu(false); });
     });
@@ -2657,6 +3221,7 @@ try{
       if (!document.body.contains(card)){ clearInterval(timer); return; } // la tarjeta se reemplazo (ver fetch mas abajo)
       var prev = slides[idx];
       idx = (idx + 1) % slides.length;
+      card.dataset.i = idx;   // la pila de fotos (móvil) sigue este índice
       var next = slides[idx];
       var salientes = prev.querySelectorAll('.blog-cat,h3,p,.btn');
       // mostrar(next) va DENTRO del onComplete, no en paralelo: si el
@@ -2678,7 +3243,8 @@ try{
       ents.forEach(function(en){
         if (en.isIntersecting){
           mostrar(slides[0]);
-          timer = setInterval(siguiente, 2000);
+          // cada post se queda el tiempo suficiente para leerlo (igual en escritorio y móvil)
+          timer = setInterval(siguiente, 5500);
           io.unobserve(card);
         }
       });

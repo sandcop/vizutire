@@ -107,6 +107,9 @@
 
 <!-- MENÚ MÓVIL -->
 <div class="menu-movil" id="menu-movil" role="dialog" aria-label="Menú de navegación" aria-hidden="true">
+  <button class="menu-cerrar" id="menu-cerrar" type="button" aria-label="Cerrar menú">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg>
+  </button>
   <nav aria-label="Navegación móvil">
     <a href="#servicios">Servicios</a>
     <a href="#causa-raiz">Causa raíz</a>
@@ -153,7 +156,11 @@
       <p>Transforma tu salud desde la raíz, descubriendo la causa real de tus síntomas y alcanza tu bienestar óptimo con un enfoque personalizado e integral.</p>
       <div class="hero-ctas">
         <a class="btn btn-solido" data-cursor href="#sintomas" id="btn-viaje">Comenzar el viaje ↓</a>
-        <a class="btn btn-ghost" data-cursor href="https://kairal.cl/autoevaluacion">Haz tu autoevaluación</a>
+        <a class="btn btn-reserva" data-cursor href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">
+          <svg class="btn-reserva-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 14.5l2 2 4-4"/></svg>
+          Reserva tu consulta
+          <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
       </div>
     </div>
     <div class="indicador-scroll" aria-hidden="true">Desliza</div>
@@ -175,32 +182,112 @@
 
 <!-- ════ ACTO 3 · CAUSA RAÍZ ════ -->
 <section class="acto-raiz" id="causa-raiz">
-  <div class="raiz-stage">
-    <div class="raiz-visual">
-      <canvas id="lienzo-red" role="img" aria-label="Red interactiva de cuatro sistemas del cuerpo conectados entre sí: neuroendocrino, digestivo, inmune y metabólico"></canvas>
-    </div>
-    <div class="raiz-info">
-      <p class="eyebrow">Bajo la superficie</p>
-      <h2 class="display">Ningún síntoma vive solo.</h2>
-      <p>Tus sistemas conversan entre sí, todo el tiempo. Toca uno y mira lo que despierta.</p>
+  <div class="raiz-pista" id="raiz-pista">
+    <div class="raiz-fijo">
+      <header class="raiz-cab-sec">
+        <p class="eyebrow">Bajo la superficie</p>
+        <h2 class="display">Ningún síntoma vive solo.</h2>
+        <p class="raiz-intro">Tus sistemas conversan entre sí, todo el tiempo.</p>
+      </header>
 
-      <div class="sistemas" role="group" aria-label="Explorar sistemas del cuerpo">
-        <button class="chip" data-nodo="0">Sistema neuroendocrino</button>
-        <button class="chip" data-nodo="1">Sistema digestivo</button>
-        <button class="chip" data-nodo="2">Sistema inmune</button>
-        <button class="chip" data-nodo="3">Sistema metabólico</button>
-      </div>
+      <div class="raiz-escena">
+        <div class="raiz-dibujo">
+          <div class="raiz-lienzo">
+            <!-- Corte del suelo justo debajo de las dunas del acto anterior: del
+                 brote (el síntoma, en la superficie) bajan 4 raíces, una por
+                 sistema. Cada raíz se "dibuja" con el scroll (stroke-dashoffset,
+                 ver "3 · BAJO LA SUPERFICIE" en script.js); los filamentos entre
+                 raíces -quién conversa con quién- los arma el JS midiendo estos
+                 paths. viewBox 600×640: los botones .raiz-nombre se ubican en %
+                 de estas mismas coordenadas. -->
+            <svg class="raiz-svg" id="raiz-svg" viewBox="0 0 600 640" role="img"
+                 aria-label="Cuatro raíces bajo la superficie, una por sistema del cuerpo, que se entrelazan y terminan en una raíz común">
+              <defs>
+                <linearGradient id="raiz-tierra" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#3a2c1d" stop-opacity=".55"/>
+                  <stop offset=".55" stop-color="#1c1a13" stop-opacity=".35"/>
+                  <stop offset="1" stop-color="#081F1D" stop-opacity="0"/>
+                </linearGradient>
+                <!-- los costados de la tierra se funden con el fondo: sin esto
+                     el corte se leía como una caja con bordes duros -->
+                <linearGradient id="raiz-lados" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#000"/>
+                  <stop offset=".2" stop-color="#fff"/>
+                  <stop offset=".8" stop-color="#fff"/>
+                  <stop offset="1" stop-color="#000"/>
+                </linearGradient>
+                <mask id="raiz-fundido" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="640">
+                  <rect width="600" height="640" fill="url(#raiz-lados)"/>
+                </mask>
+              </defs>
+              <g mask="url(#raiz-fundido)">
+                <path class="raiz-tierra" d="M0,70 C80,58 160,82 240,70 S400,58 480,72 S560,80 600,68 L600,640 L0,640 Z"/>
+                <path class="raiz-superficie" d="M0,70 C80,58 160,82 240,70 S400,58 480,72 S560,80 600,68"/>
+              </g>
+              <g class="raiz-brote">
+                <path d="M300,70 C300,58 298,48 300,36"/>
+                <path d="M300,52 q-14,-4 -18,-16 q14,2 18,16"/>
+                <path d="M300,46 q14,-6 16,-18 q-14,4 -16,18"/>
+              </g>
 
-      <p class="raiz-progreso"><b id="raiz-contador">0</b> / 4 sistemas explorados</p>
+              <g class="raiz-filamentos"></g>
 
-      <div class="tarjeta-nodo" id="tarjeta-nodo" aria-live="polite">
-        <h3>Explora la red</h3>
-        <p>Selecciona un sistema para ver con quién conversa — y por qué tratarlo de forma aislada no funcionó.</p>
-        <div class="conexiones"></div>
-      </div>
+              <g class="raiz-raiz" data-i="0" style="--c:var(--alba)">
+                <path class="raiz-trazo" d="M300,72 C290,120 220,150 190,190 S130,230 120,250"/>
+                <path class="raiz-ramita" d="M205,180 q-30,10 -45,40"/>
+                <path class="raiz-ramita" d="M150,232 q-22,2 -40,22"/>
+                <path class="raiz-bajada" d="M120,250 C110,360 200,470 300,590"/>
+              </g>
+              <g class="raiz-raiz" data-i="1" style="--c:var(--bruma)">
+                <path class="raiz-trazo" d="M300,72 C315,130 380,170 420,210 S470,270 480,300"/>
+                <path class="raiz-ramita" d="M405,200 q25,0 45,25"/>
+                <path class="raiz-ramita" d="M466,262 q15,15 15,35"/>
+                <path class="raiz-bajada" d="M480,300 C500,400 400,500 300,590"/>
+              </g>
+              <g class="raiz-raiz" data-i="2" style="--c:var(--flor)">
+                <path class="raiz-trazo" d="M300,72 C298,160 250,230 220,300 S180,390 170,420"/>
+                <path class="raiz-ramita" d="M235,270 q-30,15 -40,45"/>
+                <path class="raiz-ramita" d="M190,370 q-25,10 -35,35"/>
+                <path class="raiz-bajada" d="M170,420 C190,500 250,550 300,590"/>
+              </g>
+              <g class="raiz-raiz" data-i="3" style="--c:var(--duna)">
+                <path class="raiz-trazo" d="M300,72 C305,180 340,260 380,330 S430,430 440,470"/>
+                <path class="raiz-ramita" d="M360,300 q30,5 45,35"/>
+                <path class="raiz-ramita" d="M420,410 q25,10 30,40"/>
+                <path class="raiz-bajada" d="M440,470 C420,520 350,560 300,590"/>
+              </g>
 
-      <div class="raiz-cierre" id="raiz-cierre">
-        <p>«Por eso tratarlos por separado no funciona.<br>La medicina funcional lee la red completa.»</p>
+              <circle class="raiz-nudo" cx="300" cy="590" r="9"/>
+            </svg>
+
+            <button type="button" class="raiz-nombre" data-i="0" style="--c:var(--alba);--x:20%;--y:42.5%">Neuroendocrino</button>
+            <button type="button" class="raiz-nombre" data-i="1" style="--c:var(--bruma);--x:80%;--y:50.3%">Digestivo</button>
+            <button type="button" class="raiz-nombre" data-i="2" style="--c:var(--flor);--x:28.3%;--y:69%">Inmune</button>
+            <button type="button" class="raiz-nombre" data-i="3" style="--c:var(--duna);--x:73.3%;--y:76.9%">Metabólico</button>
+          </div>
+        </div>
+
+        <div class="raiz-textos" aria-live="polite">
+          <article class="raiz-texto" data-i="0" style="--c:var(--alba);--y:39%">
+            <h3>Sistema neuroendocrino</h3>
+            <p>El estrés crónico enciende la inflamación y altera tu digestión. Integra cerebro, cortisol, tiroides y hormonas — tu eje cerebro-cuerpo dirige la orquesta.</p>
+          </article>
+          <article class="raiz-texto" data-i="1" style="--c:var(--bruma);--y:47%">
+            <h3>Sistema digestivo</h3>
+            <p>Tu microbiota conversa con tu cerebro. Literalmente: ansiedad y digestión suelen ser la misma historia.</p>
+          </article>
+          <article class="raiz-texto" data-i="2" style="--c:var(--flor);--y:66%">
+            <h3>Sistema inmune</h3>
+            <p>Un sistema inmune desregulado deja de proteger y empieza a atacar. Su equilibrio se decide en gran parte en tu intestino.</p>
+          </article>
+          <article class="raiz-texto" data-i="3" style="--c:var(--duna);--y:73%">
+            <h3>Sistema metabólico</h3>
+            <p>La resistencia a la insulina te roba la energía antes de que la sientas. Es el pilar silencioso detrás de la fatiga.</p>
+          </article>
+          <div class="raiz-cierre" style="--y:86%">
+            <p>«Por eso tratarlos por separado no funciona.<br>La medicina funcional lee la red completa.»</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -214,7 +301,7 @@
     <div class="metodo-head">
       <p class="eyebrow">El método Kairal</p>
       <h2 class="display">Como el agua en el desierto:<br>llega por etapas.</h2>
-      <p class="metodo-hint" id="metodo-hint">Desliza para avanzar la gota · toca la escena y llueve</p>
+      <p class="metodo-hint" id="metodo-hint">Toca un número para elegir la etapa · toca la escena y llueve</p>
     </div>
 
     <div class="numeros-etapa" aria-label="Ir a una etapa del método">
@@ -223,6 +310,7 @@
       <button data-etapa="2" aria-label="Etapa 3: Sembrar">03</button>
       <button data-etapa="3" aria-label="Etapa 4: Cultivar">04</button>
     </div>
+    <div class="metodo-progreso" id="metodo-progreso" aria-hidden="true"><span></span></div>
 
     <article class="tarjeta-etapa" data-paso="1">
       <div class="fila num">01 / EVALUACIÓN INICIAL</div>
@@ -276,18 +364,18 @@
            todavía). Para poner una foto real, agrega src="tu-foto.jpg" al
            <img> de la tarjeta correspondiente y quita la clase "sin-foto"
            -el onerror ya deja el marcador si el archivo no existe. -->
-      <figure class="foto-inclinada foto-inclinada--1 sin-foto">
-        <img src="assets/collage-doctora-1.jpg" alt="" loading="lazy" aria-hidden="true"
+      <figure class="foto-inclinada foto-inclinada--1">
+        <img src="assets/collage-doctora-1.webp" alt="" loading="lazy" aria-hidden="true"
              onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
       </figure>
-      <figure class="foto-inclinada foto-inclinada--2 sin-foto">
-        <img src="assets/collage-doctora-2.jpg" alt="" loading="lazy" aria-hidden="true"
+      <figure class="foto-inclinada foto-inclinada--2">
+        <img src="assets/collage-doctora-2.webp" alt="" loading="lazy" aria-hidden="true"
              onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
       </figure>
-      <figure class="foto-inclinada foto-inclinada--3 sin-foto">
-        <img src="assets/collage-doctora-3.jpg" alt="" loading="lazy" aria-hidden="true"
+      <figure class="foto-inclinada foto-inclinada--3">
+        <img src="assets/collage-doctora-3.webp" alt="" loading="lazy" aria-hidden="true"
              onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
       </figure>
@@ -379,64 +467,45 @@
     <span class="mota" style="--x:35%;--y:8%;--s:3px;--d:-15s;--dur:13s"></span>
   </div>
 
-<!-- ════ SERVICIOS · MOTOR DE SCROLL (árbol de Medicina Funcional) ════
-     Reemplaza el diagrama radial con hover por una secuencia anclada al
-     scroll: 12 escenas (Causa raíz + 10 áreas + cierre) mapeadas a una
-     progresión continua 0→11 dentro de .motor-pista (altura = 12 "pantallas").
-     El escenario (.motor-fijo) queda fijo en pantalla vía position:sticky
-     mientras se avanza -mismo patrón que .metodo-escena en el Acto 4-, y
-     un solo controlador en script.js (ver "14 · MOTOR DE SCROLL") traduce
-     el progreso continuo del ScrollTrigger en: la cámara (zoom/encuadre
-     del árbol, sin saltos), qué raíz se resalta, y el texto del panel
-     lateral (alternando izquierda/derecha) + el punto activo del riel.
-     El árbol (raíces/tronco/ramas) es un solo SVG; las 11 raíces están
-     precalculadas como curvas -mismo criterio que el resto del sitio
-     (viaje, blog-pila): nada se recalcula en JS, solo se anima. -->
+<!-- ════ SERVICIOS · ÓRBITA (Medicina Funcional) ════
+     Una sola pantalla: "MEDICINA FUNCIONAL" al centro de una órbita con las
+     11 áreas alrededor. El trazo de arena las recorre solo (pasando siempre
+     por la palabra) y el panel de la derecha muestra el área activa; tocar
+     un área lleva el trazo ahí. Al final la palabra se dispersa y la frase
+     de cierre ocupa su lugar. Ver "14 · ÓRBITA DE SERVICIOS" en script.js. -->
 <section class="acto-motor" id="servicios">
   <div class="motor-cabecera contenedor">
     <p class="eyebrow" style="color:var(--teal)">Cómo trabajamos contigo</p>
     <h2 class="display rev">Un solo <em>enfoque</em>, muchas conexiones</h2>
   </div>
 
-  <div class="motor-pista" id="motor-pista">
-    <div class="motor-fijo" id="motor-fijo">
-      <!-- Igual que el efecto de arena del hero (#lienzo-polvo-textos):
-           partículas finas, mismos tonos. En vez de dibujar letras, acá
-           trazan SOLO el contorno de un anillo que gira sin parar y
-           viaja -pasando siempre por el centro- para envolver el panel
-           de la escena activa (ver construirPolvoAro en el JS). -->
-      <canvas class="motor-polvo" id="lienzo-polvo-motor" aria-hidden="true"></canvas>
+  <div class="motor-fijo" id="motor-fijo">
+    <canvas class="motor-polvo" id="lienzo-polvo-motor" aria-hidden="true"></canvas>
 
-      <!-- Texto permanente: a diferencia del panel (que cambia de escena
-           en escena, con su propia transición), este vive fuera de esa
-           coreografía -opacidad fija, sin transición, sin clase que lo
-           oculte- para que nunca parpadee ni se mueva mientras el arco
-           de arena viaja alrededor, incluso lejos, hacia un panel lateral. -->
+    <div class="motor-orbita" id="motor-orbita" role="group" aria-label="Áreas de la medicina funcional">
       <p class="motor-permanente">Medicina Funcional</p>
+      <button type="button" class="motor-area" data-i="0">Causa raíz</button>
+      <button type="button" class="motor-area" data-i="1">Metabolismo</button>
+      <button type="button" class="motor-area" data-i="2">Nutrición</button>
+      <button type="button" class="motor-area" data-i="3">Salud digestiva</button>
+      <button type="button" class="motor-area" data-i="4">Equilibrio hormonal</button>
+      <button type="button" class="motor-area" data-i="5">Inflamación</button>
+      <button type="button" class="motor-area" data-i="6">Sistema nervioso</button>
+      <button type="button" class="motor-area" data-i="7">Estrés</button>
+      <button type="button" class="motor-area" data-i="8">Sueño y recuperación</button>
+      <button type="button" class="motor-area" data-i="9">Sistema inmunológico</button>
+      <button type="button" class="motor-area" data-i="10">Salud cardiovascular</button>
+      <p class="motor-frase" id="motor-frase">Una mirada integral <em>para comprender qué está detrás de tus síntomas.</em></p>
+    </div>
 
-      <div class="motor-panel motor-panel--izq" id="motor-panel">
+    <div class="motor-lado">
+      <div class="motor-panel visible" id="motor-panel" aria-live="polite">
         <p class="motor-kicker"><span id="motor-kicker-texto">El origen</span></p>
         <h3 class="motor-titulo" id="motor-titulo">Causa raíz</h3>
         <div class="motor-filete" aria-hidden="true"></div>
         <p class="motor-desc" id="motor-desc">No nos detenemos únicamente en el síntoma. Buscamos comprender qué factores pueden estar relacionados con lo que está ocurriendo.</p>
       </div>
-
-      <nav class="motor-rail" id="motor-rail" aria-label="Recorrido por Medicina Funcional">
-        <button type="button" class="motor-rail-punto" data-i="0"><span class="motor-rail-nombre">Causa raíz</span></button>
-        <button type="button" class="motor-rail-punto" data-i="1"><span class="motor-rail-nombre">Metabolismo</span></button>
-        <button type="button" class="motor-rail-punto" data-i="2"><span class="motor-rail-nombre">Nutrición</span></button>
-        <button type="button" class="motor-rail-punto" data-i="3"><span class="motor-rail-nombre">Salud digestiva</span></button>
-        <button type="button" class="motor-rail-punto" data-i="4"><span class="motor-rail-nombre">Equilibrio hormonal</span></button>
-        <button type="button" class="motor-rail-punto" data-i="5"><span class="motor-rail-nombre">Inflamación</span></button>
-        <button type="button" class="motor-rail-punto" data-i="6"><span class="motor-rail-nombre">Sistema nervioso</span></button>
-        <button type="button" class="motor-rail-punto" data-i="7"><span class="motor-rail-nombre">Estrés</span></button>
-        <button type="button" class="motor-rail-punto" data-i="8"><span class="motor-rail-nombre">Sueño y recuperación</span></button>
-        <button type="button" class="motor-rail-punto" data-i="9"><span class="motor-rail-nombre">Sistema inmunológico</span></button>
-        <button type="button" class="motor-rail-punto" data-i="10"><span class="motor-rail-nombre">Salud cardiovascular</span></button>
-        <button type="button" class="motor-rail-punto" data-i="11"><span class="motor-rail-nombre">Medicina Funcional</span></button>
-      </nav>
-
-      <p class="motor-hint" id="motor-hint">Desplázate para recorrer el sistema</p>
+      <div class="motor-progreso" id="motor-progreso" aria-hidden="true"><span></span></div>
     </div>
   </div>
 </section>
@@ -445,37 +514,59 @@
 <!-- ════ ACTO 6 · FLORACIONES ════ -->
 <section class="acto-flora" id="floraciones">
   <div class="contenedor flora-head">
-    <p class="eyebrow">Historias reales</p>
-    <h2 class="display">Cada paciente florece distinto.</h2>
+    <div>
+      <p class="eyebrow">Historias reales</p>
+      <h2 class="display">Cada paciente florece distinto.</h2>
+    </div>
+    <div class="flora-flechas">
+      <button type="button" class="flora-flecha" data-dir="-1" aria-label="Historia anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button type="button" class="flora-flecha" data-dir="1" aria-label="Historia siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
   </div>
-  <div class="carril" id="carril" tabindex="0" aria-label="Historias de pacientes, desliza horizontalmente">
+  <!-- Carrusel: cada historia es una tarjeta con un paisaje del desierto
+       generado en código (sin fotos: son historias con datos protegidos) y
+       la flor de esa historia en grande. La tarjeta activa crece y muestra
+       la cita; ver "5b · CARRUSEL DE HISTORIAS" en script.js. -->
+  <div class="carril" id="carril" tabindex="0" aria-roledescription="carrusel" aria-label="Historias de pacientes">
 
-    <article class="caso">
+    <article class="caso" aria-label="Historia 1 de 4">
+      <svg class="caso-paisaje" data-seed="11" viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
       <svg class="flor-svg" data-seed="11" viewBox="0 0 56 56" aria-hidden="true"></svg>
-      <p class="antes"><b>Antes escuchaba</b>«Es estrés, aprende a vivir con eso.»</p>
-      <p class="hoy"><b>Hoy escucho</b>«Entendí qué le pasaba a mi tiroides. Tengo energía para mis hijos otra vez.»</p>
-      <footer>M.G. · 41 · Antofagasta · Acompañamiento de 6 meses</footer>
+      <div class="caso-texto">
+        <p class="antes"><b>Antes escuchaba</b>«Es estrés, aprende a vivir con eso.»</p>
+        <p class="hoy"><b>Hoy escucho</b>«Entendí qué le pasaba a mi tiroides. Tengo energía para mis hijos otra vez.»</p>
+        <footer><b>M.G. · 41</b><span>Antofagasta · Acompañamiento de 6 meses</span></footer>
+      </div>
     </article>
 
-    <article class="caso">
+    <article class="caso" aria-label="Historia 2 de 4">
+      <svg class="caso-paisaje" data-seed="42" viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
       <svg class="flor-svg" data-seed="42" viewBox="0 0 56 56" aria-hidden="true"></svg>
-      <p class="antes"><b>Antes escuchaba</b>«Tus exámenes están perfectos, no tienes nada.»</p>
-      <p class="hoy"><b>Hoy escucho</b>«Mi intestino y mi ansiedad eran la misma conversación. Hoy duermo de verdad.»</p>
-      <footer>C.R. · 35 · Calama · Consulta online</footer>
+      <div class="caso-texto">
+        <p class="antes"><b>Antes escuchaba</b>«Tus exámenes están perfectos, no tienes nada.»</p>
+        <p class="hoy"><b>Hoy escucho</b>«Mi intestino y mi ansiedad eran la misma conversación. Hoy duermo de verdad.»</p>
+        <footer><b>C.R. · 35</b><span>Calama · Consulta online</span></footer>
+      </div>
     </article>
 
-    <article class="caso">
+    <article class="caso" aria-label="Historia 3 de 4">
+      <svg class="caso-paisaje" data-seed="77" viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
       <svg class="flor-svg" data-seed="77" viewBox="0 0 56 56" aria-hidden="true"></svg>
-      <p class="antes"><b>Antes escuchaba</b>«Come menos y muévete más.»</p>
-      <p class="hoy"><b>Hoy escucho</b>«Era resistencia a la insulina. Con el plan correcto, mi cuerpo por fin respondió.»</p>
-      <footer>P.S. · 47 · Santiago · Acompañamiento de 8 meses</footer>
+      <div class="caso-texto">
+        <p class="antes"><b>Antes escuchaba</b>«Come menos y muévete más.»</p>
+        <p class="hoy"><b>Hoy escucho</b>«Era resistencia a la insulina. Con el plan correcto, mi cuerpo por fin respondió.»</p>
+        <footer><b>P.S. · 47</b><span>Santiago · Acompañamiento de 8 meses</span></footer>
+      </div>
     </article>
 
-    <article class="caso">
+    <article class="caso" aria-label="Historia 4 de 4">
+      <svg class="caso-paisaje" data-seed="93" viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
       <svg class="flor-svg" data-seed="93" viewBox="0 0 56 56" aria-hidden="true"></svg>
-      <p class="antes"><b>Antes escuchaba</b>«El dolor crónico es así, hay que acostumbrarse.»</p>
-      <p class="hoy"><b>Hoy escucho</b>«Encontramos la inflamación de base. Volví a entrenar después de tres años.»</p>
-      <footer>J.M. · 39 · Antofagasta · Acompañamiento de 5 meses</footer>
+      <div class="caso-texto">
+        <p class="antes"><b>Antes escuchaba</b>«El dolor crónico es así, hay que acostumbrarse.»</p>
+        <p class="hoy"><b>Hoy escucho</b>«Encontramos la inflamación de base. Volví a entrenar después de tres años.»</p>
+        <footer><b>J.M. · 39</b><span>Antofagasta · Acompañamiento de 5 meses</span></footer>
+      </div>
     </article>
 
   </div>
@@ -542,9 +633,11 @@
 
 <!-- ════ FAQ ════ -->
 <section class="acto-faq" id="faq">
-  <div class="contenedor contenedor-angosta">
-    <p class="eyebrow" style="color:var(--teal)">Antes de agendar</p>
-    <h2 class="display rev">Preguntas frecuentes.</h2>
+  <div class="contenedor faq-grid">
+    <div class="faq-cab">
+      <p class="eyebrow" style="color:var(--teal)">Antes de agendar</p>
+      <h2 class="display rev">Preguntas frecuentes.</h2>
+    </div>
 
     <div class="faq-lista">
       <details class="faq-item">
