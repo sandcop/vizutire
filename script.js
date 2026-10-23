@@ -37,6 +37,63 @@ var tierBajo = (function(){
 var DPR = Math.min(window.devicePixelRatio || 1, tierBajo ? 1.3 : 1.75);
 var pagVisible = !document.hidden;
 document.addEventListener('visibilitychange', function(){ pagVisible = !document.hidden; });
+if (tierBajo) document.documentElement.classList.add('tier-bajo');
+
+/* ═══ BUCLES SOLO CUANDO SE VEN ═══
+   Un bucle de animación que sigue pidiendo cuadros fuera de pantalla gasta
+   CPU aunque no dibuje nada (con una docena de bucles, el hilo principal
+   quedaba ocupado ~65% estando quieto). bucleVisible() corre paso(now, reanudo)
+   solo mientras `el` está en pantalla y la pestaña visible; si no, el bucle se
+   detiene del todo y vuelve a arrancar al reaparecer. `reanudo` es true en el
+   primer cuadro después de una pausa (para no contar el tiempo detenido). */
+function bucleVisible(el, paso, margen){
+  var vis = false, corriendo = false;
+  function tick(now){
+    if (!vis || !pagVisible){ corriendo = false; return; }
+    var r = reanudo; reanudo = false;
+    paso(now, r);
+    requestAnimationFrame(tick);
+  }
+  var reanudo = true;
+  function despertar(){
+    if (corriendo || !vis || !pagVisible) return;
+    corriendo = true; reanudo = true;
+    requestAnimationFrame(tick);
+  }
+  if (el) new IntersectionObserver(function(en){ vis = en[0].isIntersecting; despertar(); },
+    { rootMargin: margen || '0px' }).observe(el);
+  document.addEventListener('visibilitychange', despertar);
+  return { despertar: despertar, visible: function(){ return vis; } };
+}
+
+// Pila de fotos de La doctora: cada 2.6s la de atrás pasa al frente (ver
+// .foto-inclinada en style.css). Solo corre mientras la pila se ve.
+(function(){
+  var pila = document.querySelector('.retrato-envoltorio');
+  if (!pila || reduced || !('IntersectionObserver' in window)) return;
+  var i = 0, timer = 0;
+  new IntersectionObserver(function(en){
+    clearInterval(timer);
+    if (en[0].isIntersecting) timer = setInterval(function(){
+      if (document.hidden) return;
+      i = (i + 1) % 3; pila.dataset.i = i;
+    }, 2600);
+  }).observe(pila);
+})();
+
+// Lo mismo para las animaciones CSS en bucle (motas, pila de fotos, brillo del
+// botón, calor de las frases…): la sección fuera de pantalla las pone en pausa
+// con .fuera-vista (ver "RENDIMIENTO" al final de style.css).
+(function(){
+  if (!('IntersectionObserver' in window)) return;
+  var io = new IntersectionObserver(function(ents){
+    ents.forEach(function(e){ e.target.classList.toggle('fuera-vista', !e.isIntersecting); });
+  }, { rootMargin: '200px 0px' });
+  // toda sección de primer nivel (algunas van dentro de .zona-luz), las motas de .zona-luz y el pie
+  [].slice.call(document.querySelectorAll('section, .motas, body > footer')).filter(function(s){
+    return !(s.parentElement && s.parentElement.closest('section'));
+  }).forEach(function(s){ io.observe(s); });
+})();
 
 /* ---------- utilidades ---------- */
 function lerp(a,b,t){ return a + (b-a)*t; }
@@ -103,6 +160,9 @@ var terreno = (function(){
     W = cv.clientWidth; H = cv.clientHeight;
     cv.width = W*DPR; cv.height = H*DPR;
     ctx.setTransform(DPR,0,0,DPR,0,0);
+    capaCielo.width = capaVineta.width = cv.width; capaCielo.height = capaVineta.height = cv.height;
+    claveCielo = '';
+    pintarVineta();
     polvo = [];
     var nP = Math.round((movil ? 22 : 46) * (tierBajo ? 0.55 : 1));
     for (var i=0;i<nP;i++){
@@ -140,10 +200,43 @@ var terreno = (function(){
     }
   }
 
+  // Cielo + sol y viñeta son degradados a pantalla completa: se pintan en
+  // lienzos aparte y cada cuadro solo los copia. El cielo se rehace solo si
+  // cambió el amanecer o el scroll; la viñeta, solo al cambiar el tamaño.
+  var capaCielo = document.createElement('canvas'), capaVineta = document.createElement('canvas');
+  var claveCielo = '';
+  function enCapa(capa, pintar){
+    var real = ctx; ctx = capa.getContext('2d');
+    ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,W,H);
+    pintar(); ctx = real;
+  }
+  function copiarCapa(capa){
+    ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(capa, 0, 0); ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  function pintarVineta(){
+    enCapa(capaVineta, function(){
+      var v = ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.35, W/2,H/2,Math.max(W,H)*0.75);
+      v.addColorStop(0,'rgba(0,0,0,0)');
+      v.addColorStop(1,'rgba(3,16,14,0.5)');
+      ctx.fillStyle = v;
+      ctx.fillRect(0,0,W,H);
+    });
+  }
+  var ultimoT = -1;
   function draw(t){
     // mood: hero (p<0.15) cálido; síntomas: se oscurece y endurece; cierre: penumbra contenida
     var dureza = clamp((scrollP-0.12)/0.5, 0, 1);
     var penumbra = clamp((scrollP-0.1)/0.6, 0, 0.55);
+    // el polvo avanza según el tiempo real (el bucle puede ir a menos cuadros en reposo)
+    var pasoPolvo = ultimoT < 0 ? 1 : clamp((t - ultimoT) * 60, 0, 4);
+    ultimoT = t;
+
+    var clave = dawn.toFixed(3) + '|' + scrollP.toFixed(4);
+    if (clave !== claveCielo){ claveCielo = clave; enCapa(capaCielo, function(){ cieloYSol(penumbra); }); }
+    copiarCapa(capaCielo);
+    dunasPolvoYVineta(t, dureza, penumbra, pasoPolvo);
+  }
+  function cieloYSol(penumbra){
 
     // cielo
     var g = ctx.createLinearGradient(0,0,0,H);
@@ -166,7 +259,8 @@ var terreno = (function(){
       ctx.fillStyle = sg;
       ctx.fillRect(0,0,W,H);
     }
-
+  }
+  function dunasPolvoYVineta(t, dureza, penumbra, pasoPolvo){
     // dunas (3 capas) — la cámara baja con scroll: dunas suben
     var sube = scrollP * H * 0.16;
     ridge(n1, H*0.66 - sube*0.45, H*0.085, 3.0, t,      dureza*0.5, mix('#143B35','#0e2a25', dureza), 0.20*dawn*(1-penumbra));
@@ -177,7 +271,7 @@ var terreno = (function(){
     ctx.fillStyle = 'rgba(237,229,214,0.14)';
     for (var i=0;i<polvo.length;i++){
       var p = polvo[i];
-      p.x += p.s; p.y += Math.sin(t*0.7+p.ph)*0.08;
+      p.x += p.s * pasoPolvo; p.y += Math.sin(t*0.7+p.ph)*0.08 * pasoPolvo;
       if (p.x > W+4) p.x = -4;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, 6.28);
@@ -185,11 +279,7 @@ var terreno = (function(){
     }
 
     // viñeta
-    var v = ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.35, W/2,H/2,Math.max(W,H)*0.75);
-    v.addColorStop(0,'rgba(0,0,0,0)');
-    v.addColorStop(1,'rgba(3,16,14,0.5)');
-    ctx.fillStyle = v;
-    ctx.fillRect(0,0,W,H);
+    copiarCapa(capaVineta);
   }
 
   resize();
@@ -200,18 +290,19 @@ var terreno = (function(){
     draw(0);
   } else {
     // amanecer al cargar
-    var t0 = performance.now();
-    (function anim(now){
+    var t0 = performance.now(), ultimoCuadro = 0, ultimaP = -1;
+    bucleVisible(cv.closest('.acto-superficie'), function(now){
       var t = (now - t0)/1000;
+      var amaneciendo = dawnT0 !== null && now - dawnT0 < 2700;
       if (dawnT0 !== null){
         dawn = clamp((now - dawnT0)/2600, 0, 1);
         dawn = 1 - Math.pow(1-dawn, 3); // expo-ish
       }
-      if (visible && pagVisible) draw(t);
-      requestAnimationFrame(anim);
-    })(t0);
-    var io = new IntersectionObserver(function(en){ visible = en[0].isIntersecting; }, {threshold:0});
-    io.observe(cv.closest('.acto-superficie'));
+      // las dunas se mecen muy despacio: sin scroll ni amanecer en curso, ~30 cuadros/s alcanzan
+      if (!amaneciendo && scrollP === ultimaP && now - ultimoCuadro < 32) return;
+      ultimoCuadro = now; ultimaP = scrollP;
+      draw(t);
+    });
   }
   return {
     setP: function(p){ scrollP = p; },
@@ -636,18 +727,11 @@ var gotaFondo = (function(){
   window.addEventListener('resize', resize);
 
   if (!reduced){
-    (function loop(now){
-      if (visible && pagVisible){
-        P = lerp(P, objetivo, 0.05);
-        draw(now);
-      } else {
-        lastNow = now;
-      }
-      requestAnimationFrame(loop);
-    })(performance.now());
-    var ioG = new IntersectionObserver(function(en){ visible = en[0].isIntersecting; }, { threshold: 0 });
-    var sec = document.querySelector('.acto-metodo');
-    if (sec) ioG.observe(sec);
+    bucleVisible(document.querySelector('.acto-metodo'), function(now, reanudo){
+      if (reanudo) lastNow = now;   // no contar el tiempo que estuvo fuera de pantalla
+      P = lerp(P, objetivo, 0.05);
+      draw(now);
+    });
   }
 
   return {
@@ -777,8 +861,9 @@ if (gsapOK){
     var ctx = cv.getContext('2d');
     var escenarioEl = document.querySelector('.escenario');
     var W = 0, H = 0, visible = true;
-    var POOL = movil ? 1100 : 2200;
-    var MAX_CELDAS = movil ? 1600 : 2800;
+    // equipos modestos: menos granos y pedacitos más grandes (mismo efecto, menos trabajo por cuadro)
+    var POOL = tierBajo ? (movil ? 650 : 1300) : (movil ? 1100 : 2200);
+    var MAX_CELDAS = tierBajo ? (movil ? 850 : 1600) : (movil ? 1600 : 2800);
     // granos de arena sobre el fondo oscuro del hero: tonos claros y cálidos
     var ARENA = [[226,206,170],[214,190,150],[240,222,190],[200,176,138],[226,206,170],[150,206,190],[244,186,120]];
     var offCv = document.createElement('canvas');
@@ -990,9 +1075,10 @@ if (gsapOK){
       iniciar('soltar', -1);
     }
 
+    var sucio = false;   // sin transición y ya limpio: no se toca el lienzo (antes se borraba en cada cuadro)
     function pintar(now){
-      ctx.clearRect(0, 0, W, H);
-      if (!tr) return;
+      if (!tr){ if (sucio){ ctx.clearRect(0, 0, W, H); sucio = false; } return; }
+      ctx.clearRect(0, 0, W, H); sucio = true;
       var k, j, c, lt, a;
       // pedacitos de texto que todavía no se desprendieron
       for (var e = 0; e < tr.eros.length; e++){
@@ -1079,19 +1165,30 @@ if (gsapOK){
       gsap.set(todas, { x: 0, y: 0, rotation: 0 });
       resize();
       refrescarScrollTrigger();
+      if (premedirListo){ clearTimeout(tPremedir); tPremedir = setTimeout(premedir, 800); }
     }
-
+    // Fotografiar cada frase (medir) cuesta: se adelanta en ratos libres, una
+    // frase por vez, para que no caiga justo cuando empieza una transición
+    // durante el scroll (eso era un cuadro largo cada vez).
+    var tPremedir = 0, premedirListo = false;   // listo = el hero ya se lanzó (H1 en su lugar)
+    function premedir(){
+      premedirListo = true;
+      var pend = gruposDeLetras.map(function(_, g){ return g; });
+      var ric = window.requestIdleCallback || function(f){ return setTimeout(f, 120); };
+      (function uno(){
+        ric(function(){
+          var g = pend.shift();
+          if (g === undefined) return;
+          if (!grupos[g] && (!tr || tr.B !== g)) medir(g);
+          uno();
+        }, { timeout: 1500 });
+      })();
+    }
     resize();
     window.addEventListener('resize', medirEnFrio);
-    (function bucle(now){
-      if (visible && pagVisible) pintar(now);
-      requestAnimationFrame(bucle);
-    })(performance.now());
-    var ioP = new IntersectionObserver(function(en){ visible = en[0].isIntersecting; }, { threshold: 0 });
-    var secP = cv.closest('.acto-superficie');
-    if (secP) ioP.observe(secP);
+    bucleVisible(cv.closest('.acto-superficie'), pintar);
 
-    return { medirEnFrio: medirEnFrio, mostrar: mostrar, soltar: soltar };
+    return { medirEnFrio: medirEnFrio, mostrar: mostrar, soltar: soltar, premedir: premedir };
   }
 
   // timeline scrubbed de la superficie
@@ -1252,6 +1349,12 @@ if (gsapOK){
     [document.getElementById('h1')].concat(frases.map(function(sel){ return document.querySelector(sel); })).concat([document.getElementById('giro')])
   );
   polvoTextos.medirEnFrio();
+  // el H1 recién queda en su lugar después de su entrada animada (tras el velo):
+  // ahí se adelantan las mediciones de todas las frases
+  if (lanzarHero && polvoTextos.premedir){
+    var lanzarHeroOriginal = lanzarHero;
+    lanzarHero = function(){ var r = lanzarHeroOriginal.apply(this, arguments); setTimeout(polvoTextos.premedir, 2600); return r; };
+  }
 
   // «Comenzar el viaje»: lleva a la primera frase. El ancla #sintomas queda a
   // unos 270px del tope, tan cerca que el botón parecía no hacer nada.
@@ -1351,8 +1454,15 @@ if (gsapOK){
         if (progreso) progreso.classList.toggle('pausado', pausado);
         if (barra) barra.style.transform = 'scaleX(' + clamp(transcurrido / dur, 0, 1).toFixed(3) + ')';
       }
-      requestAnimationFrame(bucle);
+      // fuera de pantalla el bucle se detiene (no pide cuadros); el observador lo despierta
+      if (enPantalla && pagVisible) requestAnimationFrame(bucle); else { corriendo = false; ultimoT = 0; }
     }
+    var corriendo = false;
+    function despertarBucle(){
+      if (corriendo || !enPantalla || !pagVisible) return;
+      corriendo = true; requestAnimationFrame(bucle);
+    }
+    document.addEventListener('visibilitychange', despertarBucle);
 
     etapasCtl.nums.forEach(function(b, i){
       b.addEventListener('click', function(){
@@ -1368,9 +1478,10 @@ if (gsapOK){
     });
     new IntersectionObserver(function(ents){
       enPantalla = ents[0].intersectionRatio >= 0.5;
+      despertarBucle();
       if (enPantalla && !arranco){ arranco = true; ir(0, true); }
     }, { threshold: [0, 0.5] }).observe(escena);
-    requestAnimationFrame(bucle);
+    despertarBucle();
     return { ir: ir };
   })();
 
@@ -1550,12 +1661,14 @@ try{ (function(){
     cv.width = W*DPR; cv.height = H*DPR;
     ctx.setTransform(DPR,0,0,DPR,0,0);
     crear();
+    pintarFondo();
   }
   function ridgeY(x){
     return H*0.84 + (nD(x/W*4.4) - 0.5) * H*0.07;
   }
+  var finFloracion = 0;   // ms desde inicio en que la última flor terminó de abrirse
   function crear(){
-    parts = [];
+    parts = []; finFloracion = 0;
     var N = Math.round((movil ? 420 : 1300) * (tierBajo ? 0.5 : 1));
     for (var i=0;i<N;i++){
       var x = Math.random()*W;
@@ -1570,9 +1683,24 @@ try{ (function(){
         ph: Math.random()*6.28,
         tallo: 6 + Math.random()*16
       });
+      var pp = parts[parts.length - 1];
+      finFloracion = Math.max(finFloracion, pp.delay + pp.dur);
     }
   }
+  // El cielo y la duna no cambian: se pintan una vez (por tamaño) en un
+  // lienzo aparte y cada cuadro solo lo copia, en vez de rehacer degradados.
+  var fondo = document.createElement('canvas'), fctx = fondo.getContext('2d');
+  function pintarFondo(){
+    fondo.width = cv.width; fondo.height = cv.height;
+    fctx.setTransform(DPR,0,0,DPR,0,0);
+    var real = ctx; ctx = fctx; dibujarFondo(); ctx = real;
+  }
   function drawBase(){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.drawImage(fondo, 0, 0);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  function dibujarFondo(){
     // cielo en alba plena
     var g = ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0, '#0B2B27');
@@ -1641,10 +1769,14 @@ try{ (function(){
   io.observe(cv);
 
   if (!reduced){
-    (function loop(now){
-      if (visible && lanzado && pagVisible) draw(now);
-      requestAnimationFrame(loop);
-    })(performance.now());
+    // ya abiertas todas las flores, el vaivén es de 1-2px: basta con ~25 cuadros/s
+    var ultimoCuadro = 0;
+    bucleVisible(cv, function(now){
+      if (!lanzado) return;
+      if (now - inicio > finFloracion && now - ultimoCuadro < 40) return;
+      ultimoCuadro = now;
+      draw(now);
+    });
   }
 })();
 
@@ -1912,7 +2044,13 @@ if (window.matchMedia('(pointer:fine)').matches && !reduced){
   var cur = document.getElementById('cursor');
   var tagEl = cur.querySelector('.cursor-tag');
   var cx = -100, cy = -100, tx = -100, ty = -100;
-  document.addEventListener('mousemove', function(e){ tx = e.clientX; ty = e.clientY; });
+  // El bucle del cursor corre solo mientras se mueve el mouse (y hasta que el
+  // círculo alcanza al puntero); quieto, no pide cuadros ni toca estilos.
+  var cursorCorriendo = false;
+  document.addEventListener('mousemove', function(e){
+    tx = e.clientX; ty = e.clientY;
+    if (!cursorCorriendo){ cursorCorriendo = true; requestAnimationFrame(loopC); }
+  });
   document.querySelectorAll('a,button,[data-cursor],.chip').forEach(function(el){
     el.addEventListener('mouseenter', function(){ cur.classList.add('grande'); });
     el.addEventListener('mouseleave', function(){ cur.classList.remove('grande'); });
@@ -1931,13 +2069,12 @@ if (window.matchMedia('(pointer:fine)').matches && !reduced){
       el.addEventListener('mouseleave', function(){ cur.classList.remove('tagged'); });
     });
   });
-  (function loopC(){
-    if (pagVisible){
-      cx = lerp(cx, tx, 0.18); cy = lerp(cy, ty, 0.18);
-      cur.style.transform = 'translate('+cx+'px,'+cy+'px)';
-    }
-    requestAnimationFrame(loopC);
-  })();
+  function loopC(){
+    cx = lerp(cx, tx, 0.18); cy = lerp(cy, ty, 0.18);
+    cur.style.transform = 'translate('+cx+'px,'+cy+'px)';
+    if (Math.abs(tx - cx) + Math.abs(ty - cy) > 0.3 && pagVisible) requestAnimationFrame(loopC);
+    else cursorCorriendo = false;
+  }
 
   // magnetismo real: el botón se inclina hacia el cursor y vuelve con elasticidad
   if (gsapOK){
@@ -2200,13 +2337,15 @@ try{ (function(){
   if (!reduced){
     window.addEventListener('scroll', calcularBloom, { passive: true });
     calcularBloom();
-    (function loop(now){
-      if (visible && pagVisible){
-        bloomSuave = lerp(bloomSuave, bloomP, 0.045);
-        draw(now);
-      }
-      requestAnimationFrame(loop);
-    })(performance.now());
+    // ya abierto y sin cursor encima, el balanceo es lento: ~30 cuadros/s alcanzan
+    var ultimoCuadroJ = 0;
+    bucleVisible(sec, function(now){
+      var quieto = Math.abs(bloomSuave - bloomP) < 0.002 && vientoX < -999;
+      if (quieto && now - ultimoCuadroJ < 32) return;
+      ultimoCuadroJ = now;
+      bloomSuave = lerp(bloomSuave, bloomP, 0.045);
+      draw(now);
+    });
   }
 })(); }catch(e){ console.error('Kairal: jardín no disponible.', e); }
 
@@ -2605,6 +2744,7 @@ try{ (function(){
 
     function dibujar(now){
       if (!activo) return;
+      if (!enVista || !pagVisible){ activo = false; return; }   // fuera de pantalla: el bucle se detiene
       var dt = ultimoNow ? Math.min(now - ultimoNow, 48) : 16;
       ultimoNow = now;
       rotacion += dt * 0.00015;
@@ -2660,8 +2800,11 @@ try{ (function(){
       ctx.globalCompositeOperation = 'source-over';
       requestAnimationFrame(dibujar);
     }
+    var enVista = true;
+    new IntersectionObserver(function(en){ enVista = en[0].isIntersecting; if (enVista) arrancar(); }).observe(stage);
+    document.addEventListener('visibilitychange', function(){ arrancar(); });
     function arrancar(){
-      if (activo) return;
+      if (activo || !enVista || !pagVisible) return;
       activo = true; ultimoNow = 0;
       requestAnimationFrame(dibujar);
     }
@@ -2873,8 +3016,15 @@ try{ (function(){
       if (progreso) progreso.classList.toggle('pausado', pausado);
       if (barra) barra.style.transform = 'scaleX(' + clamp(transcurrido / dur, 0, 1).toFixed(3) + ')';
     }
-    requestAnimationFrame(bucle);
+    // fuera de pantalla el bucle se detiene (no pide cuadros); el observador lo despierta
+    if (enPantalla && pagVisible) requestAnimationFrame(bucle); else { corriendo = false; ultimoT = 0; }
   }
+  var corriendo = false;
+  function despertarBucle(){
+    if (corriendo || !enPantalla || !pagVisible) return;
+    corriendo = true; requestAnimationFrame(bucle);
+  }
+  document.addEventListener('visibilitychange', despertarBucle);
 
   areas.forEach(function(b, i){
     b.addEventListener('click', function(){
@@ -2895,13 +3045,14 @@ try{ (function(){
   // panel ya muestra desde el principio).
   new IntersectionObserver(function(ents){
     enPantalla = ents[0].intersectionRatio >= 0.5;
+    despertarBucle();
     if (enPantalla && !arranco){
       arranco = true;
       transcurrido = 0;
       polvoAro.vueltaInicial(function(){ polvoAro.irA(areas[0]); });
     }
   }, { threshold: [0, 0.5] }).observe(fijo);
-  requestAnimationFrame(bucle);
+  despertarBucle();
 })(); }catch(e){ console.error('Kairal: órbita de servicios no disponible.', e); }
 
 /* ============================================================

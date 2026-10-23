@@ -25,7 +25,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Gabriola es una fuente del sistema operativo (viene con Windows desde
      Vista): no se puede cargar desde Google Fonts. Donde no esté instalada
      (Mac, Linux, iOS, Android, Windows muy antiguo) el navegador usa
@@ -52,12 +52,25 @@
 }
 </script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-59B7SRB9L4"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-59B7SRB9L4');
+  // La librería de Analytics (~160 KB) se descarga DESPUÉS de que la página
+  // cargó: al primer toque/scroll/tecla, o a los 3s del load. Los eventos de
+  // arriba quedan en dataLayer y se envían igual cuando llega.
+  (function(){
+    var cargado = false;
+    function cargar(){
+      if (cargado) return; cargado = true;
+      var s = document.createElement('script'); s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-59B7SRB9L4';
+      document.head.appendChild(s);
+    }
+    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function(ev){ addEventListener(ev, cargar, { once: true, passive: true }); });
+    addEventListener('load', function(){ setTimeout(cargar, 3000); });
+  })();
 </script>
 
 <!-- La experiencia está diseñada para arrancar SIEMPRE desde el hero (con
@@ -365,17 +378,17 @@
            <img> de la tarjeta correspondiente y quita la clase "sin-foto"
            -el onerror ya deja el marcador si el archivo no existe. -->
       <figure class="foto-inclinada foto-inclinada--1">
-        <img src="assets/collage-doctora-1.webp" alt="" loading="lazy" aria-hidden="true"
+        <img src="assets/collage-doctora-1.webp" alt="" loading="lazy" decoding="async" aria-hidden="true"
              onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
       </figure>
       <figure class="foto-inclinada foto-inclinada--2">
-        <img src="assets/collage-doctora-2.webp" alt="" loading="lazy" aria-hidden="true"
+        <img src="assets/collage-doctora-2.webp" alt="" loading="lazy" decoding="async" aria-hidden="true"
              onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
       </figure>
       <figure class="foto-inclinada foto-inclinada--3">
-        <img src="assets/collage-doctora-3.webp" alt="" loading="lazy" aria-hidden="true"
+        <img src="assets/collage-doctora-3.webp" alt="" loading="lazy" decoding="async" aria-hidden="true"
              onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
       </figure>

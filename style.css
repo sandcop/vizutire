@@ -127,7 +127,6 @@ html.menu-abierto{overflow:hidden}
   font-size:.95rem;font-weight:500;text-decoration:none;
   padding:.95em 1.9em;border-radius:999px;border:1px solid transparent;
   transition:transform .35s var(--ease-tierra),background .35s,color .35s,border-color .35s,box-shadow .35s;
-  will-change:transform;
 }
 .btn{position:relative;overflow:hidden;isolation:isolate}
 .btn .btn-texto{position:relative;z-index:2;display:inline-flex;align-items:center;gap:.6em;color:inherit}
@@ -150,7 +149,7 @@ html.menu-abierto{overflow:hidden}
 .btn-reserva svg{position:relative;z-index:2;width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .btn-reserva-flecha{transition:transform .35s var(--ease-tierra)}
 .btn-reserva:hover .btn-reserva-flecha{transform:translateX(4px)}
-@keyframes reserva-brillo{0%{left:-60%}35%,100%{left:130%}}
+@keyframes reserva-brillo{0%{transform:translateX(0) skewX(-20deg)}35%,100%{transform:translateX(425%) skewX(-20deg)}}
 @media (prefers-reduced-motion:reduce){.btn-reserva::before{animation:none;display:none}}
 .btn-arena{background:var(--texto-oscuro);color:var(--arena)}
 .btn-arena::after{background:#000}
@@ -195,7 +194,6 @@ body.reduced .hero-copy{position:relative;left:auto;bottom:auto;padding:8rem 1.5
   position:relative;
   display:inline-block;
   transition:opacity 1s ease, filter 1s ease, transform 1s ease;
-  will-change:transform,opacity,filter;
 }
 #eyebrow-hero .letra.polvo{
   opacity:0;
@@ -245,7 +243,7 @@ body.reduced .indicador-scroll{display:none}
   text-shadow:0 0 36px rgba(242,166,90,.18);
 }
 .espejismo .calor{display:inline-block;animation:calor 5s ease-in-out infinite}
-@keyframes calor{0%,100%{transform:skewX(0) translateY(0);filter:blur(0)}50%{transform:skewX(.4deg) translateY(-2px);filter:blur(.4px)}}
+@keyframes calor{0%,100%{transform:skewX(0) translateY(0)}50%{transform:skewX(.4deg) translateY(-2px)}}
 body.reduced .espejismo{position:static;opacity:1;margin:1.6rem auto;text-align:center}
 body.reduced .espejismo .calor{animation:none}
 .e1{top:24%;left:8%}.e2{top:38%;right:8%;text-align:right}.e3{top:30%;left:12%}.e4{top:46%;right:12%;text-align:right}.e5{top:34%;left:50%;transform:translateX(-50%);text-align:center}
@@ -312,13 +310,14 @@ body.reduced .giro{position:static;opacity:1;padding:3rem 1.5rem}
 .raiz-nombre:focus-visible{outline:2px solid var(--c);outline-offset:3px}
 /* Invitación a tocar: una iluminación mínima y lenta, cada etiqueta a destiempo
    (el retraso lo pone el JS). La elegida queda encendida fija. */
-.raiz-nombre.parpadea{animation:raizInvita 2.8s ease-in-out infinite;cursor:pointer}
-@keyframes raizInvita{
-  0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 0%,transparent)}
-  50%{box-shadow:0 0 12px 1px color-mix(in srgb,var(--c) 42%,transparent);border-color:color-mix(in srgb,var(--c) 85%,transparent)}
-}
-.raiz-nombre.elegida{animation:none;opacity:1;box-shadow:0 0 18px color-mix(in srgb,var(--c) 48%,transparent);border-color:var(--c)}
-body.reduced .raiz-nombre.parpadea{animation:none;box-shadow:0 0 8px color-mix(in srgb,var(--c) 30%,transparent)}
+.raiz-nombre::before{content:'';position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;opacity:0;
+  box-shadow:0 0 12px 1px color-mix(in srgb,var(--c) 42%,transparent);border:1px solid color-mix(in srgb,var(--c) 85%,transparent)}
+.raiz-nombre.parpadea{cursor:pointer}
+.raiz-nombre.parpadea::before{animation:raizInvita 2.8s ease-in-out infinite;animation-delay:inherit}
+@keyframes raizInvita{0%,100%{opacity:0}50%{opacity:1}}
+.raiz-nombre.elegida::before{animation:none;opacity:0}
+.raiz-nombre.elegida{opacity:1;box-shadow:0 0 18px color-mix(in srgb,var(--c) 48%,transparent);border-color:var(--c)}
+body.reduced .raiz-nombre.parpadea::before{animation:none;opacity:.6}
 
 /* Texto del sistema activo: a la derecha, a la altura de la punta de su
    raíz (--y = alto de la punta en el viewBox / 640). */
@@ -472,9 +471,20 @@ body.reduced .tarjeta-etapa svg :is(path,circle){stroke-dashoffset:0}
    quedan sincronizadas para siempre, sin animation-delay (que se
    desincroniza con el tiempo porque cada elemento reinicia su propio
    período de forma independiente). */
-.foto-inclinada--1{animation:foto-pila-1 7.8s ease-in-out infinite}
-.foto-inclinada--2{animation:foto-pila-2 7.8s ease-in-out infinite}
-.foto-inclinada--3{animation:foto-pila-3 7.8s ease-in-out infinite}
+/* Rol de cada foto (frente / medio / atrás) según data-i del envoltorio, que el
+   JS avanza cada 2.6s solo mientras se ve (antes: keyframes con z-index, que
+   obligaban a calcular la animación en el hilo principal en cada cuadro).
+   Mismas posiciones y tiempos que foto-pila-1/2/3. */
+.foto-inclinada{transition:transform .6s ease-in-out,opacity .6s ease-in-out,z-index .6s ease-in-out}
+.retrato-envoltorio:not([data-i]) .foto-inclinada--1,.retrato-envoltorio[data-i="0"] .foto-inclinada--1,
+.retrato-envoltorio[data-i="1"] .foto-inclinada--3,.retrato-envoltorio[data-i="2"] .foto-inclinada--2{
+  transform:translate(0,0) rotate(0deg) scale(1);opacity:1;z-index:0}
+.retrato-envoltorio:not([data-i]) .foto-inclinada--2,.retrato-envoltorio[data-i="0"] .foto-inclinada--2,
+.retrato-envoltorio[data-i="1"] .foto-inclinada--1,.retrato-envoltorio[data-i="2"] .foto-inclinada--3{
+  transform:translate(-12%,5%) rotate(-5deg) scale(.94);opacity:.94;z-index:-1}
+.retrato-envoltorio:not([data-i]) .foto-inclinada--3,.retrato-envoltorio[data-i="0"] .foto-inclinada--3,
+.retrato-envoltorio[data-i="1"] .foto-inclinada--2,.retrato-envoltorio[data-i="2"] .foto-inclinada--1{
+  transform:translate(-22%,12%) rotate(6deg) scale(.89);opacity:.88;z-index:-2}
 /* mid/back se desplazan hacia afuera del retrato (izquierda), no hacia
    adentro -si no, el óvalo orgánico del retrato (z-index 1, más arriba
    que la pila) las tapa por completo en vez de dejarlas asomar. */
@@ -982,12 +992,13 @@ body.reduced .faq-item summary::before{transition:none}
   background:radial-gradient(circle at 32% 28%,#1bb99c,#0E7C6B 60%,#0a5c4f);
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 10px 30px rgba(14,124,107,.4);
-  animation:raizLatido 3.4s ease-in-out infinite;
 }
 .fab-raiz svg{width:24px;height:24px;fill:none;stroke:#EDE5D6;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.fab-raiz[aria-expanded="true"]{animation:none}
-@keyframes raizLatido{0%,100%{box-shadow:0 10px 30px rgba(14,124,107,.4),0 0 0 0 rgba(14,124,107,.35)}50%{box-shadow:0 10px 30px rgba(14,124,107,.4),0 0 0 10px rgba(14,124,107,0)}}
-body.reduced .fab-raiz{animation:none}
+.fab-raiz::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid rgba(14,124,107,.55);pointer-events:none;
+  opacity:0;animation:raizLatido 3.4s ease-out infinite}
+.fab-raiz[aria-expanded="true"]::after{animation:none;opacity:0}
+@keyframes raizLatido{0%{opacity:.9;transform:scale(1)}60%,100%{opacity:0;transform:scale(1.4)}}
+body.reduced .fab-raiz::after{animation:none}
 @media(max-width:920px){.fab-raiz{bottom:9.7rem}}
 
 .panel-raiz{
@@ -1154,3 +1165,23 @@ body.reduced .velo-contenido > *{transition:none}
   .menu-movil nav a{font-size:1.3rem}
   .menu-social a{width:42px;height:42px}
 }
+
+/* ============ RENDIMIENTO ============
+   Secciones fuera de pantalla: sus animaciones CSS quedan en pausa (la clase
+   .fuera-vista la pone script.js con un IntersectionObserver). */
+.fuera-vista,.fuera-vista *,.fuera-vista *::before,.fuera-vista *::after{animation-play-state:paused!important}
+/* Celulares y equipos modestos: sin desenfoque en vivo detrás del header/barras
+   (backdrop-filter re-desenfoca todo lo de abajo en cada cuadro de scroll) ni la
+   textura de grano a pantalla completa; fondos un poco más opacos en su lugar. */
+@media(max-width:920px){
+  .grain{display:none}
+  .header.solido,.barra-movil,.toggle-sonido,.cta-copy .micro,.menu-movil{-webkit-backdrop-filter:none;backdrop-filter:none}
+  .header.solido{background:rgba(8,31,29,.95)}
+  .barra-movil{background:rgba(8,31,29,.96)}
+  .toggle-sonido{background:rgba(8,31,29,.85)}
+  .cta-copy .micro{background:rgba(5,21,18,.8)}
+}
+html.tier-bajo .grain{display:none}
+html.tier-bajo .header.solido,html.tier-bajo .barra-movil,html.tier-bajo .toggle-sonido,html.tier-bajo .cta-copy .micro,html.tier-bajo .menu-movil{-webkit-backdrop-filter:none;backdrop-filter:none}
+html.tier-bajo .header.solido{background:rgba(8,31,29,.95)}
+html.tier-bajo .barra-movil{background:rgba(8,31,29,.96)}

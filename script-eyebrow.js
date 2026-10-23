@@ -136,12 +136,20 @@
   // termine de irse para que la otra aparezca.
   formar(frases[0]);
   var actual = frases[0];
+  // Solo alterna mientras el eyebrow se ve (y la pestaña está visible): fuera
+  // de pantalla cada cambio disparaba decenas de transiciones que nadie veía.
+  var enVista = true;
+  if ('IntersectionObserver' in window){
+    new IntersectionObserver(function(en){ enVista = en[0].isIntersecting && en[0].target.getBoundingClientRect().height > 0; }).observe(el);
+  }
   (function tick(){
     setTimeout(function(){
-      var siguiente = (actual === frases[0]) ? frases[1] : frases[0];
-      disperse(actual);
-      formar(siguiente);
-      actual = siguiente;
+      if (enVista && !document.hidden && getComputedStyle(el).opacity > 0.05){
+        var siguiente = (actual === frases[0]) ? frases[1] : frases[0];
+        disperse(actual);
+        formar(siguiente);
+        actual = siguiente;
+      }
       tick();
     }, TIEMPO_FORMAR + TIEMPO_LECTURA);
   })();
