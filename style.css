@@ -401,7 +401,12 @@ body.reduced .metodo-progreso{display:none}
 @keyframes dibujar{to{stroke-dashoffset:0}}
 @media(max-width:920px){
   /* right 4.4rem: deja libre la columna de los botones flotantes */
-  .tarjeta-etapa{left:1.25rem;right:4.4rem;top:auto;bottom:clamp(5.5rem,11vh,7rem);transform:none;width:auto}
+  .tarjeta-etapa{left:1.25rem;right:4.4rem;top:auto;bottom:clamp(5.5rem,11vh,7rem);transform:none;width:auto;
+    text-shadow:0 1px 10px rgba(5,21,18,.9)}
+  /* la sombra de 30px por letra se repintaba con cada palabra que entraba:
+     en su lugar, un velo oscuro fijo detrás de la tarjeta da el mismo contraste */
+  .tarjeta-etapa::before{content:'';position:absolute;z-index:-1;inset:-3rem -1.25rem -1.75rem;pointer-events:none;
+    background:linear-gradient(to top,rgba(5,21,18,.82),rgba(5,21,18,.55) 55%,rgba(5,21,18,0))}
   .tarjeta-etapa h3{font-size:clamp(2rem,9vw,2.8rem)}
   .tarjeta-etapa p{max-width:none}
 }

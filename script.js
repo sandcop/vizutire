@@ -729,7 +729,10 @@ var gotaFondo = (function(){
   if (!reduced){
     bucleVisible(document.querySelector('.acto-metodo'), function(now, reanudo){
       if (reanudo) lastNow = now;   // no contar el tiempo que estuvo fuera de pantalla
-      P = lerp(P, objetivo, 0.05);
+      // 5% por cuadro a 60 fps, pero medido en tiempo real: si el teléfono baja de
+      // cuadros (p. ej. mientras entra el texto), la gota NO se pone más lenta
+      var dtG = Math.min(0.1, (now - lastNow) / 1000);
+      P = lerp(P, objetivo, 1 - Math.pow(0.95, dtG * 60));
       draw(now);
     });
   }
@@ -1374,6 +1377,10 @@ if (gsapOK){
     var nums = Array.prototype.slice.call(document.querySelectorAll('.numeros-etapa button'));
     var mostrada = [false,false,false,false];
     tarjetas.forEach(function(t){ splitWords(t.querySelector('h3')); });
+    // filter:blur por palabra obliga a repintar el texto en cada cuadro: en
+    // celulares/equipos modestos las palabras entran solo con opacidad y altura
+    var conBlur = !movil && !tierBajo;
+    function sinBlur(o){ if (!conBlur) delete o.filter; return o; }
 
     function entra(i){
       var t = tarjetas[i];
@@ -1382,8 +1389,8 @@ if (gsapOK){
       gsap.killTweensOf(t);
       gsap.to(t, {opacity:1, duration:0.35, overwrite:'auto'});
       gsap.fromTo(t.querySelectorAll('h3 .w'),
-        {opacity:0, y:32, filter:'blur(8px)'},
-        {opacity:1, y:0, filter:'blur(0px)', duration:0.9, stagger:0.09, ease:'power3.out', overwrite:'auto'});
+        sinBlur({opacity:0, y:32, filter:'blur(8px)'}),
+        sinBlur({opacity:1, y:0, filter:'blur(0px)', duration:0.9, stagger:0.09, ease:'power3.out', overwrite:'auto'}));
       gsap.fromTo(t.querySelectorAll('.fila'),
         {opacity:0, y:22},
         {opacity:1, y:0, duration:0.85, stagger:0.15, delay:0.22, ease:'power3.out', overwrite:'auto'});
@@ -1391,7 +1398,7 @@ if (gsapOK){
     function sale(i){
       var t = tarjetas[i];
       t.classList.remove('mostrada');
-      gsap.to(t.querySelectorAll('h3 .w'), {y:-18, filter:'blur(5px)', opacity:0, duration:0.5, stagger:0.02, ease:'power2.in', overwrite:'auto'});
+      gsap.to(t.querySelectorAll('h3 .w'), sinBlur({y:-18, filter:'blur(5px)', opacity:0, duration:0.5, stagger:0.02, ease:'power2.in', overwrite:'auto'}));
       gsap.to(t.querySelectorAll('.fila'), {opacity:0, y:-12, duration:0.45, ease:'power2.in', overwrite:'auto'});
       gsap.to(t, {opacity:0, duration:0.55, ease:'power2.in', overwrite:'auto',
         onComplete:function(){ t.style.visibility='hidden'; }});
@@ -1452,12 +1459,28 @@ if (gsapOK){
           if (transcurrido >= dur) ir(actual === 3 ? 0 : actual + 1, actual === 3);
         }
         if (progreso) progreso.classList.toggle('pausado', pausado);
-        if (barra) barra.style.transform = 'scaleX(' + clamp(transcurrido / dur, 0, 1).toFixed(3) + ')';
+        barraSync(transcurrido, dur, pausado);
       }
       // fuera de pantalla el bucle se detiene (no pide cuadros); el observador lo despierta
-      if (enPantalla && pagVisible) requestAnimationFrame(bucle); else { corriendo = false; ultimoT = 0; }
+      if (enPantalla && pagVisible) requestAnimationFrame(bucle); else { corriendo = false; ultimoT = 0; if (animBarra) animBarra.pause(); }
     }
     var corriendo = false;
+    // La barra de progreso la anima el navegador (Web Animations, en el compositor):
+    // escribir su transform en cada cuadro obligaba a repintar y reorganizar las
+    // capas de toda la página en cada cuadro. Solo se rehace al cambiar de etapa o
+    // si se desfasa, y se pausa/reanuda con el recorrido.
+    var animBarra = null, durBarra = 0;
+    function barraSync(trans, dur, pausado){
+      if (!barra) return;
+      if (!barra.animate){ barra.style.transform = 'scaleX(' + clamp(trans / dur, 0, 1).toFixed(3) + ')'; return; }
+      if (!animBarra || durBarra !== dur || Math.abs(animBarra.currentTime - trans) > 150){
+        if (animBarra) animBarra.cancel();
+        animBarra = barra.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: dur, fill: 'both', easing: 'linear' });
+        durBarra = dur; animBarra.currentTime = Math.min(trans, dur);
+      }
+      if (pausado && animBarra.playState === 'running') animBarra.pause();
+      else if (!pausado && animBarra.playState === 'paused') animBarra.play();
+    }
     function despertarBucle(){
       if (corriendo || !enPantalla || !pagVisible) return;
       corriendo = true; requestAnimationFrame(bucle);
@@ -1473,8 +1496,8 @@ if (gsapOK){
     });
     etapasCtl.tarjetas.concat([document.querySelector('.numeros-etapa')]).forEach(function(el){
       if (!el) return;
-      el.addEventListener('mouseenter', function(){ encima = true; });
-      el.addEventListener('mouseleave', function(){ encima = false; });
+      el.addEventListener('pointerenter', function(e){ if (e.pointerType === 'mouse') encima = true; });
+      el.addEventListener('pointerleave', function(e){ if (e.pointerType === 'mouse') encima = false; });
     });
     new IntersectionObserver(function(ents){
       enPantalla = ents[0].intersectionRatio >= 0.5;
@@ -2342,8 +2365,9 @@ try{ (function(){
     bucleVisible(sec, function(now){
       var quieto = Math.abs(bloomSuave - bloomP) < 0.002 && vientoX < -999;
       if (quieto && now - ultimoCuadroJ < 32) return;
+      var dtJ = ultimoCuadroJ ? Math.min(0.1, (now - ultimoCuadroJ) / 1000) : 1 / 60;
       ultimoCuadroJ = now;
-      bloomSuave = lerp(bloomSuave, bloomP, 0.045);
+      bloomSuave = lerp(bloomSuave, bloomP, 1 - Math.pow(1 - 0.045, dtJ * 60));   // en tiempo real, no por cuadro
       draw(now);
     });
   }
@@ -3014,12 +3038,28 @@ try{ (function(){
         if (transcurrido >= dur) ir(actual === CIERRE ? 0 : actual + 1);
       }
       if (progreso) progreso.classList.toggle('pausado', pausado);
-      if (barra) barra.style.transform = 'scaleX(' + clamp(transcurrido / dur, 0, 1).toFixed(3) + ')';
+      barraSync(transcurrido, dur, pausado);
     }
     // fuera de pantalla el bucle se detiene (no pide cuadros); el observador lo despierta
-    if (enPantalla && pagVisible) requestAnimationFrame(bucle); else { corriendo = false; ultimoT = 0; }
+    if (enPantalla && pagVisible) requestAnimationFrame(bucle); else { corriendo = false; ultimoT = 0; if (animBarra) animBarra.pause(); }
   }
   var corriendo = false;
+  // La barra de progreso la anima el navegador (Web Animations, en el compositor):
+  // escribir su transform en cada cuadro obligaba a repintar y reorganizar las
+  // capas de toda la página en cada cuadro. Solo se rehace al cambiar de etapa o
+  // si se desfasa, y se pausa/reanuda con el recorrido.
+  var animBarra = null, durBarra = 0;
+  function barraSync(trans, dur, pausado){
+    if (!barra) return;
+    if (!barra.animate){ barra.style.transform = 'scaleX(' + clamp(trans / dur, 0, 1).toFixed(3) + ')'; return; }
+    if (!animBarra || durBarra !== dur || Math.abs(animBarra.currentTime - trans) > 150){
+      if (animBarra) animBarra.cancel();
+      animBarra = barra.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: dur, fill: 'both', easing: 'linear' });
+      durBarra = dur; animBarra.currentTime = Math.min(trans, dur);
+    }
+    if (pausado && animBarra.playState === 'running') animBarra.pause();
+    else if (!pausado && animBarra.playState === 'paused') animBarra.play();
+  }
   function despertarBucle(){
     if (corriendo || !enPantalla || !pagVisible) return;
     corriendo = true; requestAnimationFrame(bucle);
@@ -3033,8 +3073,8 @@ try{ (function(){
     });
   });
   [orbita, panel.parentNode].forEach(function(el){
-    el.addEventListener('mouseenter', function(){ encima = true; });
-    el.addEventListener('mouseleave', function(){ encima = false; });
+    el.addEventListener('pointerenter', function(e){ if (e.pointerType === 'mouse') encima = true; });
+    el.addEventListener('pointerleave', function(e){ if (e.pointerType === 'mouse') encima = false; });
   });
 
   marcarArea(0);
