@@ -37,7 +37,7 @@
   "@type": "FAQPage",
   "mainEntity": [
     { "@type": "Question", "name": "¿Las consultas son 100% online?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Sí. La primera consulta dura entre 60 y 90 minutos por videollamada, y atendemos pacientes de cualquier parte de Chile — no necesitas estar en Antofagasta." } },
+      "acceptedAnswer": { "@type": "Answer", "text": "Sí. La primera consulta dura 50 minutos por videollamada, y atendemos pacientes de cualquier parte de Chile — no necesitas estar en Antofagasta." } },
     { "@type": "Question", "name": "¿Necesito exámenes previos para agendar?",
       "acceptedAnswer": { "@type": "Answer", "text": "No es obligatorio. En la primera consulta se revisa la historia completa y, si hace falta, se indican laboratorios funcionales específicos según el caso." } },
     { "@type": "Question", "name": "¿La consulta particular la cubre mi Isapre o Fonasa?",
@@ -123,7 +123,18 @@
   <button class="menu-cerrar" id="menu-cerrar" type="button" aria-label="Cerrar menú">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg>
   </button>
-  <nav aria-label="Navegación móvil">
+
+  <div class="mm-marca">
+    <svg class="mm-logo" viewBox="0 0 46.95 33.74" aria-hidden="true"><circle fill="#f1a65a" cx="23.53" cy="3.37" r="3.37"/><path fill="#ece4d6" d="M0,30.42s.03-.05.05-.03c.49.61,2.95,3.21,8.13,1.31,5.87-2.16,6.91-8.94,9-13.53,0,0,2.38-6.32,5.3-8.52s4.95-4.05,13.41-4.71c7.16-.55,10.18-3.71,10.94-4.67.05-.06.14-.01.12.06-.33,1.12-1.83,4.75-7.48,6.4-6.73,1.97-9.24,2.38-12.57,4.89-3.34,2.5-4.17,4.17-7.39,10.84-3.22,6.67-6.38,9.41-9.41,10.55S1.18,34.43,0,30.42Z"/><path fill="#ece4d6" d="M28.49,18.16c-1.02-1.16-2.31-3.18-.41-4.52,0,0,2.62-1.37,4.53,2.56,0,0,1.49,2.63.77,7.21-.72,4.58-2.56,7.16-6.02,8.97,0,0-1.64.98-3.58,1.23-.04,0-.05-.05-.02-.06,1.01-.46,5.56-2.71,6.47-6.49.41-1.67.47-3.05.36-4.19-.17-1.76-.96-3.39-2.12-4.72Z"/></svg>
+    <div>
+      <p class="mm-nombre">Kairal</p>
+      <p class="mm-lema">Medicina general · funcional · bioreguladora<br>Psiconeuroinmunología</p>
+    </div>
+  </div>
+
+  <p class="mm-desc">Medicina funcional que va más allá de los síntomas. Descubre el origen de tu malestar y transforma tu salud de manera integral, natural y sostenible.</p>
+
+  <nav class="mm-nav" aria-label="Navegación móvil">
     <a href="#servicios">Servicios</a>
     <a href="#causa-raiz">Causa raíz</a>
     <a href="#metodo">El método</a>
@@ -131,16 +142,43 @@
     <a href="#floraciones">Historias</a>
     <a href="#blog">Blog</a>
     <a href="#faq">Preguntas frecuentes</a>
+    <a href="https://kairal.cl/autoevaluacion">Haz tu autoevaluación</a>
   </nav>
-  <a class="btn btn-solido" href="https://kairal.cl/autoevaluacion">Haz tu autoevaluación</a>
+
+  <a class="btn btn-reserva mm-cta" href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Agendar cita</a>
+
+  <ul class="mm-contacto">
+    <li>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <a href="https://wa.me/56974843834" target="_blank" rel="noopener">+569 748 43 834</a>
+    </li>
+    <li>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <a href="mailto:dra.yusneily@kairal.cl">dra.yusneily@kairal.cl</a>
+    </li>
+    <li>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>Antofagasta, Chile</span>
+    </li>
+  </ul>
+
   <div class="menu-social" aria-label="Redes sociales">
     <a href="https://instagram.com/dra.yusneily.sanchez" target="_blank" rel="noopener" aria-label="Instagram de Kairal">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/></svg>
     </a>
     <a href="https://wa.me/56974843834" target="_blank" rel="noopener" aria-label="WhatsApp de Kairal">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2A10 10 0 0 0 2 12a9.9 9.9 0 0 0 1.5 5.2L2 22l5-1.4A10 10 0 1 0 12 2Z"/><path d="M8 12.3c0 2.6 2.9 5.4 5.4 5.4.9 0 1.7-.6 1.9-1.4l.1-.7-1.9-1-.6.8a5.6 5.6 0 0 1-2.6-2.6l.8-.6-1-1.9-.7.1c-.8.2-1.4 1-1.4 1.9Z" fill="currentColor" stroke="none"/></svg>
+      <svg class="ico-wsp" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
     </a>
   </div>
+
+  <section class="mm-posts" aria-label="Posts recientes">
+    <h2 class="mm-titulo">Posts recientes</h2>
+    <div id="mm-posts-lista">
+      <a class="mm-post" href="https://kairal.cl/blog.html" target="_blank" rel="noopener"><span>Qué es la causa raíz (y por qué casi nadie te la explica)</span></a>
+      <a class="mm-post" href="https://kairal.cl/blog.html" target="_blank" rel="noopener"><span>Cinco señales de que tu intestino te está hablando</span></a>
+      <a class="mm-post" href="https://kairal.cl/blog.html" target="_blank" rel="noopener"><span>Sanar no es apagar síntomas, es escuchar el cuerpo</span></a>
+    </div>
+  </section>
 </div>
 
 <!-- NAV DE ACTOS -->
@@ -329,7 +367,7 @@
       <div class="fila num">01 / EVALUACIÓN INICIAL</div>
       <h3>Escuchar</h3>
       <div class="fila">
-        <h4>Consulta de 60–90 minutos · Online</h4>
+        <h4>Consulta de 50 minutos · Online</h4>
         <p>Tu historia completa, no un checklist. Síntomas, sueño, estrés, alimentación, emociones, entorno. Aquí empieza todo: alguien que de verdad escucha.</p>
       </div>
       <div class="fila"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 12 q0 14 0 18"/><circle cx="32" cy="40" r="4"/><path d="M20 46 q12 10 24 0"/><path d="M14 50 q18 14 36 0"/></svg></div>
@@ -378,17 +416,17 @@
            <img> de la tarjeta correspondiente y quita la clase "sin-foto"
            -el onerror ya deja el marcador si el archivo no existe. -->
       <figure class="foto-inclinada foto-inclinada--1">
-        <img src="assets/collage-doctora-1.webp" alt="" loading="lazy" decoding="async" aria-hidden="true"
+        <img src="assets/1.webp" alt="" loading="lazy" decoding="async" aria-hidden="true"
              onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
       </figure>
       <figure class="foto-inclinada foto-inclinada--2">
-        <img src="assets/collage-doctora-2.webp" alt="" loading="lazy" decoding="async" aria-hidden="true"
+        <img src="assets/2.webp" alt="" loading="lazy" decoding="async" aria-hidden="true"
              onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
       </figure>
       <figure class="foto-inclinada foto-inclinada--3">
-        <img src="assets/collage-doctora-3.webp" alt="" loading="lazy" decoding="async" aria-hidden="true"
+        <img src="assets/3.webp" alt="" loading="lazy" decoding="async" aria-hidden="true"
              onerror="this.closest('.foto-inclinada').classList.add('sin-foto')">
         <div class="fallback" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 46 V24"/><path d="M32 30 q-10-1-13-13 q12 1 13 13"/><path d="M32 24 q10-1 13-13 q-12 1-13 13"/><circle cx="32" cy="16" r="4"/></svg></div>
       </figure>
@@ -400,7 +438,6 @@
       <div class="retrato-badge">+10 años · Medicina con propósito</div>
     </div>
     <div class="doctora-copy">
-      <span class="chispa" aria-hidden="true"></span>
       <p class="eyebrow">Tu guía en este terreno</p>
       <h2 class="display">Soy médico. Pero sobre todo, <em>soy mujer y mamá.</em></h2>
       <p>Mi visión cambió cuando comprendí, primero en mi propio hogar, que la salud no se trata solo de controlar síntomas, sino de descubrir <strong>qué nos quiere decir nuestro sistema corporal</strong> y tratar las causas que nos conducen al desbalance.</p>
@@ -497,17 +534,17 @@
 
     <div class="motor-orbita" id="motor-orbita" role="group" aria-label="Áreas de la medicina funcional">
       <p class="motor-permanente">Medicina Funcional</p>
-      <button type="button" class="motor-area" data-i="0">Causa raíz</button>
+      <button type="button" class="motor-area" data-i="0">Causa <br class="m-br">raíz</button>
       <button type="button" class="motor-area" data-i="1">Metabolismo</button>
       <button type="button" class="motor-area" data-i="2">Nutrición</button>
-      <button type="button" class="motor-area" data-i="3">Salud digestiva</button>
-      <button type="button" class="motor-area" data-i="4">Equilibrio hormonal</button>
+      <button type="button" class="motor-area" data-i="3">Salud <br class="m-br">digestiva</button>
+      <button type="button" class="motor-area" data-i="4">Equilibrio <br class="m-br">hormonal</button>
       <button type="button" class="motor-area" data-i="5">Inflamación</button>
-      <button type="button" class="motor-area" data-i="6">Sistema nervioso</button>
+      <button type="button" class="motor-area" data-i="6">Sistema <br class="m-br">nervioso</button>
       <button type="button" class="motor-area" data-i="7">Estrés</button>
-      <button type="button" class="motor-area" data-i="8">Sueño y recuperación</button>
-      <button type="button" class="motor-area" data-i="9">Sistema inmunológico</button>
-      <button type="button" class="motor-area" data-i="10">Salud cardiovascular</button>
+      <button type="button" class="motor-area" data-i="8">Sueño y <br class="m-br">recuperación</button>
+      <button type="button" class="motor-area" data-i="9">Sistema <br class="m-br">inmunológico</button>
+      <button type="button" class="motor-area" data-i="10">Salud <br class="m-br">cardiovascular</button>
       <p class="motor-frase" id="motor-frase">Una mirada integral <em>para comprender qué está detrás de tus síntomas.</em></p>
     </div>
 
@@ -585,7 +622,7 @@
   </div>
   <p class="flora-nota">Historias representativas basadas en motivos de consulta frecuentes, con datos protegidos.</p>
 
-  <div class="flora-resenas" style="margin-top:2.5rem;padding:0 clamp(1.25rem,5vw,5rem)">
+  <div class="flora-resenas" style="margin-top:2.5rem;padding:0 var(--margen-x)">
     <p class="eyebrow" style="color:var(--teal)">Reseñas verificables</p>
     <div id="resenas-carga" style="text-align:center;padding:2rem;opacity:.7">Cargando reseñas reales de Google…</div>
     <div id="resenas-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem"></div>
@@ -623,24 +660,23 @@
             <span class="blog-cat">Medicina funcional</span>
             <h3 class="rev">Qué es la causa raíz (y por qué casi nadie te la explica)</h3>
             <p>Casi todos los tratamientos apuntan al síntoma. Acá te contamos qué significa realmente ir a la raíz, y por qué cambia todo el enfoque.</p>
-            <a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Leer artículo →</a>
+            <div class="blog-ctas"><a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Leer artículo →</a><a class="btn btn-ghost" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Ver todos los artículos</a></div>
           </div>
           <div class="blog-texto-slide blog-texto-slide--2">
             <span class="blog-cat">Nutrición</span>
             <h3 class="rev">Cinco señales de que tu intestino te está hablando</h3>
             <p>Hinchazón, cansancio, piel sensible, resfríos a repetición: no son cosas sueltas. Son formas en que el cuerpo pide que le prestes atención.</p>
-            <a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Leer artículo →</a>
+            <div class="blog-ctas"><a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Leer artículo →</a><a class="btn btn-ghost" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Ver todos los artículos</a></div>
           </div>
           <div class="blog-texto-slide blog-texto-slide--3">
             <span class="blog-cat">Bienestar</span>
             <h3 class="rev">Sanar no es apagar síntomas, es escuchar el cuerpo</h3>
             <p>Cuando la solución solo tapa lo que sientes, vuelve. Te contamos cómo se ve un cambio que sí se sostiene en el tiempo.</p>
-            <a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Leer artículo →</a>
+            <div class="blog-ctas"><a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Leer artículo →</a><a class="btn btn-ghost" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Ver todos los artículos</a></div>
           </div>
         </div>
       </div>
     </div>
-    <a class="btn btn-ghost" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Ver todos los artículos</a>
   </div>
 </section>
 
@@ -655,7 +691,7 @@
     <div class="faq-lista">
       <details class="faq-item">
         <summary>¿Las consultas son 100% online?</summary>
-        <div class="faq-r"><p>Sí. La primera consulta dura entre 60 y 90 minutos por videollamada, y atendemos pacientes de cualquier parte de Chile — no necesitas estar en Antofagasta.</p></div>
+        <div class="faq-r"><p>Sí. La primera consulta dura 50 minutos por videollamada, y atendemos pacientes de cualquier parte de Chile — no necesitas estar en Antofagasta.</p></div>
       </details>
       <details class="faq-item">
         <summary>¿Necesito exámenes previos para agendar?</summary>
@@ -690,7 +726,7 @@
   <canvas id="lienzo-flor" aria-hidden="true"></canvas>
   <div class="cta-copy">
     <h2 class="display rev" id="h2-final">El desierto florece. <em>Tu cuerpo también puede.</em></h2>
-    <p>Consulta online de 60 a 90 minutos, directo con la Dra. Yusneily Sánchez. Desde Antofagasta para todo Chile.</p>
+    <p>Consulta online de 50 minutos, directo con la Dra. Yusneily Sánchez. Desde Antofagasta para todo Chile.</p>
     <div class="cta-botones">
       <a class="btn btn-solido" data-cursor href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Agendar mi primera consulta</a>
       <a class="btn btn-ghost" data-cursor href="https://wa.me/56974843834?text=Hola%2C%20me%20gustar%C3%ADa%20agendar%20una%20consulta%20con%20la%20Dra.%20Yusneily%20S%C3%A1nchez" target="_blank" rel="noopener">Escribir por WhatsApp</a>
@@ -713,7 +749,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/></svg>
         </a>
         <a href="https://wa.me/56974843834" target="_blank" rel="noopener" aria-label="WhatsApp">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2A10 10 0 0 0 2 12a9.9 9.9 0 0 0 1.5 5.2L2 22l5-1.4A10 10 0 1 0 12 2Z"/><path d="M8 12.3c0 2.6 2.9 5.4 5.4 5.4.9 0 1.7-.6 1.9-1.4l.1-.7-1.9-1-.6.8a5.6 5.6 0 0 1-2.6-2.6l.8-.6-1-1.9-.7.1c-.8.2-1.4 1-1.4 1.9Z" fill="currentColor" stroke="none"/></svg>
+          <svg class="ico-wsp" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
         </a>
       </div>
     </div>

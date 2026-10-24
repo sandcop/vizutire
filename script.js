@@ -170,8 +170,26 @@ var terreno = (function(){
     }
   }
 
+  // Recorre la silueta: en escritorio, segmentos rectos; en mobile, curvas que pasan
+  // por el punto medio de cada par (sin quiebres). conLinea: continúa un camino ya iniciado.
+  function trazarCurva(p, continuar){
+    var n = p.length;
+    if (!movil){
+      for (var i=0;i<n;i++){ if (i===0 && !continuar) ctx.moveTo(p[i][0], p[i][1]); else ctx.lineTo(p[i][0], p[i][1]); }
+      return;
+    }
+    if (continuar) ctx.lineTo(p[0][0], p[0][1]); else ctx.moveTo(p[0][0], p[0][1]);
+    for (var j=1;j<n-1;j++){
+      ctx.quadraticCurveTo(p[j][0], p[j][1], (p[j][0]+p[j+1][0])/2, (p[j][1]+p[j+1][1])/2);
+    }
+    ctx.lineTo(p[n-1][0], p[n-1][1]);
+  }
   function ridge(noiseFn, y0, amp, freq, t, harsh, color, rim){
-    var pasos = movil ? 70 : 130;
+    // En mobile el ancho es poco: con la misma frecuencia y altura que en escritorio
+    // las crestas quedan angostas y altas (picudas). Ahí las ondulaciones son más
+    // anchas y bajas, casi sin el temblor fino, y el trazo se suaviza con curvas.
+    if (movil){ freq *= 0.6; amp *= 0.7; harsh *= 0.15; }
+    var pasos = movil ? 56 : 130;
     ctx.beginPath();
     ctx.moveTo(0, H);
     var puntos = [];
@@ -182,18 +200,15 @@ var terreno = (function(){
         + (nh(i/pasos*freq*6) - 0.5) * amp * 0.55 * harsh
         + Math.sin(t*0.6 + i*0.18) * 1.6;
       puntos.push([x,y]);
-      ctx.lineTo(x,y);
     }
+    trazarCurva(puntos, true);
     ctx.lineTo(W,H);
     ctx.closePath();
     ctx.fillStyle = color;
     ctx.fill();
     if (rim > 0.01){
       ctx.beginPath();
-      for (var j=0;j<puntos.length;j++){
-        if (j===0) ctx.moveTo(puntos[j][0], puntos[j][1]);
-        else ctx.lineTo(puntos[j][0], puntos[j][1]);
-      }
+      trazarCurva(puntos, false);
       ctx.strokeStyle = 'rgba(242,166,90,'+(rim).toFixed(3)+')';
       ctx.lineWidth = 1.1;
       ctx.stroke();
@@ -325,10 +340,19 @@ var gotaFondo = (function(){
   var lluvia = [], anillos = [];    // interaccion: toca y llueve
   var mx = 0;                        // parallax sutil de mouse
 
+  // En mobile el título ocupa la parte de arriba de la escena: el hilo y la
+  // gota nacen debajo de él (si no, la gota se forma encima de las letras).
+  var bajoTitulo = 0;
+  function medirTitulo(){
+    bajoTitulo = 0;
+    var head = document.querySelector('.metodo-head');
+    if (!movil || !head) return;
+    bajoTitulo = head.getBoundingClientRect().bottom - cv.getBoundingClientRect().top;
+  }
   function geo(){
     return {
       x: movil ? W*0.5 : W*0.32,
-      yIni: movil ? H*0.20 : H*0.22,
+      yIni: movil ? Math.max(H*0.20, bajoTitulo + 26) : H*0.22,
       yFin: movil ? H*0.52 : H*0.74,
       r: movil ? 14 : 19
     };
@@ -336,6 +360,7 @@ var gotaFondo = (function(){
 
   function resize(){
     W = cv.clientWidth; H = cv.clientHeight;
+    medirTitulo();
     cv.width = W*DPR; cv.height = H*DPR;
     ctx.setTransform(DPR,0,0,DPR,0,0);
     draw(performance.now());
@@ -463,13 +488,15 @@ var gotaFondo = (function(){
     var t = clamp(p4 - s, 0, 1);
 
     // hilo: viene desde arriba — desciende del mundo anterior
-    var lg = ctx.createLinearGradient(0,0,0,yFin);
+    // (en mobile arranca bajo el título, para no cruzarlo)
+    var yHilo = movil ? Math.max(0, bajoTitulo + 4) : 0;
+    var lg = ctx.createLinearGradient(0,yHilo,0,yFin);
     lg.addColorStop(0,'rgba(127,181,171,0.24)');
     lg.addColorStop(0.22,'rgba(127,181,171,0.12)');
     lg.addColorStop(0.55,'rgba(127,181,171,0.2)');
     lg.addColorStop(1,'rgba(127,181,171,0.32)');
     ctx.strokeStyle = lg; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,yFin); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x,yHilo); ctx.lineTo(x,yFin); ctx.stroke();
 
     // perlas con destello que respira
     [0.34,0.55,0.72].forEach(function(f,i){
@@ -725,6 +752,9 @@ var gotaFondo = (function(){
 
   resize();
   window.addEventListener('resize', resize);
+  // la tipografía del título llega después del primer cálculo y cambia su alto
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(medirTitulo);
+  window.addEventListener('load', medirTitulo);
 
   if (!reduced){
     bucleVisible(document.querySelector('.acto-metodo'), function(now, reanudo){
@@ -1359,16 +1389,112 @@ if (gsapOK){
     lanzarHero = function(){ var r = lanzarHeroOriginal.apply(this, arguments); setTimeout(polvoTextos.premedir, 2600); return r; };
   }
 
-  // «Comenzar el viaje»: lleva a la primera frase. El ancla #sintomas queda a
-  // unos 270px del tope, tan cerca que el botón parecía no hacer nada.
+  // Un gesto de scroll = una frase. Dentro de la superficie (hero → frases →
+  // giro) la rueda, el dedo y las teclas no desplazan la página a pie: cada
+  // gesto lleva a la parada siguiente (o anterior), sin importar cuánto se
+  // haya scrolleado. Las paradas son el hero, el centro del tramo de cada
+  // frase y el giro; pasado el giro (hacia abajo) o sobre el hero (hacia
+  // arriba) el scroll vuelve a ser el normal. El recorrido es una animación
+  // de tiempo fijo del scroll, así que tlSup (scrub) la sigue como a
+  // cualquier otro scroll.
+  var paradas = [0];
+  for (var q = 0; q < pesos.length; q++) paradas.push((bordes[q] + bordes[q + 1]) / 2);
+  paradas.push((finFrases + 1) / 2);
+  var snapAnim = null, snapLibre = 0, ultimaRueda = 0, ultimoDelta = 0;
+
+  function zonaSup(){ var st = tlSup.scrollTrigger; return { a: st.start, b: st.end, y: window.scrollY }; }
+  function enZonaSup(z){ return z.y >= z.a - 2 && z.y <= z.b + 1; }
+  function paradaActual(z){
+    var p = clamp((z.y - z.a) / ((z.b - z.a) || 1), 0, 1), mejor = 0, d = 9;
+    for (var k = 0; k < paradas.length; k++){
+      var dk = Math.abs(paradas[k] - p);
+      if (dk < d){ d = dk; mejor = k; }
+    }
+    return mejor;
+  }
+  function irAParada(j){
+    var z = zonaSup(), destino = z.a + paradas[j] * (z.b - z.a), cur = { y: window.scrollY };
+    var htmlEl = document.documentElement, previo = htmlEl.style.scrollBehavior;
+    if (snapAnim) snapAnim.kill();
+    // html{scroll-behavior:smooth} suavizaría cada cuadro de esta misma animación
+    htmlEl.style.scrollBehavior = 'auto';
+    snapAnim = gsap.to(cur, {
+      y: destino, duration: 0.95, ease: 'power2.inOut',
+      onUpdate: function(){ window.scrollTo(0, cur.y); },
+      onComplete: function(){ snapAnim = null; snapLibre = performance.now() + 350; htmlEl.style.scrollBehavior = previo; }
+    });
+  }
+  // devuelve la parada a la que lleva el gesto, o -1 si el scroll debe ser el normal
+  function destinoSnap(dir){
+    var z = zonaSup();
+    if (!enZonaSup(z)) return -1;
+    var j = paradaActual(z) + dir;
+    return (j < 0 || j >= paradas.length) ? -1 : j;
+  }
+  function snapIgnorado(e){
+    var t = e.target;
+    if (document.documentElement.classList.contains('velado') || document.documentElement.classList.contains('menu-abierto')) return true;
+    return !!(t && t.closest && t.closest('#panel-raiz, .menu-movil'));
+  }
+
+  window.addEventListener('wheel', function(e){
+    if (e.ctrlKey || !e.deltaY || snapIgnorado(e)) return;
+    var dir = e.deltaY > 0 ? 1 : -1, j = destinoSnap(dir);
+    if (j < 0) return;
+    e.preventDefault();
+    // la inercia del trackpad sigue mandando eventos un buen rato: solo
+    // cuenta como gesto nuevo si hubo una pausa o la rueda vuelve a acelerar
+    var ahora = performance.now(), delta = Math.abs(e.deltaY);
+    var nuevo = ahora - ultimaRueda > 140 || delta > ultimoDelta + 8;
+    ultimaRueda = ahora; ultimoDelta = delta;
+    if (snapAnim || ahora < snapLibre || !nuevo) return;
+    irAParada(j);
+  }, { passive: false });
+
+  window.addEventListener('keydown', function(e){
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || snapIgnorado(e)) return;
+    var tag = e.target && e.target.tagName, dir = 0;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) return;
+    var espacio = e.key === ' ' && tag !== 'BUTTON' && tag !== 'A';
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || (espacio && !e.shiftKey)) dir = 1;
+    else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (espacio && e.shiftKey)) dir = -1;
+    if (!dir) return;
+    var j = destinoSnap(dir);
+    if (j < 0) return;
+    e.preventDefault();
+    if (!snapAnim && !e.repeat) irAParada(j);
+  });
+
+  // Táctil: mientras el dedo arrastra dentro de la zona se bloquea el scroll
+  // nativo; al soltar, un arrastre de ≥30px lleva a la frase siguiente/anterior.
+  var tocY0 = 0, tocDir = 0, tocCapturado = false;
+  document.addEventListener('touchstart', function(e){
+    tocCapturado = false;
+    if (e.touches.length === 1) tocY0 = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e){
+    if (e.touches.length !== 1 || snapIgnorado(e)) return;
+    var dy = tocY0 - e.touches[0].clientY;
+    if (!dy) return;
+    var dir = dy > 0 ? 1 : -1;
+    if (destinoSnap(dir) < 0){ tocCapturado = false; return; }
+    if (e.cancelable) e.preventDefault();
+    tocCapturado = true; tocDir = dir;
+  }, { passive: false });
+  document.addEventListener('touchend', function(e){
+    if (!tocCapturado) return;
+    tocCapturado = false;
+    var dy = tocY0 - e.changedTouches[0].clientY;
+    if (snapAnim || performance.now() < snapLibre || Math.abs(dy) < 30 || (dy > 0 ? 1 : -1) !== tocDir) return;
+    var j = destinoSnap(tocDir);
+    if (j >= 0) irAParada(j);
+  }, { passive: true });
+
+  // «Comenzar el viaje»: lleva a la primera frase.
   var btnViaje = document.getElementById('btn-viaje');
   if (btnViaje) btnViaje.addEventListener('click', function(e){
-    var sup = document.querySelector('.acto-superficie');
-    if (!sup) return;
     e.preventDefault();
-    var total = sup.offsetHeight - window.innerHeight;
-    var y = sup.getBoundingClientRect().top + window.scrollY + total * (ini + 0.02);
-    window.scrollTo({ top: y, behavior: reduced ? 'auto' : 'smooth' });
+    irAParada(1);
   });
 
   // ─── Acto 4: una gota por etapa + tarjetas cinematográficas ───
@@ -1443,8 +1569,9 @@ if (gsapOK){
       transcurrido = 0;
       if (tweenGota) tweenGota.kill();
       var inicio = i / 4;
-      // hacia atrás o volviendo a empezar: salto directo al inicio de la etapa
-      if (desdeCero || prog.p > inicio + TRAMO){ prog.p = inicio; gotaFondo.saltar(inicio); etapasCtl.update(inicio); }
+      // hacia atrás, volviendo a empezar o saltándose etapas (clic en el 4 estando
+      // en el 1): salto directo al inicio de la etapa elegida, sin pasar por las del medio
+      if (desdeCero || prog.p > inicio + TRAMO || prog.p < inicio - 0.26){ prog.p = inicio; gotaFondo.saltar(inicio); etapasCtl.update(inicio); }
       // ease lineal: el ciclo de la gota ya tiene su propia física (gravedad)
       tweenGota = gsap.to(prog, { p: inicio + TRAMO, duration: CAIDA, ease: 'none', onUpdate: aplicar });
     }
@@ -2421,8 +2548,8 @@ try{ (function(){
     var movilLocal = window.matchMedia('(max-width:920px)').matches;
     // Trazo SUTIL: casi una línea fina de arena, no una franja. Pocos granos
     // diminutos (cuadraditos de ~1px con fillRect), banda angosta y tenue.
-    var N = movilLocal ? 260 : 460;
-    var BANDA_PX = movilLocal ? 2 : 3;
+    var N = movilLocal ? 45 : 75;
+    var BANDA_PX = movilLocal ? 6 : 8;
     // Tonos de arena sobre fondo claro (más oscuros que los del hero, que
     // está sobre fondo oscuro), con pocos granos turquesa y dorados.
     var TONOS = ['168,138,96', '168,138,96', '140,112,74', '140,112,74', '118,92,60', '196,162,112',
@@ -2449,8 +2576,8 @@ try{ (function(){
       particulas.push({
         t: i / N,
         color: 'rgb(' + TONOS[(Math.random() * TONOS.length) | 0] + ')',
-        r: 0.3 + tam * tam * 0.4,                    // casi todos diminutos, pocos un poco mayores
-        alfa: polvo ? 0.14 + Math.random() * 0.2 : 0.3 + Math.random() * 0.45,
+        r: 0.8 + tam * tam * 0.6,                   // granos chicos, pocos un poco mayores
+        alfa: polvo ? 0.2 + Math.random() * 0.25 : 0.45 + Math.random() * 0.4,
         jFase: Math.random() * 6.283,
         jVel: 0.5 + Math.random() * 0.6,
         jAmp: (polvo ? 0.9 : 0.2) + Math.random() * 0.7,
@@ -2779,7 +2906,7 @@ try{ (function(){
       // un párrafo se ve bien, alrededor de una etiqueta chica de la órbita
       // se ve tosco. Se mueve suave hacia el del destino del viaje en curso.
       var ref = (viaje && viaje.B) ? viaje.B : estado;
-      var objetivo = clamp(Math.min(ref.rx, ref.ry) / 70, 0.3, 1);
+      var objetivo = clamp(Math.min(ref.rx, ref.ry) / 70, 0.6, 1);
       grosor += (objetivo - grosor) * Math.min(1, dt / 220);
 
       ctx.clearRect(0, 0, W, H);
@@ -2925,13 +3052,21 @@ try{ (function(){
     lectora.className = 'motor-sr';
     lectora.textContent = textoEtiqueta;
     etiqueta.appendChild(lectora);
-    textoEtiqueta.split('').forEach(function(ch){
-      var s = document.createElement('span');
-      s.className = 'motor-permanente-letra';
-      s.setAttribute('aria-hidden', 'true');
-      s.textContent = ch;
-      etiqueta.appendChild(s);
-      if (ch !== ' ') letrasEtiqueta.push(s);
+    // cada palabra es un bloque que no se parte: en mobile la etiqueta se
+    // acomoda en dos líneas (una palabra arriba, otra abajo)
+    textoEtiqueta.split(' ').forEach(function(palabra, pi){
+      if (pi) etiqueta.appendChild(document.createTextNode(' '));
+      var w = document.createElement('span');
+      w.className = 'motor-permanente-palabra';
+      w.setAttribute('aria-hidden', 'true');
+      palabra.split('').forEach(function(ch){
+        var s = document.createElement('span');
+        s.className = 'motor-permanente-letra';
+        s.textContent = ch;
+        w.appendChild(s);
+        letrasEtiqueta.push(s);
+      });
+      etiqueta.appendChild(w);
     });
   }
   // Mismo lenguaje que la salida de las frases del hero: cada letra se va
@@ -2959,19 +3094,41 @@ try{ (function(){
     }
   }
 
-  // Las 11 áreas sobre una elipse alrededor de la palabra, empezando arriba
-  // y en sentido horario (mismo orden que los datos de `escenas`).
+  // Las 11 áreas sobre un círculo perfecto alrededor de la palabra, empezando arriba y
+  // en sentido horario (mismo orden que los datos de escenas). El punto de cada área
+  // está EXACTAMENTE sobre el círculo y su nombre sale hacia afuera (a la derecha en
+  // la mitad derecha, a la izquierda en la mitad izquierda, centrado arriba): así la
+  // forma se lee como círculo aunque los nombres midan distinto. El radio va en
+  // píxeles (no en % del alto y del ancho, que lo deformaba en elipse) y es el mayor
+  // que deja todos los nombres dentro de la órbita.
   function ubicarAreas(){
     var esMovil = window.matchMedia('(max-width:920px)').matches;
-    var rx = esMovil ? 40 : 34, ry = esMovil ? 42 : 40;
-    areas.forEach(function(b, i){
-      var a = -Math.PI / 2 + i * 2 * Math.PI / areas.length;
-      b.style.setProperty('--x', (50 + Math.cos(a) * rx).toFixed(2) + '%');
-      b.style.setProperty('--y', (50 + Math.sin(a) * ry).toFixed(2) + '%');
+    var W = orbita.clientWidth, H = orbita.clientHeight;
+    if (!W || !H) return;
+    var n = areas.length, DOT = 13;   // del borde del botón al centro de su punto
+    var R = H / 2 - (esMovil ? 28 : 24);
+    if (esMovil) R = Math.min(R, W / 2 - 72);   // ahí solo se ve el nombre del área activa (~140px)
+    areas.forEach(function(b, k){
+      var a = -Math.PI / 2 + k * 2 * Math.PI / n, c = Math.cos(a);
+      var lado = esMovil ? 'centro' : (c > 0.2 ? 'der' : c < -0.2 ? 'izq' : 'centro');
+      b.classList.toggle('lado-der', lado === 'der');
+      b.classList.toggle('lado-izq', lado === 'izq');
+      if (lado !== 'centro'){
+        var libre = W / 2 - 8 + DOT - b.offsetWidth;
+        R = Math.min(R, libre / Math.abs(c));
+      }
+    });
+    R = Math.max(60, R);
+    areas.forEach(function(b, k){
+      var a = -Math.PI / 2 + k * 2 * Math.PI / n;
+      b.style.setProperty('--x', (W / 2 + Math.cos(a) * R).toFixed(1) + 'px');
+      b.style.setProperty('--y', (H / 2 + Math.sin(a) * R).toFixed(1) + 'px');
     });
   }
   ubicarAreas();
   window.addEventListener('resize', ubicarAreas);
+  window.addEventListener('load', ubicarAreas);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(ubicarAreas);
 
   var CIERRE = escenas.length - 1;   // la última escena es la frase de cierre
   var DUR_AREA = 6500, DUR_CIERRE = 8000;
@@ -3102,6 +3259,34 @@ try{
   var menuBtn = document.getElementById('menu-btn');
   var menuMovil = document.getElementById('menu-movil');
   var menuCerrar = document.getElementById('menu-cerrar');
+
+  // Posts recientes del menú: los 3 últimos del mismo blog (Sanity); si no responde
+  // quedan los títulos de respaldo que trae el HTML.
+  var listaPostsMenu = document.getElementById('mm-posts-lista');
+  if (listaPostsMenu && window.fetch){
+    var consultaPosts = encodeURIComponent('*[_type == "post"] | order(publishedAt desc)[0...3] { title, slug, publishedAt }');
+    fetch('https://zu3r11hb.api.sanity.io/v2021-10-21/data/query/production?query=' + consultaPosts)
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d.result || !d.result.length) return;
+        listaPostsMenu.innerHTML = '';
+        d.result.forEach(function(post){
+          var a = document.createElement('a');
+          a.className = 'mm-post';
+          a.target = '_blank'; a.rel = 'noopener';
+          a.href = 'https://kairal.cl/blog.html?slug=' + encodeURIComponent((post.slug && post.slug.current) || '');
+          a.appendChild(document.createTextNode(post.title));
+          if (post.publishedAt){
+            var f = document.createElement('small');
+            f.textContent = new Date(post.publishedAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' });
+            a.appendChild(f);
+          }
+          listaPostsMenu.appendChild(a);
+        });
+      })
+      .catch(function(){ /* sin red: se quedan los de respaldo */ });
+  }
+
   if (menuBtn && menuMovil){
     function toggleMenu(abrir){
       var open = abrir !== undefined ? abrir : !menuMovil.classList.contains('abierto');
@@ -3189,7 +3374,7 @@ try{
       { k:['servicio','medicina funcional','pni','psiconeuro','bioregul','ofrec'],
         r:'Kairal trabaja con un enfoque de Medicina Funcional: en vez de tratar cada síntoma por separado, busca la causa raíz conectando metabolismo, hormonas, sistema nervioso, inmune y más. Puedes explorarlo en la sección "Servicios" de esta página.' },
       { k:['metodo','método','proceso','como trabajan','pasos','evaluacion','diagnostico'],
-        r:'El método tiene 4 etapas: Escuchar (evaluación de 60–90 min), Mapear (laboratorios funcionales), Sembrar (plan personalizado) y Cultivar (seguimiento continuo). Puedes verlo animado en la sección "El método".' },
+        r:'El método tiene 4 etapas: Escuchar (evaluación de 50 min), Mapear (laboratorios funcionales), Sembrar (plan personalizado) y Cultivar (seguimiento continuo). Puedes verlo animado en la sección "El método".' },
       { k:['precio','costo','valor','cuanto cuesta','plata','arancel'],
         r:'Los valores pueden variar según el tipo de consulta y exámenes necesarios — para darte un número exacto y no equivocarme, lo mejor es que lo confirmes directo por WhatsApp. ¿Te comparto el contacto?' },
       { k:['agendar','cita','hora','reservar','consulta'],
@@ -3495,7 +3680,8 @@ try{
       '<span class="blog-cat">' + cat + '</span>' +
       '<h3 class="rev">' + titulo + '</h3>' +
       '<p>' + teaser + '</p>' +
-      '<a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html?slug=' + encodeURIComponent(slug) + '" target="_blank" rel="noopener">Leer artículo →</a>' +
+      '<div class="blog-ctas"><a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html?slug=' + encodeURIComponent(slug) + '" target="_blank" rel="noopener">Leer artículo →</a>' +
+      '<a class="btn btn-ghost" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Ver todos los artículos</a></div>' +
       '</div>';
   }
   // Arma la tarjeta única con los 3 posts sincronizados (imagen y texto
