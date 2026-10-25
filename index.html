@@ -52,26 +52,7 @@
 }
 </script>
 
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-59B7SRB9L4');
-  // La librería de Analytics (~160 KB) se descarga DESPUÉS de que la página
-  // cargó: al primer toque/scroll/tecla, o a los 3s del load. Los eventos de
-  // arriba quedan en dataLayer y se envían igual cuando llega.
-  (function(){
-    var cargado = false;
-    function cargar(){
-      if (cargado) return; cargado = true;
-      var s = document.createElement('script'); s.async = true;
-      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-59B7SRB9L4';
-      document.head.appendChild(s);
-    }
-    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function(ev){ addEventListener(ev, cargar, { once: true, passive: true }); });
-    addEventListener('load', function(){ setTimeout(cargar, 3000); });
-  })();
-</script>
+<!-- Google Analytics ya no se carga aquí: lo activa cookies.js solo si la persona acepta la medición -->
 
 <!-- La experiencia está diseñada para arrancar SIEMPRE desde el hero (con
      el preloader y su narrativa de scroll). Si el navegador restaura la
@@ -111,7 +92,7 @@
     <a class="link" href="#doctora">La doctora</a>
     <a class="link" href="#blog">Blog</a>
     <a class="link" href="#faq">Preguntas</a>
-    <a class="btn btn-ghost" data-cursor href="https://kairal.cl/autoevaluacion">Autoevaluación</a>
+    <a class="btn btn-ghost" data-cursor href="autoevaluacion.html">Autoevaluación</a>
   </nav>
   <button class="menu-btn" id="menu-btn" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu-movil">
     <span></span><span></span><span></span>
@@ -141,8 +122,9 @@
     <a href="#doctora">La doctora</a>
     <a href="#floraciones">Historias</a>
     <a href="#blog">Blog</a>
+    <a href="#recursos">Guías gratis</a>
     <a href="#faq">Preguntas frecuentes</a>
-    <a href="https://kairal.cl/autoevaluacion">Haz tu autoevaluación</a>
+    <a href="autoevaluacion.html">Haz tu autoevaluación</a>
   </nav>
 
   <a class="btn btn-reserva mm-cta" href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Agendar cita</a>
@@ -239,6 +221,9 @@
         <p class="eyebrow">Bajo la superficie</p>
         <h2 class="display">Ningún síntoma vive solo.</h2>
         <p class="raiz-intro">Tus sistemas conversan entre sí, todo el tiempo.</p>
+        <div class="cta-seccion cta-seccion--compacta">
+      <a class="btn btn-reserva" data-cursor href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Quiero encontrar mi causa raíz <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
       </header>
 
       <div class="raiz-escena">
@@ -322,21 +307,28 @@
           <article class="raiz-texto" data-i="0" style="--c:var(--alba);--y:39%">
             <h3>Sistema neuroendocrino</h3>
             <p>El estrés crónico enciende la inflamación y altera tu digestión. Integra cerebro, cortisol, tiroides y hormonas — tu eje cerebro-cuerpo dirige la orquesta.</p>
+            <button type="button" class="raiz-volver">← Ver la red completa</button>
           </article>
           <article class="raiz-texto" data-i="1" style="--c:var(--bruma);--y:47%">
             <h3>Sistema digestivo</h3>
             <p>Tu microbiota conversa con tu cerebro. Literalmente: ansiedad y digestión suelen ser la misma historia.</p>
+            <button type="button" class="raiz-volver">← Ver la red completa</button>
           </article>
           <article class="raiz-texto" data-i="2" style="--c:var(--flor);--y:66%">
             <h3>Sistema inmune</h3>
             <p>Un sistema inmune desregulado deja de proteger y empieza a atacar. Su equilibrio se decide en gran parte en tu intestino.</p>
+            <button type="button" class="raiz-volver">← Ver la red completa</button>
           </article>
           <article class="raiz-texto" data-i="3" style="--c:var(--duna);--y:73%">
             <h3>Sistema metabólico</h3>
             <p>La resistencia a la insulina te roba la energía antes de que la sientas. Es el pilar silencioso detrás de la fatiga.</p>
+            <button type="button" class="raiz-volver">← Ver la red completa</button>
           </article>
-          <div class="raiz-cierre" style="--y:86%">
-            <p>«Por eso tratarlos por separado no funciona.<br>La medicina funcional lee la red completa.»</p>
+          <!-- Estado inicial (nada elegido): explica el concepto y pide hacer clic. Al elegir
+               un sistema se reemplaza por su texto, que trae «Ver la red completa» para volver. -->
+          <div class="raiz-cierre" style="--y:44%">
+            <p class="raiz-concepto">Tu cuerpo es una red: lo que pasa en un sistema se siente en los demás. Por eso tratarlos por separado no funciona; la medicina funcional lee la red completa.</p>
+            <p class="raiz-invita"><span class="raiz-invita-punto" aria-hidden="true"></span>Haz clic en cada sistema para ver cómo se conecta</p>
           </div>
         </div>
       </div>
@@ -353,6 +345,9 @@
       <p class="eyebrow">El método Kairal</p>
       <h2 class="display">Como el agua en el desierto:<br>llega por etapas.</h2>
       <p class="metodo-hint" id="metodo-hint">Toca un número para elegir la etapa · toca la escena y llueve</p>
+      <div class="cta-seccion cta-seccion--compacta">
+      <a class="btn btn-reserva" data-cursor href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Reserva tu etapa 1: Escuchar <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
     </div>
 
     <div class="numeros-etapa" aria-label="Ir a una etapa del método">
@@ -443,6 +438,9 @@
       <p>Mi visión cambió cuando comprendí, primero en mi propio hogar, que la salud no se trata solo de controlar síntomas, sino de descubrir <strong>qué nos quiere decir nuestro sistema corporal</strong> y tratar las causas que nos conducen al desbalance.</p>
       <p>Cuando encontramos la raíz, las soluciones dejan de apagar síntomas, dejan de ser temporales — y se convierten en transformación real. El estrés, la nutrición, el sueño, las emociones y el entorno importan. Todo conversa.</p>
       <p class="firma">«Sanar no debe ser complicado. Debe ser sostenible.»</p>
+      <div class="cta-seccion">
+      <a class="btn btn-reserva" data-cursor href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Agenda con la Dra. Yusneily <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
 
       <div class="viaje" id="viaje">
         <p class="eyebrow" style="color:var(--teal)">Un viaje de formación en cuatro países</p>
@@ -527,6 +525,10 @@
   <div class="motor-cabecera contenedor">
     <p class="eyebrow" style="color:var(--teal)">Cómo trabajamos contigo</p>
     <h2 class="display rev">Un solo <em>enfoque</em>, muchas conexiones</h2>
+    <div class="cta-seccion">
+      <p>¿Reconoces alguna de estas áreas en ti?</p>
+      <a class="btn btn-reserva" data-cursor href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Cuéntame tu caso <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
   </div>
 
   <div class="motor-fijo" id="motor-fijo">
@@ -621,6 +623,12 @@
 
   </div>
   <p class="flora-nota">Historias representativas basadas en motivos de consulta frecuentes, con datos protegidos.</p>
+  <div class="contenedor">
+    <div class="cta-seccion">
+      <p>Cada una de estas historias empezó con una primera consulta.</p>
+      <a class="btn btn-reserva" data-cursor href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Quiero empezar la mía <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+  </div>
 
   <div class="flora-resenas" style="margin-top:2.5rem;padding:0 var(--margen-x)">
     <p class="eyebrow" style="color:var(--teal)">Reseñas verificables</p>
@@ -677,10 +685,74 @@
         </div>
       </div>
     </div>
+    <div class="cta-seccion">
+      <p>¿Te identificaste con lo que leíste?</p>
+      <a class="btn btn-reserva" data-cursor href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Lleva tu caso a una consulta <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
   </div>
 </section>
 
 <!-- ════ FAQ ════ -->
+<!-- ════ RECURSOS DESCARGABLES ════ -->
+<section class="acto-recursos" id="recursos">
+  <div class="contenedor">
+    <div class="recursos-panel reveal-recursos">
+      <header class="recursos-cab">
+        <p class="eyebrow">Descarga gratis</p>
+        <h2 class="display rev">Guías para empezar <em>hoy mismo.</em></h2>
+        <p class="recursos-lede">Herramientas prácticas para comenzar a entender tu cuerpo. Déjanos tu correo y la descarga parte al instante.</p>
+      </header>
+
+      <div class="recursos-grid">
+        <article class="recurso">
+          <span class="recurso-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></span>
+          <p class="recurso-tag">PDF · Autoevaluación</p>
+          <h3>¿Qué le está pasando a tu cuerpo?</h3>
+          <p>Test rápido de 10 minutos para identificar qué sistema necesita atención, aunque tus exámenes estén «normales».</p>
+          <button type="button" class="btn btn-solido" data-cursor data-recurso="autoevaluacion_funcional" data-titulo="¿Qué le está pasando a tu cuerpo?" data-archivo="recursos/autoevaluacion_funcional.pdf">Descargar gratis <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg></button>
+        </article>
+        <article class="recurso">
+          <span class="recurso-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></span>
+          <p class="recurso-tag">PDF · Energía</p>
+          <h3>¿Por qué me siento tan cansado/a?</h3>
+          <p>6 hábitos cotidianos que agotan tu energía sin que lo sepas, y qué hacer en cada caso.</p>
+          <button type="button" class="btn btn-solido" data-cursor data-recurso="habitos_energia" data-titulo="¿Por qué me siento tan cansado/a?" data-archivo="recursos/habitos_energia.pdf">Descargar gratis <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg></button>
+        </article>
+        <article class="recurso">
+          <span class="recurso-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.5 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5-6.5"/></svg></span>
+          <p class="recurso-tag">PDF · Alimentación</p>
+          <h3>Qué comer para reducir la inflamación</h3>
+          <p>Guía práctica con los mejores alimentos para tu intestino, tu sistema inmune y tus niveles de energía.</p>
+          <button type="button" class="btn btn-solido" data-cursor data-recurso="lista_antiinflamatoria" data-titulo="Qué comer para reducir la inflamación" data-archivo="recursos/lista_antiinflamatoria.pdf">Descargar gratis <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg></button>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Ventana para dejar el correo antes de descargar -->
+<div class="rec-modal" id="rec-modal" role="dialog" aria-modal="true" aria-labelledby="rec-modal-titulo" aria-hidden="true">
+  <div class="rec-modal-caja">
+    <button class="rec-modal-cerrar" id="rec-modal-cerrar" type="button" aria-label="Cerrar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+    <p class="eyebrow">Descarga gratis</p>
+    <h3 id="rec-modal-titulo">Tu guía</h3>
+    <p class="rec-modal-sub">Déjanos tu correo y la descarga comienza al instante.</p>
+    <form id="rec-form" novalidate>
+      <label class="rec-label" for="rec-nombre">Tu nombre <span>(opcional)</span></label>
+      <input class="rec-input" type="text" id="rec-nombre" autocomplete="given-name" maxlength="60" placeholder="María">
+      <label class="rec-label" for="rec-email">Tu correo electrónico</label>
+      <input class="rec-input" type="email" id="rec-email" autocomplete="email" maxlength="254" required placeholder="tucorreo@ejemplo.cl">
+      <label class="rec-check">
+        <input type="checkbox" id="rec-consent" required>
+        <span>Autorizo el uso de mi correo (y de mi nombre, si lo indico) para enviarme esta guía y para recibir contenidos de medicina funcional de Kairal, según la <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>. Puedo darme de baja cuando quiera.</span>
+      </label>
+      <p class="rec-error" id="rec-error" role="alert" hidden></p>
+      <button class="btn btn-reserva" type="submit" id="rec-enviar">Descargar guía</button>
+    </form>
+  </div>
+</div>
+<div class="rec-aviso" id="rec-aviso" role="status" aria-live="polite" hidden></div>
+
 <section class="acto-faq" id="faq">
   <div class="contenedor faq-grid">
     <div class="faq-cab">
@@ -713,6 +785,10 @@
         <summary>¿Cómo agendo mi primera consulta?</summary>
         <div class="faq-r"><p>Con el botón "Agendar mi primera consulta" de esta página, que te lleva directo al calendario de la Dra. Sánchez, o escribiendo por WhatsApp si prefieres coordinar antes.</p></div>
       </details>
+      <div class="cta-seccion">
+      <p>¿Te quedó alguna duda? Se resuelve en tu consulta de 50 minutos.</p>
+      <a class="btn btn-reserva" data-cursor href="https://encuadrado.com/p/dra-yusneily-katherine-sanchez" target="_blank" rel="noopener">Reserva y resuelve tus dudas <svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
     </div>
   </div>
 </section>
@@ -732,7 +808,7 @@
       <a class="btn btn-ghost" data-cursor href="https://wa.me/56974843834?text=Hola%2C%20me%20gustar%C3%ADa%20agendar%20una%20consulta%20con%20la%20Dra.%20Yusneily%20S%C3%A1nchez" target="_blank" rel="noopener">Escribir por WhatsApp</a>
     </div>
     <p class="micro">Atención directa con la doctora · Sin listas de espera eternas</p>
-    <p class="micro">¿Prefieres partir con algo más liviano? <a href="https://kairal.cl/autoevaluacion" style="color:var(--bruma);text-decoration:underline">Haz la autoevaluación</a> — el informe te muestra el patrón, la consulta es donde se entiende el porqué.</p>
+    <p class="micro">¿Prefieres partir con algo más liviano? <a href="autoevaluacion.html" style="color:var(--bruma);text-decoration:underline">Haz la autoevaluación</a> — el informe te muestra el patrón, la consulta es donde se entiende el porqué.</p>
   </div>
 </section>
 
@@ -763,10 +839,15 @@
     </div>
     <div>
       <h4>Más</h4>
-      <a href="https://kairal.cl/autoevaluacion">Autoevaluación</a>
+      <a href="autoevaluacion.html">Autoevaluación</a>
       <a href="#blog">Blog</a>
+      <a href="#recursos">Guías gratis</a>
       <a href="#faq">Preguntas frecuentes</a>
       <a href="#" id="footer-abrir-raiz">Habla con Raíz</a>
+      <a href="privacidad.html">Política de privacidad</a>
+      <a href="cookies.html">Cookies</a>
+      <a href="terminos.html">Términos de uso</a>
+      <a href="#" data-cookies-prefs>Preferencias de cookies</a>
     </div>
     <div>
       <h4>Contacto</h4>
@@ -776,7 +857,7 @@
     </div>
   </div>
   <div class="contenedor legal">
-    <span>© 2026 Kairal · Dra. Yusneily Sánchez. Todos los derechos reservados.</span>
+    <span>© 2026 Kairal · Yusneily Katherin Sánchez Seco · RUT 27.045.559-K · Servicios médicos. Todos los derechos reservados.</span>
     <span>Antofagasta · Desierto de Atacama · Chile</span>
   </div>
 </footer>
@@ -819,7 +900,7 @@
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2A10 10 0 0 0 2 12a9.9 9.9 0 0 0 1.5 5.2L2 22l5-1.4A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.6 0a6.7 6.7 0 0 1-2-1.2 7.4 7.4 0 0 1-1.4-1.7c-.1-.3 0-.4.1-.5l.4-.5a1.8 1.8 0 0 0 .3-.4.5.5 0 0 0 0-.5c0-.1-.6-1.4-.8-1.9s-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 2.9 2.9 0 0 0-.9 2.2 5 5 0 0 0 1 2.7 11.4 11.4 0 0 0 4.4 3.9 14.6 14.6 0 0 0 1.5.5 3.5 3.5 0 0 0 1.6.1 2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .2-1.2c-.1-.1-.3-.2-.6-.3Z"/></svg>
 </a>
 <div class="barra-movil" id="barra-movil">
-  <a class="btn btn-solido" href="https://kairal.cl/autoevaluacion">Haz tu autoevaluación</a>
+  <a class="btn btn-solido" href="autoevaluacion.html">Haz tu autoevaluación</a>
 </div>
 <button class="toggle-sonido" id="toggle-sonido" aria-pressed="false" aria-label="Activar sonido ambiental del desierto">
   <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="etiqueta">Sonido</span>
@@ -830,6 +911,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="script.js"></script>
+<script src="recursos.js"></script>
+<script src="cookies.js"></script>
 <script src="script-eyebrow.js"></script>
 </body>
 </html>

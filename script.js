@@ -347,12 +347,15 @@ var gotaFondo = (function(){
     bajoTitulo = 0;
     var head = document.querySelector('.metodo-head');
     if (!movil || !head) return;
-    bajoTitulo = head.getBoundingClientRect().bottom - cv.getBoundingClientRect().top;
+    var fin = head.getBoundingClientRect().bottom - cv.getBoundingClientRect().top;
+    // el CSS usa este alto para poner la línea «0X / ETAPA» de la tarjeta bajo el título
+    cv.parentNode.style.setProperty('--cabeza-bajo', fin.toFixed(0) + 'px');
+    bajoTitulo = fin;
   }
   function geo(){
     return {
       x: movil ? W*0.5 : W*0.32,
-      yIni: movil ? Math.max(H*0.20, bajoTitulo + 26) : H*0.22,
+      yIni: movil ? Math.max(H*0.20, bajoTitulo + 70) : H*0.22,
       yFin: movil ? H*0.52 : H*0.74,
       r: movil ? 14 : 19
     };
@@ -488,8 +491,8 @@ var gotaFondo = (function(){
     var t = clamp(p4 - s, 0, 1);
 
     // hilo: viene desde arriba — desciende del mundo anterior
-    // (en mobile arranca bajo el título, para no cruzarlo)
-    var yHilo = movil ? Math.max(0, bajoTitulo + 4) : 0;
+    // (en mobile arranca bajo el título y la línea «0X / ETAPA», para no cruzarlos)
+    var yHilo = movil ? Math.max(0, bajoTitulo + 44) : 0;
     var lg = ctx.createLinearGradient(0,yHilo,0,yFin);
     lg.addColorStop(0,'rgba(127,181,171,0.24)');
     lg.addColorStop(0.22,'rgba(127,181,171,0.12)');
@@ -974,6 +977,10 @@ if (gsapOK){
         var ch = letras[j].textContent;
         if (!ch || !ch.trim()) continue;
         var cs = getComputedStyle(letras[j]), rr = rects[j];
+        // el texto real puede ir en mayúsculas por CSS (text-transform): la foto de la arena
+        // tiene que dibujar lo mismo que se ve, o al terminar de formarse el texto «cambia»
+        if (cs.textTransform === 'uppercase') ch = ch.toUpperCase();
+        else if (cs.textTransform === 'lowercase') ch = ch.toLowerCase();
         cc.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + '/1 ' + cs.fontFamily;
         cc.fillStyle = cs.color;
         cc.fillText(ch, rr.left - x0, bases[j] - y0);
@@ -1242,6 +1249,7 @@ if (gsapOK){
         // el H1 se deshace en arena justo donde entra la primera frase (0.13)
         // y se rearma al volver: sin tramo intermedio con solo arena a la vista
         var fuera = self.progress >= 0.13;
+        if (fuera !== h1Fuera) document.getElementById('hero-copy').classList.toggle('hero-oculto', fuera);
         if (polvoTextos && fuera !== h1Fuera){ h1Fuera = fuera; if (fuera) polvoTextos.soltar(0); else polvoTextos.mostrar(0); }
       }
     }
@@ -1261,7 +1269,9 @@ if (gsapOK){
   // opacity:0 "desde" que grabó, no al 1 real — el hero no reaparecía.
   // Con fromTo el "desde" (opacity:1) queda explícito, sin depender de en
   // qué momento tlSup evalúe el tween por primera vez.
-  tlSup.fromTo(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas'],
+  // «Reserva tu consulta» se queda a la vista durante todas las frases: solo se retiran el
+  // eyebrow, el párrafo y «Comenzar el viaje»
+  tlSup.fromTo(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas .btn-solido'],
         { opacity:1, y:0 },
         { opacity:0, y:-70, duration:0.015, ease:'none' }, 0.115)
        .to('.indicador-scroll', { opacity:0, duration:0.04 }, 0.04);
@@ -1275,6 +1285,23 @@ if (gsapOK){
   // posición 1.0 fija la duración a 1.0 para que las posiciones absolutas
   // vuelvan a mapear 1:1 con el progreso de scroll.
   tlSup.set({}, { x: 0 }, 1);
+
+  // «Reserva tu consulta» se queda durante las frases y, al irse «Comenzar el viaje», se corre
+  // a la izquierda hasta el lugar que ese botón dejó libre (si están en la misma fila; apilados
+  // en mobile ya está en el borde izquierdo). El CSS hace el desplazamiento con una transición;
+  // acá solo se mide cuánto: offsetLeft no cambia con transformaciones, así que da lo mismo
+  // cuándo se mida.
+  function medirReserva(){
+    var ctas = document.querySelector('.hero-ctas');
+    var inicio = ctas && ctas.querySelector('.btn-solido'), reserva = ctas && ctas.querySelector('.btn-reserva');
+    if (!inicio || !reserva) return;
+    var mismaFila = Math.abs(inicio.offsetTop - reserva.offsetTop) < 4;
+    ctas.style.setProperty('--reserva-dx', mismaFila ? (inicio.offsetLeft - reserva.offsetLeft) + 'px' : '0px');
+  }
+  medirReserva();
+  window.addEventListener('resize', medirReserva);
+  window.addEventListener('load', medirReserva);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(medirReserva);
 
   // Frases-espejismo: ANCLADAS — en vez de atarlas a una fracción exacta de
   // scroll (frágil: con scroll rápido se veían aparecer/desaparecer de
@@ -1694,6 +1721,134 @@ try{ (function(){
   var textos = [].slice.call(document.querySelectorAll('.raiz-texto'));
   var cierre = document.querySelector('.raiz-cierre');
 
+  // El texto del concepto se arma con arena, palabra por palabra, mientras crecen las raíces:
+  // mismo lenguaje que las frases del hero (granos que vuelan en curva y se funden con la
+  // palabra real). Cada palabra arranca cuando la animación llega a su turno, y dura lo mismo
+  // sin importar el scroll. Es un efecto aparte del del hero (ese vive atado a su escena).
+  var polvoConcepto = (function(){
+    var parr = cierre.querySelector('.raiz-concepto'), invita = cierre.querySelector('.raiz-invita');
+    var fijo = cierre.closest('.raiz-fijo');
+    var sinEfecto = { actualizar:function(){}, terminar:function(){ if (invita) invita.classList.add('listo'); } };
+    if (!parr || !fijo || reduced || !window.gsap || !(window.requestAnimationFrame)) return sinEfecto;
+
+    var ARENA = [[226,206,170],[214,190,150],[240,222,190],[200,176,138],[150,206,190],[244,186,120]];
+    var DUR = 1150, CAP = 130;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var texto = parr.textContent.replace(/\s+/g, ' ').trim();
+    parr.textContent = '';
+    var palabras = texto.split(' ').map(function(t, i){
+      if (i) parr.appendChild(document.createTextNode(' '));
+      var s = document.createElement('span');
+      s.className = 'pw'; s.textContent = t;
+      parr.appendChild(s);
+      return { el: s, txt: t, iniciada: false, t0: 0, fin: false, granos: null, ya: false };
+    });
+    cierre.classList.add('polvo-activo');
+
+    var cv = document.createElement('canvas');
+    cv.setAttribute('aria-hidden', 'true');
+    cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6';
+    fijo.appendChild(cv);
+    var ctx = cv.getContext('2d');
+    function ajustar(){ cv.width = fijo.clientWidth * dpr; cv.height = fijo.clientHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+    ajustar();
+    window.addEventListener('resize', ajustar);
+
+    function sm(t){ t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+
+    // «Fotografía» de la palabra: dibujada con su fuente real y muestreada en pedacitos
+    function medir(w){
+      var r = w.el.getBoundingClientRect(), base = fijo.getBoundingClientRect(), cs = getComputedStyle(w.el);
+      var sonda = document.createElement('i');
+      sonda.style.cssText = 'display:inline-block;width:0;height:0';
+      w.el.appendChild(sonda);
+      var linea = sonda.getBoundingClientRect().bottom;
+      w.el.removeChild(sonda);
+      var pad = 4, bw = Math.ceil(r.width + pad * 2), bh = Math.ceil(r.height + pad * 2);
+      var c = document.createElement('canvas');
+      c.width = Math.ceil(bw * dpr); c.height = Math.ceil(bh * dpr);
+      var cc = c.getContext('2d', { willReadFrequently: true });
+      cc.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cc.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + '/1 ' + cs.fontFamily;
+      cc.fillStyle = cs.color; cc.textBaseline = 'alphabetic';
+      cc.fillText(w.txt, pad, linea - r.top + pad);
+      var d;
+      try { d = cc.getImageData(0, 0, c.width, c.height).data; } catch(e){ return []; }
+      var paso = Math.max(2, Math.round(2.2 * dpr)), celdas;
+      for (;;){
+        celdas = [];
+        for (var py = 0; py < c.height; py += paso) for (var px = 0; px < c.width; px += paso){
+          var hit = -1;
+          for (var yy = py; yy < Math.min(py + paso, c.height) && hit < 0; yy++) for (var xx = px; xx < Math.min(px + paso, c.width); xx++){
+            var ix = (yy * c.width + xx) * 4;
+            if (d[ix + 3] > 70){ hit = ix; break; }
+          }
+          if (hit >= 0) celdas.push({
+            x: r.left - base.left - pad + (px + paso / 2) / dpr, y: r.top - base.top - pad + (py + paso / 2) / dpr,
+            r: d[hit], g: d[hit + 1], b: d[hit + 2] });
+        }
+        if (celdas.length <= CAP) break;
+        paso++;
+      }
+      return celdas;
+    }
+
+    var activos = [], corriendo = false;
+    function iniciarPalabra(w){
+      w.iniciada = true; w.t0 = performance.now();
+      w.granos = medir(w).map(function(c){
+        var a = ARENA[(Math.random() * ARENA.length) | 0];
+        return { x: c.x, y: c.y, sx: c.x + (Math.random() - 0.5) * 150, sy: c.y + 24 + Math.random() * 80,
+                 r: c.r, g: c.g, b: c.b, ar: a, dl: Math.random() * 0.4, arco: (Math.random() - 0.5) * 36,
+                 lado: Math.random() < 0.7 ? 1 + Math.random() * 0.7 : 1.7 + Math.random() };
+      });
+      activos.push(w);
+      if (!corriendo){ corriendo = true; requestAnimationFrame(pintar); }
+    }
+    function pintar(now){
+      ctx.clearRect(0, 0, cv.clientWidth, cv.clientHeight);
+      for (var i = activos.length - 1; i >= 0; i--){
+        var w = activos[i], f = (now - w.t0) / DUR;
+        if (f >= 0.78 && !w.ya){ w.ya = true; w.el.classList.add('on'); }   // la palabra real aparece mientras los granos se funden
+        if (f >= 1.05){ w.fin = true; activos.splice(i, 1); continue; }
+        for (var k = 0; k < w.granos.length; k++){
+          var g = w.granos[k];
+          var lt = clamp((f - g.dl * 0.5) / 0.55, 0, 1);
+          if (lt <= 0) continue;
+          var e = lt < 0.5 ? 4 * lt * lt * lt : 1 - Math.pow(-2 * lt + 2, 3) / 2;
+          var dx = g.x - g.sx, dy = g.y - g.sy, L = Math.sqrt(dx * dx + dy * dy) || 1;
+          var arco = Math.sin(e * Math.PI) * g.arco;
+          var x = g.sx + dx * e + (-dy / L) * arco, y = g.sy + dy * e + (dx / L) * arco;
+          var a = 0.9 * sm(lt / 0.15) * (1 - sm((lt - 0.8) / 0.2));
+          if (a <= 0.01) continue;
+          ctx.globalAlpha = a;
+          ctx.fillStyle = 'rgb(' + Math.round(g.ar[0] + (g.r - g.ar[0]) * e) + ',' + Math.round(g.ar[1] + (g.g - g.ar[1]) * e) + ',' + Math.round(g.ar[2] + (g.b - g.ar[2]) * e) + ')';
+          ctx.fillRect(x - g.lado / 2, y - g.lado / 2, g.lado, g.lado);
+        }
+      }
+      ctx.globalAlpha = 1;
+      if (activos.length) requestAnimationFrame(pintar);
+      else { corriendo = false; ctx.clearRect(0, 0, cv.clientWidth, cv.clientHeight); }
+    }
+
+    return {
+      // frac: avance 0–1 de la animación de las raíces
+      actualizar: function(frac){
+        var n = palabras.length;
+        for (var i = 0; i < n; i++){
+          if (!palabras[i].iniciada && frac >= 0.04 + 0.78 * i / Math.max(1, n - 1)) iniciarPalabra(palabras[i]);
+        }
+        if (frac >= 0.9 && invita) invita.classList.add('listo');
+      },
+      // se completa todo de golpe (clic antes de que termine, o fin de la animación)
+      terminar: function(){
+        palabras.forEach(function(w){ w.iniciada = true; w.ya = true; w.fin = true; w.el.classList.add('on'); });
+        activos.length = 0;
+        if (invita) invita.classList.add('listo');
+      }
+    };
+  })();
+
   // Quién conversa con quién (los mismos "con" de la red anterior) y en
   // qué punto de cada raíz nace el filamento (fracción de su largo),
   // elegidos a mano para que no se encimen.
@@ -1773,10 +1928,12 @@ try{ (function(){
   function terminar(){
     if (listo) return;
     listo = true;
+    polvoConcepto.terminar();
     crecer(S_FIN);
     nombres.forEach(function(n, k){ n.classList.add('parpadea'); n.style.animationDelay = (k * 0.7) + 's'; });
     elegir(-1);
   }
+  [].forEach.call(document.querySelectorAll('.raiz-volver'), function(v){ v.addEventListener('click', function(){ elegir(-1); }); });
   nombres.forEach(function(b){
     b.addEventListener('click', function(){
       if (!listo){ if (anim) anim.progress(1); terminar(); }
@@ -1791,10 +1948,16 @@ try{ (function(){
   var proxy = { s: 0.9 };
   anim = gsap.to(proxy, {
     s: S_FIN - 0.05, duration: 5, ease: 'none', paused: true,
-    onUpdate: function(){ crecer(proxy.s); },
+    onUpdate: function(){ crecer(proxy.s); polvoConcepto.actualizar((proxy.s - 0.9) / (S_FIN - 0.05 - 0.9)); },
     onComplete: terminar
   });
-  ScrollTrigger.create({ trigger: pista, start: 'top 55%', once: true, onEnter: function(){ anim.play(); } });
+  ScrollTrigger.create({ trigger: pista, start: 'top 55%', once: true, onEnter: function(){
+    // el bloque del texto ya está en su sitio (las palabras, transparentes) antes de que empiece la arena
+    cierre.style.transition = 'none';
+    cierre.classList.add('visible');
+    requestAnimationFrame(function(){ cierre.style.transition = ''; });
+    anim.play();
+  } });
 })(); }catch(e){ console.error('Kairal: raíces no disponibles.', e); }
 
 /* ============================================================
@@ -1969,14 +2132,14 @@ document.querySelectorAll('.flor-svg').forEach(function(svg){
 try{ (function(){
   var carril = document.getElementById('carril');
   if (!carril) return;
-  var casos = [].slice.call(carril.querySelectorAll('.caso'));
-  if (!casos.length) return;
+  var originales = [].slice.call(carril.querySelectorAll('.caso'));
+  if (!originales.length) return;
   var flechas = [].slice.call(document.querySelectorAll('.flora-flecha'));
 
   // cielo (arriba → horizonte) distinto por historia, dentro de la paleta del sitio
   var CIELOS = [['#2b3f5c','#c97b6b'], ['#1d4a4a','#e0a463'], ['#3a2f55','#e3876a'], ['#22403a','#d9b26f']];
   var DUNAS = [['#b9845c', .55], ['#7a4a30', .8], ['#3a2418', .95]];
-  casos.forEach(function(caso, i){
+  originales.forEach(function(caso, i){
     var svg = caso.querySelector('.caso-paisaje');
     if (!svg) return;
     var seed = +svg.dataset.seed || i + 1;
@@ -2000,6 +2163,22 @@ try{ (function(){
     svg.innerHTML = h;
   });
 
+  // Bucle infinito: tres juegos de tarjetas (copias · originales · copias). Se navega siempre por
+  // el juego del medio: al pasar a una copia, el carril salta sin que se note al mismo lugar del
+  // juego del medio (la copia es idéntica y está en el mismo estado), así nunca llega a un borde vacío.
+  var n = originales.length;
+  function copia(c){
+    var k = c.cloneNode(true);
+    k.setAttribute('aria-hidden', 'true');
+    k.removeAttribute('aria-label');
+    k.setAttribute('tabindex', '-1');
+    return k;
+  }
+  var antes = originales.map(copia), despues = originales.map(copia);
+  antes.forEach(function(k){ carril.insertBefore(k, originales[0]); });
+  despues.forEach(function(k){ carril.appendChild(k); });
+  var casos = antes.concat(originales, despues);
+
   // La tarjeta activa se alinea con el borde izquierdo del título.
   var cabecera = document.querySelector('.flora-head');
   var mg = 0;
@@ -2016,16 +2195,15 @@ try{ (function(){
     return mejor;
   }
   var activa = -1;
+  // «activa» (la tarjeta grande) la llevan la tarjeta elegida y sus copias: así el salto del
+  // bucle cambia de tarjeta sin cambiar nada de lo que se ve.
   function marcar(i){
     if (i === activa) return;
     activa = i;
     casos.forEach(function(c, j){
-      c.classList.toggle('activa', j === i);
-      c.setAttribute('aria-current', j === i ? 'true' : 'false');
-    });
-    flechas.forEach(function(f){
-      var dir = +f.dataset.dir;
-      f.disabled = (dir < 0 && i === 0) || (dir > 0 && i === casos.length - 1);
+      var es = j % n === i % n;
+      c.classList.toggle('activa', es);
+      if (j >= n && j < 2 * n) c.setAttribute('aria-current', es ? 'true' : 'false');
     });
   }
   function ir(i, instantaneo){
@@ -2033,9 +2211,21 @@ try{ (function(){
     carril.scrollTo({ left: izquierdaDe(casos[i]), behavior: (instantaneo || reduced) ? 'auto' : 'smooth' });
     marcar(i);
   }
+  // Fuera del juego del medio: se salta, sin animación, a la misma tarjeta del juego del medio.
+  function centrar(){
+    if (activa < 0 || (activa >= n && activa < 2 * n)) return;
+    var destino = n + (activa % n);
+    carril.classList.add('sin-snap');
+    carril.scrollTo({ left: izquierdaDe(casos[destino]), behavior: 'auto' });
+    activa = destino;
+    // se devuelve el snap en el cuadro siguiente, ya asentado en la posición nueva
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ carril.classList.remove('sin-snap'); }); });
+  }
 
-  var pendiente = false;
+  var pendiente = false, finScroll = 0;
   carril.addEventListener('scroll', function(){
+    clearTimeout(finScroll);
+    finScroll = setTimeout(centrar, 140);   // cuando el carril deja de moverse
     if (pendiente) return;
     pendiente = true;
     requestAnimationFrame(function(){ pendiente = false; marcar(masCercana()); });
@@ -2077,7 +2267,7 @@ try{ (function(){
 
   // arranca con la primera historia centrada y activa
   medirMargen();
-  ir(0, true);
+  ir(n, true);
   window.addEventListener('resize', function(){ medirMargen(); if (activa >= 0) ir(activa, true); });
 })(); }catch(e){ console.error('Kairal: carrusel de historias no disponible.', e); }
 
