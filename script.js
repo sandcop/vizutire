@@ -342,17 +342,35 @@ var gotaFondo = (function(){
 
   // En mobile el título ocupa la parte de arriba de la escena: el hilo y la
   // gota nacen debajo de él (si no, la gota se forma encima de las letras).
-  var bajoTitulo = 0;
+  // En mobile la escena se ordena en dos columnas: a la izquierda el texto de la etapa, a la
+  // derecha los números 01–04 y, justo debajo de ellos, el hilo y la gota que cae al charco.
+  var bajoTitulo = 0, colX = 0, colBajo = 0, techoFab = 0;
   function medirTitulo(){
     bajoTitulo = 0;
     var head = document.querySelector('.metodo-head');
     if (!movil || !head) return;
-    var fin = head.getBoundingClientRect().bottom - cv.getBoundingClientRect().top;
+    var base = cv.getBoundingClientRect();
+    var fin = head.getBoundingClientRect().bottom - base.top;
     // el CSS usa este alto para poner la línea «0X / ETAPA» de la tarjeta bajo el título
     cv.parentNode.style.setProperty('--cabeza-bajo', fin.toFixed(0) + 'px');
     bajoTitulo = fin;
+    var nums = document.querySelector('.numeros-etapa'), barra = document.querySelector('.metodo-progreso');
+    if (nums){
+      var rn = nums.getBoundingClientRect();
+      colX = rn.left + rn.width / 2 - base.left;
+      colBajo = Math.max(rn.bottom, barra ? barra.getBoundingClientRect().bottom : 0) - base.top;
+    }
+    // el botón flotante del asistente está en esa misma columna: el charco tiene que quedar encima.
+    // Es fijo en la pantalla y la escena ocupa la pantalla completa, así que su borde superior se
+    // mide desde arriba de la ventana (no desde donde esté la escena al medir).
+    var fab = document.getElementById('fab-raiz');
+    techoFab = fab ? window.innerHeight - parseFloat(getComputedStyle(fab).bottom) - fab.offsetHeight : H;
   }
   function geo(){
+    if (movil && colX){
+      var ini = colBajo + 16;
+      return { x: colX, yIni: ini, yFin: Math.max(ini + 50, Math.min(H*0.74, techoFab - 30)), r: 12 };
+    }
     return {
       x: movil ? W*0.5 : W*0.32,
       yIni: movil ? Math.max(H*0.20, bajoTitulo + 70) : H*0.22,
@@ -492,7 +510,7 @@ var gotaFondo = (function(){
 
     // hilo: viene desde arriba — desciende del mundo anterior
     // (en mobile arranca bajo el título y la línea «0X / ETAPA», para no cruzarlos)
-    var yHilo = movil ? Math.max(0, bajoTitulo + 44) : 0;
+    var yHilo = movil ? (colX ? colBajo + 8 : Math.max(0, bajoTitulo + 44)) : 0;
     var lg = ctx.createLinearGradient(0,yHilo,0,yFin);
     lg.addColorStop(0,'rgba(127,181,171,0.24)');
     lg.addColorStop(0.22,'rgba(127,181,171,0.12)');
@@ -517,7 +535,7 @@ var gotaFondo = (function(){
     // estanque que CRECE con cada gota (acumulativo)
     var poolK = clamp((s + clamp((t-0.5)*2, 0, 1)) / 4, 0, 1);
     var resp = 1 + 0.02*Math.sin(tm*0.5);
-    var pw = (movil?64:108)*(1 + poolK*0.85)*resp;
+    var pw = (movil ? (colX ? 38 : 64) : 108)*(1 + poolK*0.85)*resp;   // en la columna derecha del mobile, un charco más chico
     var sup = ctx.createRadialGradient(x,yFin+6,0,x,yFin+6,pw);
     sup.addColorStop(0,'rgba(127,181,171,'+(0.13+poolK*0.1).toFixed(3)+')');
     sup.addColorStop(1,'rgba(127,181,171,0)');

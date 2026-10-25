@@ -468,13 +468,22 @@ body.reduced .metodo-progreso{display:none}
   .tarjeta-etapa{left:var(--margen-x);right:4.4rem;top:0;bottom:clamp(5.5rem,11vh,7rem);transform:none;width:auto;
     display:flex;flex-direction:column;pointer-events:none;
     text-shadow:0 1px 10px rgba(5,21,18,.9)}
-  body:not(.reduced) .tarjeta-etapa .fila.num{margin-top:calc(var(--cabeza-bajo,9rem) + .9rem)}
+  /* aire entre bloques: después del botón, entre el nombre de la etapa, su subtítulo y el párrafo.
+     Se mide en alto de pantalla para que en teléfonos bajos el texto igual quepa. */
+  body:not(.reduced) .tarjeta-etapa .fila.num{margin-top:calc(var(--cabeza-bajo,9rem) + clamp(1.4rem,4.5vh,2.6rem))}
   .tarjeta-etapa .num{color:var(--bruma)}
-  body:not(.reduced) .tarjeta-etapa h3{margin-top:auto}
+  /* el texto de la etapa sigue justo debajo de su línea; la gota cae en la columna de los números */
+  body:not(.reduced) .tarjeta-etapa h3{margin-top:clamp(.6rem,1.8vh,1.1rem);margin-bottom:clamp(.6rem,1.6vh,1rem)}
+  .tarjeta-etapa h4{margin-bottom:clamp(1rem,2.6vh,1.6rem)}
+  .tarjeta-etapa p{line-height:1.7}
+  .tarjeta-etapa svg{margin-top:clamp(1.4rem,3.4vh,2.2rem)}
   /* la sombra de 30px por letra se repintaba con cada palabra que entraba:
      en su lugar, un velo oscuro fijo detrás de la tarjeta da el mismo contraste */
-  .tarjeta-etapa::before{content:'';position:absolute;z-index:-1;top:auto;height:min(24rem,70%);right:-4.4rem;bottom:-2.5rem;left:-1.25rem;pointer-events:none;
-    background:linear-gradient(to top,rgba(5,21,18,0),rgba(5,21,18,.8) 18%,rgba(5,21,18,.55) 62%,rgba(5,21,18,0))}
+  /* solo detrás de la columna del texto: la columna derecha (números, gota y charco) queda limpia */
+  .tarjeta-etapa::before{content:'';position:absolute;z-index:-1;top:calc(var(--cabeza-bajo,9rem) - .5rem);bottom:auto;height:24rem;right:0;left:-1.25rem;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(5,21,18,0),rgba(5,21,18,.6) 15%,rgba(5,21,18,.5) 70%,rgba(5,21,18,0));
+    /* se desvanece hacia la derecha: sin borde marcado contra la columna de los números */
+    -webkit-mask-image:linear-gradient(to right,#000 70%,transparent);mask-image:linear-gradient(to right,#000 70%,transparent)}
   .tarjeta-etapa h3{font-size:clamp(2rem,9vw,2.8rem)}
   .tarjeta-etapa p{max-width:none}
 }
@@ -1281,8 +1290,8 @@ body.reduced .velo-contenido > *{transition:none}
   /* pantallas bajas: la tarjeta del método se compacta para no tocar los números 01–04 */
   .tarjeta-etapa{bottom:5.6rem}
   .tarjeta-etapa h3{font-size:1.7rem;margin:.1rem 0 .2rem}
-  .tarjeta-etapa h4{margin-bottom:.4rem}
-  .tarjeta-etapa p{font-size:.86rem;line-height:1.45}
+  .tarjeta-etapa h4{margin-bottom:.8rem}
+  .tarjeta-etapa p{font-size:.86rem;line-height:1.55}
   .tarjeta-etapa .num{font-size:.7rem}
   .tarjeta-etapa svg{display:none}
   .menu-movil{gap:1rem}
