@@ -43,7 +43,7 @@ try{
         d.result.forEach(function(post){
           var a = document.createElement('a');
           a.className = 'mm-post'; a.target = '_blank'; a.rel = 'noopener';
-          a.href = 'https://kairal.cl/blog.html?slug=' + encodeURIComponent((post.slug && post.slug.current) || '');
+          a.href = 'blog.html?slug=' + encodeURIComponent((post.slug && post.slug.current) || '');
           a.appendChild(document.createTextNode(post.title));
           if (post.publishedAt){
             var f = document.createElement('small');
