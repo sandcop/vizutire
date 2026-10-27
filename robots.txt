@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /consulta-previa-ks24.html
+
+Sitemap: https://kairal.cl/sitemap.xml

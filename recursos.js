@@ -50,7 +50,7 @@ function abrir(btn){
   errorEl.hidden = true;
   inputEmail.classList.remove('err');
   enviar.disabled = false;
-  enviar.textContent = 'Descargar guía';
+  enviar.textContent = 'Descargar mi guía';
   modal.classList.add('abierto');
   modal.setAttribute('aria-hidden', 'false');
   document.documentElement.classList.add('modal-abierto');

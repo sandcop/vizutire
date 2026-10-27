@@ -1287,8 +1287,8 @@ if (gsapOK){
   // opacity:0 "desde" que grabó, no al 1 real — el hero no reaparecía.
   // Con fromTo el "desde" (opacity:1) queda explícito, sin depender de en
   // qué momento tlSup evalúe el tween por primera vez.
-  // «Reserva tu consulta» se queda a la vista durante todas las frases: solo se retiran el
-  // eyebrow, el párrafo y «Comenzar el viaje»
+  // «Agendemos tu consulta» se queda a la vista durante todas las frases: solo se retiran el
+  // eyebrow, el párrafo y «Empecemos el viaje»
   tlSup.fromTo(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas .btn-solido'],
         { opacity:1, y:0 },
         { opacity:0, y:-70, duration:0.015, ease:'none' }, 0.115)
@@ -1304,7 +1304,7 @@ if (gsapOK){
   // vuelvan a mapear 1:1 con el progreso de scroll.
   tlSup.set({}, { x: 0 }, 1);
 
-  // «Reserva tu consulta» se queda durante las frases y, al irse «Comenzar el viaje», se corre
+  // «Agendemos tu consulta» se queda durante las frases y, al irse «Empecemos el viaje», se corre
   // a la izquierda hasta el lugar que ese botón dejó libre (si están en la misma fila; apilados
   // en mobile ya está en el borde izquierdo). El CSS hace el desplazamiento con una transición;
   // acá solo se mide cuánto: offsetLeft no cambia con transformaciones, así que da lo mismo
@@ -1445,29 +1445,49 @@ if (gsapOK){
   var paradas = [0];
   for (var q = 0; q < pesos.length; q++) paradas.push((bordes[q] + bordes[q + 1]) / 2);
   paradas.push((finFrases + 1) / 2);
-  var snapAnim = null, snapLibre = 0, ultimaRueda = 0, ultimoDelta = 0;
+  // última parada = el final de la sección: tras el giro quedaba un tramo largo de scroll con la
+  // pantalla fija y hacían falta varios gestos para salir; ahora un gesto lo cruza entero
+  paradas.push(1);
+  var snapAnim = null, snapLibre = 0, ultimaRueda = 0, ultimoDelta = 0, objetivoSnap = -1;
 
-  function zonaSup(){ var st = tlSup.scrollTrigger; return { a: st.start, b: st.end, y: window.scrollY }; }
-  function enZonaSup(z){ return z.y >= z.a - 2 && z.y <= z.b + 1; }
+  // La zona llega hasta donde empieza la sección siguiente: pasado el giro, la pantalla fija se
+  // suelta y sube durante un alto de ventana; esa última parada la cruza de un solo gesto.
+  function zonaSup(){ var st = tlSup.scrollTrigger; return { a: st.start, b: st.end, y: window.scrollY, fin: st.end + window.innerHeight }; }
+  function enZonaSup(z){ return z.y >= z.a - 2 && z.y <= z.fin + 2; }
+  function posParada(z, k){ return k === paradas.length - 1 ? z.fin : z.a + paradas[k] * (z.b - z.a); }
   function paradaActual(z){
-    var p = clamp((z.y - z.a) / ((z.b - z.a) || 1), 0, 1), mejor = 0, d = 9;
+    var mejor = 0, d = Infinity;
     for (var k = 0; k < paradas.length; k++){
-      var dk = Math.abs(paradas[k] - p);
+      var dk = Math.abs(posParada(z, k) - z.y);
       if (dk < d){ d = dk; mejor = k; }
     }
     return mejor;
   }
   function irAParada(j){
-    var z = zonaSup(), destino = z.a + paradas[j] * (z.b - z.a), cur = { y: window.scrollY };
-    var htmlEl = document.documentElement, previo = htmlEl.style.scrollBehavior;
+    var z = zonaSup(), destino = posParada(z, j), cur = { y: window.scrollY };
+    var htmlEl = document.documentElement;
     if (snapAnim) snapAnim.kill();
+    objetivoSnap = j;
     // html{scroll-behavior:smooth} suavizaría cada cuadro de esta misma animación
     htmlEl.style.scrollBehavior = 'auto';
+    // Arranca de inmediato (ease «out»: el primer cuadro ya se mueve, no hay tramo muerto al
+    // empezar) y dura según la distancia: un salto corto es rápido, el largo hacia la sección
+    // siguiente algo más. Un gesto nuevo a mitad de camino la redirige desde donde esté.
+    var dur = clamp(0.5 + Math.abs(destino - cur.y) / 2600, 0.6, 1.0);
     snapAnim = gsap.to(cur, {
-      y: destino, duration: 0.95, ease: 'power2.inOut',
+      y: destino, duration: dur, ease: 'power3.out',
       onUpdate: function(){ window.scrollTo(0, cur.y); },
-      onComplete: function(){ snapAnim = null; snapLibre = performance.now() + 350; htmlEl.style.scrollBehavior = previo; }
+      onComplete: function(){ snapAnim = null; objetivoSnap = -1; snapLibre = performance.now() + 60; htmlEl.style.scrollBehavior = ''; }
     });
+  }
+  // A qué parada lleva un gesto en esa dirección: si ya hay un viaje en marcha, la siguiente a SU destino
+  // (así dos gestos seguidos avanzan dos frases en vez de perderse el segundo); -1 = scroll normal.
+  function proximaParada(dir){
+    if (snapAnim && objetivoSnap >= 0){
+      var k = objetivoSnap + dir;
+      return (k < 0 || k >= paradas.length) ? -2 : k;   // -2: ya va al extremo, el gesto se absorbe
+    }
+    return destinoSnap(dir);
   }
   // devuelve la parada a la que lleva el gesto, o -1 si el scroll debe ser el normal
   function destinoSnap(dir){
@@ -1484,15 +1504,16 @@ if (gsapOK){
 
   window.addEventListener('wheel', function(e){
     if (e.ctrlKey || !e.deltaY || snapIgnorado(e)) return;
-    var dir = e.deltaY > 0 ? 1 : -1, j = destinoSnap(dir);
-    if (j < 0) return;
+    var dir = e.deltaY > 0 ? 1 : -1, j = proximaParada(dir);
+    if (j === -1) return;
     e.preventDefault();
+    if (j === -2) return;
     // la inercia del trackpad sigue mandando eventos un buen rato: solo
     // cuenta como gesto nuevo si hubo una pausa o la rueda vuelve a acelerar
     var ahora = performance.now(), delta = Math.abs(e.deltaY);
     var nuevo = ahora - ultimaRueda > 140 || delta > ultimoDelta + 8;
     ultimaRueda = ahora; ultimoDelta = delta;
-    if (snapAnim || ahora < snapLibre || !nuevo) return;
+    if (!nuevo || (!snapAnim && ahora < snapLibre)) return;
     irAParada(j);
   }, { passive: false });
 
@@ -1504,10 +1525,10 @@ if (gsapOK){
     if (e.key === 'ArrowDown' || e.key === 'PageDown' || (espacio && !e.shiftKey)) dir = 1;
     else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (espacio && e.shiftKey)) dir = -1;
     if (!dir) return;
-    var j = destinoSnap(dir);
-    if (j < 0) return;
+    var j = proximaParada(dir);
+    if (j === -1) return;
     e.preventDefault();
-    if (!snapAnim && !e.repeat) irAParada(j);
+    if (j >= 0 && !e.repeat) irAParada(j);
   });
 
   // Táctil: mientras el dedo arrastra dentro de la zona se bloquea el scroll
@@ -1522,7 +1543,7 @@ if (gsapOK){
     var dy = tocY0 - e.touches[0].clientY;
     if (!dy) return;
     var dir = dy > 0 ? 1 : -1;
-    if (destinoSnap(dir) < 0){ tocCapturado = false; return; }
+    if (proximaParada(dir) === -1){ tocCapturado = false; return; }
     if (e.cancelable) e.preventDefault();
     tocCapturado = true; tocDir = dir;
   }, { passive: false });
@@ -1530,12 +1551,13 @@ if (gsapOK){
     if (!tocCapturado) return;
     tocCapturado = false;
     var dy = tocY0 - e.changedTouches[0].clientY;
-    if (snapAnim || performance.now() < snapLibre || Math.abs(dy) < 30 || (dy > 0 ? 1 : -1) !== tocDir) return;
-    var j = destinoSnap(tocDir);
+    if ((!snapAnim && performance.now() < snapLibre) || Math.abs(dy) < 30 || (dy > 0 ? 1 : -1) !== tocDir) return;
+    var j = proximaParada(tocDir);
     if (j >= 0) irAParada(j);
   }, { passive: true });
 
-  // «Comenzar el viaje»: lleva a la primera frase.
+  // «Empecemos el viaje»: lleva a la primera frase.
+  window.kairalIrAFrase = function(){ irAParada(1); };
   var btnViaje = document.getElementById('btn-viaje');
   if (btnViaje) btnViaje.addEventListener('click', function(e){
     e.preventDefault();
@@ -2368,20 +2390,44 @@ window.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
 // nav de actos
-var secciones = ['inicio','sintomas','causa-raiz','metodo','doctora','floraciones','agendar'];
+var secciones = ['inicio','sintomas','causa-raiz','metodo','doctora','servicios','floraciones','agendar'];
 var navLinks = {};
 document.querySelectorAll('.actos-nav a').forEach(function(a){ navLinks[a.dataset.acto] = a; });
-var ioNav = new IntersectionObserver(function(ents){
-  ents.forEach(function(en){
-    if (en.isIntersecting){
-      var id = en.target.id;
-      Object.keys(navLinks).forEach(function(k){ navLinks[k].classList.toggle('activo', k === id); });
-    }
-  });
-}, { threshold: 0.25 });
-secciones.forEach(function(id){
-  var el = document.getElementById(id);
-  if (el && el.tagName !== 'SPAN') ioNav.observe(el);
+// Punto activo según dónde está la pantalla: la última sección cuyo borde superior ya pasó el 45%
+// de la altura. (Antes se marcaba al entrar cada sección, y las dos primeras ocupan 560vh, así que
+// nunca llegaban a marcarse; además quedaba pegado el punto anterior.) Las secciones que no tienen
+// punto (blog, guías, preguntas) apagan el punto: no se deja marcado uno que ya no corresponde.
+var ordenNav = ['inicio','causa-raiz','metodo','doctora','servicios','floraciones','blog','recursos','faq','agendar'];
+var elsNav = ordenNav.map(function(id){ return document.getElementById(id); });
+var supNav = document.querySelector('.acto-superficie');
+var navPend = false;
+function actualizarNav(){
+  navPend = false;
+  var corte = window.innerHeight * 0.45, id = 'inicio';
+  for (var q = 0; q < elsNav.length; q++){
+    if (elsNav[q] && elsNav[q].getBoundingClientRect().top <= corte) id = ordenNav[q];
+  }
+  if (id === 'inicio' && supNav){
+    // dentro de la superficie: hero hasta la primera frase, después «¿Te suena familiar?»
+    var st = supNav.getBoundingClientRect();
+    var prog = -st.top / Math.max(1, st.height - window.innerHeight);
+    if (prog >= 0.07) id = 'sintomas';
+  }
+  Object.keys(navLinks).forEach(function(k){ navLinks[k].classList.toggle('activo', k === id); });
+}
+window.addEventListener('scroll', function(){
+  if (navPend) return;
+  navPend = true;
+  requestAnimationFrame(actualizarNav);
+}, { passive: true });
+window.addEventListener('resize', actualizarNav);
+actualizarNav();
+
+// «¿Te suena familiar?»: su ancla está dentro de la pantalla fija y por sí sola dejaba la vista en el
+// hero; lleva a la primera frase, igual que «Empecemos el viaje».
+var linkSintomas = navLinks['sintomas'];
+if (linkSintomas) linkSintomas.addEventListener('click', function(e){
+  if (window.kairalIrAFrase){ e.preventDefault(); window.kairalIrAFrase(); }
 });
 
 /* ============================================================
@@ -3481,8 +3527,7 @@ try{
         d.result.forEach(function(post){
           var a = document.createElement('a');
           a.className = 'mm-post';
-          a.target = '_blank'; a.rel = 'noopener';
-          a.href = 'https://kairal.cl/blog.html?slug=' + encodeURIComponent((post.slug && post.slug.current) || '');
+                    a.href = 'blog.html?slug=' + encodeURIComponent((post.slug && post.slug.current) || '');
           a.appendChild(document.createTextNode(post.title));
           if (post.publishedAt){
             var f = document.createElement('small');
@@ -3517,15 +3562,11 @@ try{
 }catch(e){ console.error('Kairal: menú móvil no disponible.', e); }
 
 /* ============================================================
-   11 · ASISTENTE "RAÍZ" — placeholder de IA, listo para conexión futura
+   11 · ASISTENTE DE PREGUNTAS FRECUENTES (sin IA)
    ─────────────────────────────────────────────────────────────
-   Hoy responde con reglas simples por palabra clave, basadas en el
-   contenido real de la página (Servicios, Método, FAQ). El día que
-   haya un agente de IA real detrás, solo hay que reemplazar la
-   función `responderRaiz()` por una llamada a la API — la interfaz
-   (panel, burbujas, historial, chips) ya queda lista.
-   Alcance intencional: SOLO orienta sobre la clínica. Nunca da
-   consejo médico ni interpreta síntomas — eso siempre va a consulta.
+   Respuestas fijas, escritas acá. No hay cuadro de texto ni se envía
+   nada a ningún servidor: no maneja datos de nadie. Si cambian los
+   precios o los servicios, se actualizan en la lista PREGUNTAS.
 ============================================================ */
 try{
   var fabRaiz = document.getElementById('fab-raiz');
@@ -3533,20 +3574,47 @@ try{
   var cerrarRaiz = document.getElementById('raiz-cerrar');
   var nuevoRaiz = document.getElementById('raiz-nuevo');
   var cuerpoRaiz = document.getElementById('raiz-cuerpo');
-  var formRaiz = document.getElementById('raiz-form');
-  var inputRaiz = document.getElementById('raiz-input');
   var chipsRaiz = document.getElementById('raiz-chips');
   var footerAbrirRaiz = document.getElementById('footer-abrir-raiz');
-  // Estado inicial del cuerpo (saludo + disclaimer), para poder volver a él
-  // con "Nueva conversación" sin duplicar ese texto acá también.
   var estadoInicialRaiz = cuerpoRaiz ? cuerpoRaiz.innerHTML : '';
 
-  if (fabRaiz && panelRaiz){
+  if (fabRaiz && panelRaiz && chipsRaiz){
+    var URL_AGENDA = 'reservar.html';
+    var URL_WSP = 'https://wa.me/56974843834';
+    var PREGUNTAS = [
+      { q:'¿Por dónde empiezo?',
+        r:'Lo más liviano es la autoevaluación: toma unos 10 minutos, mide 4 sistemas de tu cuerpo y te envía un informe por correo. Y si ya sabes que quieres consulta, puedes agendarla directo.',
+        a:{ t:'Hacer la autoevaluación', h:'autoevaluacion.html' } },
+      { q:'¿Qué es la medicina funcional?',
+        r:'Es un enfoque que, en vez de tratar cada síntoma por separado, busca la causa raíz conectando metabolismo, hormonas, sistema nervioso e inmune. Kairal lo combina con medicina general, bioregulación y psiconeuroinmunología.',
+        a:{ t:'Ver cómo trabajamos', h:'#metodo', mismo:true } },
+      { q:'¿Cómo es el método?',
+        r:'Tiene 4 etapas: Escuchar (evaluación de 50 min), Mapear (laboratorios funcionales), Sembrar (plan personalizado) y Cultivar (seguimiento continuo).',
+        a:{ t:'Ver el método', h:'#metodo', mismo:true } },
+      { q:'¿Cuánto cuesta y cuánto dura?',
+        r:'La consulta online dura 50 minutos y hoy cuesta $65.000. Eliges tu hora en esta página y la pagas por transferencia; se puede reagendar avisando con 24 horas de anticipación.' },
+      { q:'¿Cómo agendo?',
+        r:'Con el botón «Agendemos tu consulta»: eliges día y hora, y tu hora queda retenida 60 minutos mientras haces la transferencia. Cuando la Dra. la confirma, te llega el correo con tu enlace de videollamada.',
+        a:{ t:'Agendar mi consulta', h:URL_AGENDA } },
+      { q:'¿Es online o presencial?',
+        r:'Las consultas son 100% online, por videollamada. Atendemos a personas de cualquier parte de Chile; no necesitas estar en Antofagasta.' },
+      { q:'¿Atienden por Fonasa o Isapre?',
+        r:'Fonasa no. Con Isapre sí, pero con reembolso: pagas la consulta y luego tu Isapre te reembolsa según tu plan. Para saber cuánto, consulta a tu Isapre o escríbenos por WhatsApp.',
+        a:{ t:'Escribir por WhatsApp', h:URL_WSP } },
+      { q:'¿Quién es la doctora?',
+        r:'La Dra. Yusneily Sánchez es médico, con formación en Venezuela, Perú y Colombia, y un Máster en Psiconeuroinmunología en Regenera (España).',
+        a:{ t:'Conocer a la doctora', h:'#doctora', mismo:true } },
+      { q:'Tengo síntomas, ¿me pueden orientar?',
+        r:'Por este medio no podemos evaluar síntomas ni dar orientación médica. Un buen primer paso es la autoevaluación, o ir directo a consulta, donde la Dra. Sánchez revisa tu caso con calma. Si es una urgencia, llama al 131.',
+        a:{ t:'Hacer la autoevaluación', h:'autoevaluacion.html' } }
+    ];
+
     function abrirRaiz(){
       panelRaiz.classList.add('abierto');
       panelRaiz.setAttribute('aria-hidden','false');
       fabRaiz.setAttribute('aria-expanded','true');
-      if (!movil && inputRaiz) setTimeout(function(){ inputRaiz.focus(); }, 350);
+      var primera = chipsRaiz.querySelector('button');
+      if (!movil && primera) setTimeout(function(){ primera.focus(); }, 350);
     }
     function cerrarRaizPanel(){
       panelRaiz.classList.remove('abierto');
@@ -3557,16 +3625,8 @@ try{
     fabRaiz.addEventListener('click', function(){
       panelRaiz.classList.contains('abierto') ? cerrarRaizPanel() : abrirRaiz();
     });
-    cerrarRaiz.addEventListener('click', cerrarRaizPanel);
-    function reiniciarRaiz(){
-      cuerpoRaiz.innerHTML = estadoInicialRaiz;
-      if (chipsRaiz) chipsRaiz.style.display = '';
-      if (inputRaiz){
-        inputRaiz.value = '';
-        if (!movil) inputRaiz.focus();
-      }
-    }
-    if (nuevoRaiz) nuevoRaiz.addEventListener('click', reiniciarRaiz);
+    if (cerrarRaiz) cerrarRaiz.addEventListener('click', cerrarRaizPanel);
+    if (nuevoRaiz) nuevoRaiz.addEventListener('click', function(){ cuerpoRaiz.innerHTML = estadoInicialRaiz; });
     document.addEventListener('keydown', function(e){
       if (e.key === 'Escape' && panelRaiz.classList.contains('abierto')) cerrarRaizPanel();
     });
@@ -3577,42 +3637,6 @@ try{
       });
     }
 
-    // base de respuestas: palabra clave -> contenido real de la página
-    var baseRaiz = [
-      { k:['servicio','medicina funcional','pni','psiconeuro','bioregul','ofrec'],
-        r:'Kairal trabaja con un enfoque de Medicina Funcional: en vez de tratar cada síntoma por separado, busca la causa raíz conectando metabolismo, hormonas, sistema nervioso, inmune y más. Puedes explorarlo en la sección "Servicios" de esta página.' },
-      { k:['metodo','método','proceso','como trabajan','pasos','evaluacion','diagnostico'],
-        r:'El método tiene 4 etapas: Escuchar (evaluación de 50 min), Mapear (laboratorios funcionales), Sembrar (plan personalizado) y Cultivar (seguimiento continuo). Puedes verlo animado en la sección "El método".' },
-      { k:['precio','costo','valor','cuanto cuesta','plata','arancel'],
-        r:'Los valores pueden variar según el tipo de consulta y exámenes necesarios — para darte un número exacto y no equivocarme, lo mejor es que lo confirmes directo por WhatsApp. ¿Te comparto el contacto?' },
-      { k:['agendar','cita','hora','reservar','consulta'],
-        r:'Si quieres partir con algo liviano, hay una autoevaluación de 10 minutos que te muestra qué sistema de tu cuerpo necesita más atención. Y si ya sabes que quieres consulta, puedes agendarla directo con el botón "Agendar mi primera consulta" de esta página.' },
-      { k:['autoevaluacion','autoevaluación','test','por donde empiezo','por dónde empiezo'],
-        r:'La autoevaluación funcional mide 4 sistemas de tu cuerpo en unos 10 minutos y te envía un informe por correo. Es el mejor primer paso — la encuentras en el botón "Autoevaluación" del menú, arriba de esta página.' },
-      { k:['isapre','fonasa','cobertura','reembolso','seguro'],
-        r:'La cobertura depende de tu plan específico — te recomiendo confirmarlo directo por WhatsApp para darte una respuesta certera sobre tu caso.' },
-      { k:['doctora','yusneily','sanchez','quien es','quién es'],
-        r:'La Dra. Yusneily Sánchez es médico con formación en Venezuela, Perú, Colombia y un Máster en Psiconeuroinmunología en Regenera (España). Puedes conocer su historia completa en la sección "La doctora".' },
-      { k:['online','presencial','antofagasta','donde','dónde','ubicacion'],
-        r:'Las consultas son 100% online por videollamada — atendemos pacientes de cualquier parte de Chile, no es necesario estar en Antofagasta.' },
-      { k:['sintoma','síntoma','cansancio','fatiga','inflamacion','dolor','duele','ansiedad','digestion'],
-        r:'Entiendo que quieras respuestas sobre eso, pero no puedo evaluar síntomas ni dar orientación médica por aquí. Un buen primer paso es la autoevaluación funcional — te muestra qué sistema podría estar detrás de lo que sientes. Si prefieres ir directo a consulta, la Dra. Sánchez revisa tu caso completo con calma.' }
-    ];
-    var saludo = /^(hola|buenas|hey|hi)\b/i;
-    var gracias = /^(gracias|thank)/i;
-
-    function responderRaiz(texto){
-      var t = texto.toLowerCase();
-      if (saludo.test(t)) return '¡Hola! ¿En qué te puedo orientar: servicios, el método, la autoevaluación, o cómo agendar?';
-      if (gracias.test(t)) return 'Con gusto 🌱 ¿Necesitas algo más?';
-      for (var i=0;i<baseRaiz.length;i++){
-        for (var j=0;j<baseRaiz[i].k.length;j++){
-          if (t.indexOf(baseRaiz[i].k[j]) !== -1) return baseRaiz[i].r;
-        }
-      }
-      return 'Todavía no tengo una respuesta preparada para eso — muy pronto, con IA real, podré ayudarte mejor. Por ahora, escríbenos directo por WhatsApp y te responde el equipo de Kairal.';
-    }
-
     function agregarMsg(texto, quien){
       var div = document.createElement('div');
       div.className = 'raiz-msg raiz-' + quien;
@@ -3620,30 +3644,31 @@ try{
       p.textContent = texto;
       div.appendChild(p);
       cuerpoRaiz.appendChild(div);
-      cuerpoRaiz.scrollTop = cuerpoRaiz.scrollHeight;
-    }
-    function enviar(texto){
-      texto = (texto || '').trim();
-      if (!texto) return;
-      agregarMsg(texto, 'user');
-      if (chipsRaiz) chipsRaiz.style.display = 'none';
-      setTimeout(function(){ agregarMsg(responderRaiz(texto), 'bot'); }, 420);
+      return div;
     }
 
-    if (chipsRaiz){
-      chipsRaiz.querySelectorAll('button').forEach(function(b){
-        b.addEventListener('click', function(){ enviar(b.textContent); });
+    PREGUNTAS.forEach(function(it){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = it.q;
+      b.addEventListener('click', function(){
+        agregarMsg(it.q, 'user');
+        var resp = agregarMsg(it.r, 'bot');
+        if (it.a){
+          var a = document.createElement('a');
+          a.className = 'raiz-enlace';
+          a.textContent = it.a.t;
+          a.href = it.a.h;
+          if (!it.a.mismo && /^https?:/.test(it.a.h)){ a.target = '_blank'; a.rel = 'noopener'; }
+          if (it.a.mismo) a.addEventListener('click', cerrarRaizPanel);
+          resp.appendChild(a);
+        }
+        cuerpoRaiz.scrollTop = cuerpoRaiz.scrollHeight;
       });
-    }
-    if (formRaiz){
-      formRaiz.addEventListener('submit', function(e){
-        e.preventDefault();
-        enviar(inputRaiz.value);
-        inputRaiz.value = '';
-      });
-    }
+      chipsRaiz.appendChild(b);
+    });
   }
-}catch(e){ console.error('Kairal: asistente Raíz no disponible.', e); }
+}catch(e){ console.error('Kairal: preguntas frecuentes no disponibles.', e); }
 
 /* ============================================================
    9 · VELO DE ENTRADA NARRATIVO
@@ -3888,8 +3913,8 @@ try{
       '<span class="blog-cat">' + cat + '</span>' +
       '<h3 class="rev">' + titulo + '</h3>' +
       '<p>' + teaser + '</p>' +
-      '<div class="blog-ctas"><a class="btn btn-solido" data-cursor href="https://kairal.cl/blog.html?slug=' + encodeURIComponent(slug) + '" target="_blank" rel="noopener">Leer artículo →</a>' +
-      '<a class="btn btn-ghost" data-cursor href="https://kairal.cl/blog.html" target="_blank" rel="noopener">Ver todos los artículos</a></div>' +
+      '<div class="blog-ctas"><a class="btn btn-solido" data-cursor href="blog.html?slug=' + encodeURIComponent(slug) + '">Leer artículo →</a>' +
+      '<a class="btn btn-ghost" data-cursor href="blog.html">Ver todos los artículos</a></div>' +
       '</div>';
   }
   // Arma la tarjeta única con los 3 posts sincronizados (imagen y texto

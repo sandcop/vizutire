@@ -77,8 +77,11 @@ body.reduced .rev .w{opacity:1;transform:none;filter:none}
    (300px) — ya pasó una vez. 5.7rem = 1.9 (ícono) + .6 (gap) + 3.2
    (Kairal), el ancho real de la fila de arriba. */
 .logo small{display:block;width:6.3rem}
-.logo-sub{width:6.3rem;height:auto;display:block}
-@media(max-width:480px){.logo-icono{width:1.6rem}.logo-marca{width:2.74rem}.logo small{width:5.4rem}.logo-sub{width:5.4rem}}
+/* el nombre de la doctora: antes verde oscuro sobre fondo oscuro y diminuto; ahora claro y más grande */
+.logo small,.logo-sub{width:8.6rem}
+.logo-sub path{fill:var(--arena)}
+.logo-sub{height:auto;display:block}
+@media(max-width:480px){.logo-icono{width:1.6rem}.logo-marca{width:2.74rem}.logo small,.logo-sub{width:7.2rem}}
 .header nav{display:flex;align-items:center;gap:1.6rem}
 .header nav a.link{font-size:.875rem;text-decoration:none;opacity:.75;transition:opacity .3s}
 .header nav a.link:hover{opacity:1}
@@ -171,6 +174,8 @@ html.menu-abierto{overflow:hidden}
    que lo recorre cada pocos segundos para llamar la atención sin gritar */
 .btn-reserva{background:linear-gradient(135deg,#F7B871 0%,var(--alba) 55%,#E08A3C 100%);color:#2A1A0C;font-weight:600;
   box-shadow:0 8px 30px rgba(242,166,90,.42),inset 0 1px 0 rgba(255,255,255,.35)}
+/* el borde transparente dejaba ver, repetido, el extremo oscuro del degradado: una línea más oscura a la izquierda y arriba */
+.btn-reserva{background-origin:border-box;background-clip:border-box}
 .btn-reserva::after{background:linear-gradient(135deg,#FFC98A,#F2A65A)}
 .btn-reserva::before{content:'';position:absolute;z-index:1;top:0;bottom:0;left:-60%;width:45%;pointer-events:none;
   background:linear-gradient(100deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.55) 50%,rgba(255,255,255,0) 100%);
@@ -260,6 +265,21 @@ body.reduced #eyebrow-hero .mota{display:none}
 }
 .hero-copy h1 em{font-family:var(--script);font-style:normal;letter-spacing:normal;font-size:1.25em;color:var(--alba);font-weight:400}
 .hero-copy p{margin-top:1.4rem;max-width:34rem;color:rgba(237,229,214,.82);font-size:clamp(1rem,1.3vw,1.15rem)}
+/* firma de la doctora bajo el párrafo del hero */
+.hero-copy .hero-firma{margin-top:1.1rem;max-width:none;font-size:clamp(.92rem,1.1vw,1.02rem);color:var(--arena);font-weight:500}
+.hero-firma b{color:var(--alba);font-weight:600}
+.hero-firma span{color:rgba(237,229,214,.62);font-weight:400}
+@media(max-width:480px){.hero-firma span{display:none}}
+/* teléfonos bajos: el bloque del hero tiene que caber sin subirse bajo el encabezado */
+@media(max-width:920px) and (max-height:700px){
+  .hero-copy{bottom:4.4rem}
+  .hero-copy p{margin-top:.9rem;font-size:.95rem;line-height:1.5}
+  .hero-copy .eyebrow{margin-bottom:.7rem}
+  .hero-copy .hero-firma{margin-top:.7rem}
+  .hero-ctas{margin-top:1.1rem;gap:.7rem}
+  .indicador-scroll{display:none}
+  .hero-ctas .btn{padding:.8em 1.5em}
+}
 .hero-ctas{display:flex;flex-wrap:wrap;gap:1rem;margin-top:2.2rem}
 /* ya faded: que lo invisible tampoco se pueda tocar (antes los botones seguían recibiendo clics) */
 .hero-copy.hero-oculto .eyebrow,.hero-copy.hero-oculto p,.hero-copy.hero-oculto .btn-solido{visibility:hidden;pointer-events:none}
@@ -1117,7 +1137,7 @@ body.reduced .fab-raiz::after{animation:none}
 
 .panel-raiz{
   position:fixed;right:1.4rem;bottom:9.5rem;z-index:56;
-  width:min(360px, calc(100vw - 2.4rem));max-height:min(560px,72vh);
+  width:min(360px, calc(100vw - 2.4rem));max-height:min(660px,82vh);
   background:#0A2622;border:1px solid rgba(127,181,171,.22);border-radius:22px;
   box-shadow:0 30px 70px rgba(3,16,14,.55);
   display:flex;flex-direction:column;overflow:hidden;
@@ -1153,7 +1173,14 @@ body.reduced .panel-raiz.abierto{filter:none}
 .raiz-bot{align-self:flex-start;background:rgba(127,181,171,.12);color:var(--texto-claro);border-bottom-left-radius:4px}
 .raiz-user{align-self:flex-end;background:var(--teal);color:#fff;border-bottom-right-radius:4px}
 .raiz-disclaimer{font-size:.74rem!important;color:rgba(127,181,171,.75)!important;font-style:italic}
-.raiz-chips{display:flex;flex-wrap:wrap;gap:.5rem;padding:0 1.1rem .9rem}
+.raiz-msg.escribiendo p{display:flex;gap:.3rem;align-items:center;min-height:1.3em}
+.raiz-msg.escribiendo p::before,.raiz-msg.escribiendo p::after{content:'';width:.42rem;height:.42rem;border-radius:50%;background:var(--bruma);animation:raiz-late 1s ease-in-out infinite}
+.raiz-msg.escribiendo p::after{animation-delay:.25s}
+@keyframes raiz-late{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+.raiz-form input:disabled{opacity:.6}
+.raiz-chips{display:flex;flex-wrap:wrap;gap:.5rem;padding:.8rem 1.1rem 1rem;max-height:38%;overflow-y:auto;flex:none;border-top:1px solid rgba(127,181,171,.15)}
+.raiz-enlace{display:inline-block;margin-top:.6rem;font-family:var(--mono);font-size:.72rem;letter-spacing:.03em;color:var(--arena);border-bottom:1px solid rgba(127,181,171,.5);padding-bottom:1px}
+.raiz-enlace:hover{border-bottom-color:var(--arena)}
 .raiz-chips button{
   font-family:var(--mono);font-size:.7rem;letter-spacing:.03em;
   padding:.5em .85em;border-radius:999px;border:1px solid rgba(127,181,171,.3);
