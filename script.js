@@ -1793,6 +1793,8 @@ try{ (function(){
     function ajustar(){ cv.width = fijo.clientWidth * dpr; cv.height = fijo.clientHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
     ajustar();
     window.addEventListener('resize', ajustar);
+    // en el celular la sección mide lo que mide su contenido (cambia al cargar fuentes o al abrir un texto)
+    if (window.ResizeObserver) new ResizeObserver(ajustar).observe(fijo);
 
     function sm(t){ t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
 
@@ -3527,7 +3529,7 @@ try{
         d.result.forEach(function(post){
           var a = document.createElement('a');
           a.className = 'mm-post';
-                    a.href = 'blog.html?slug=' + encodeURIComponent((post.slug && post.slug.current) || '');
+                    a.href = 'blog/' + encodeURIComponent((post.slug && post.slug.current) || '');
           a.appendChild(document.createTextNode(post.title));
           if (post.publishedAt){
             var f = document.createElement('small');
@@ -3913,7 +3915,7 @@ try{
       '<span class="blog-cat">' + cat + '</span>' +
       '<h3 class="rev">' + titulo + '</h3>' +
       '<p>' + teaser + '</p>' +
-      '<div class="blog-ctas"><a class="btn btn-solido" data-cursor href="blog.html?slug=' + encodeURIComponent(slug) + '">Leer artículo →</a>' +
+      '<div class="blog-ctas"><a class="btn btn-solido" data-cursor href="blog/' + encodeURIComponent(slug) + '">Leer artículo →</a>' +
       '<a class="btn btn-ghost" data-cursor href="blog.html">Ver todos los artículos</a></div>' +
       '</div>';
   }

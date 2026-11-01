@@ -17,7 +17,7 @@
   --ease-tierra:cubic-bezier(.22,1,.36,1);
   --mono:'Poppins',-apple-system,sans-serif;
   --display:'Poppins',-apple-system,sans-serif;
-  --script:'Gabriola','Segoe Script',cursive;
+  --script:'Dancing Script','Gabriola','Segoe Script',cursive;
   --sans:'Poppins',-apple-system,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -411,14 +411,20 @@ body.reduced .raiz-invita-punto{animation:none}
 .raiz-volver:hover,.raiz-volver:focus-visible{color:var(--alba)}
 
 @media(max-width:920px){
-  /* abajo deja lugar a los botones flotantes (Sonido / asistente), que en
-     mobile quedan encima del texto del sistema activo */
-  .raiz-fijo{padding:4.8rem 1.25rem 5.5rem}
-  .raiz-escena{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;gap:.5rem}
-  .raiz-textos{min-height:12.5rem;padding-right:3.8rem} /* esquiva el botón flotante del asistente */
-  .raiz-texto,.raiz-cierre{top:0;right:3.8rem;transform:translateY(8px)}
+  /* En el celular la sección ya NO mide una pantalla fija: antes el título, la frase y el
+     botón se quedaban con casi todo el alto y el dibujo recibía 45 px en iPhone, 21 px en
+     Android y 0 px en iPhone SE. Ahora el dibujo ocupa todo el ancho, con su propia altura
+     (proporción 600×640), y el texto va debajo. Abajo queda lugar para los botones flotantes. */
+  .raiz-fijo{height:auto;min-height:0;overflow:visible;padding:4.8rem 1.25rem 5.5rem}
+  .raiz-escena{display:block;margin-top:1rem}
+  .raiz-dibujo{height:auto;container-type:normal}
+  .raiz-lienzo{position:relative;left:auto;top:auto;transform:none;width:100%;max-width:34rem;margin:0 auto}
+  /* todos los textos comparten la misma celda: el bloque mide lo que el más largo y no se pisan */
+  .raiz-textos{display:grid;min-height:0;margin-top:.8rem;padding-right:3.8rem} /* esquiva el botón flotante */
+  .raiz-texto,.raiz-cierre{position:relative;grid-area:1/1;left:auto;right:auto;top:0;transform:translateY(8px)}
   .raiz-texto.visible,.raiz-cierre.visible{transform:none}
-  .raiz-nombre{font-size:.56rem}
+  .raiz-nombre{font-size:.62rem;padding:.3em .75em}
+  .acto-raiz .cta-seccion--final{margin-top:1.8rem}
 }
 body.reduced .raiz-pista{height:auto}
 body.reduced .raiz-fijo{position:relative;height:auto}
@@ -527,7 +533,7 @@ body.reduced .tarjeta-etapa svg :is(path,circle){stroke-dashoffset:0}
   .doctora-copy>h2{order:-1;margin-bottom:2rem}
   .retrato-envoltorio{order:0;margin-bottom:2rem}
 }
-.retrato-envoltorio{position:relative}
+.retrato-envoltorio{position:relative;aspect-ratio:4/5}  /* la altura la da la proporción de la pila de fotos */
 .retrato{
   position:relative;z-index:1;border-radius:58% 42% 55% 45%/48% 55% 45% 52%;overflow:hidden;
   aspect-ratio:4/5;background:linear-gradient(150deg,var(--duna),#a8957a);
@@ -771,6 +777,10 @@ body.reduced .motor-progreso{display:none}
   .motor-area{font-size:0;padding:.65rem}
   .motor-area::before{margin-right:0;width:8px;height:8px}
   .motor-area.activa{font-size:.84rem;line-height:1.2;text-align:center;padding:.5rem .85rem;background:rgba(251,247,239,.92);box-shadow:0 4px 14px rgba(26,36,33,.1)}
+  /* los puntos de las demás áreas van SIEMPRE por encima de la etiqueta activa: antes, en pantallas
+     angostas (puntos a ~59 px y etiqueta de ~130 px), la etiqueta tapaba uno o más de los vecinos */
+  .motor-area{z-index:4}
+  .motor-area.activa{z-index:3}
   .motor-area.activa::before{margin-right:.5em;transform:scale(1.3)}
   /* al activarse, el nombre nace del punto gris y se expande hasta su forma final. Solo
      recorta y pinta (clip-path/color/fondo): no cambia el tamaño del botón, así que el aro
@@ -1358,6 +1368,11 @@ html.tier-bajo .barra-movil{background:rgba(8,31,29,.96)}
 .cta-seccion--compacta{margin-top:1.1rem}
 .cta-seccion--compacta .btn{font-size:.82rem;padding:.7em 1.2em}
 .acto-doctora .cta-seccion{margin:1.6rem 0 2.2rem}
+/* El llamado a reservar va siempre AL FINAL de su sección (26-oct-2026) */
+.cta-seccion--final{margin-top:2.4rem}
+.acto-raiz .raiz-fijo>.cta-seccion--final{flex:none;margin-top:.9rem}
+.acto-metodo>.cta-seccion--final,.acto-motor>.cta-seccion--final{margin:0;padding:1.8rem var(--margen-x) 3rem}
+.acto-doctora .cta-seccion--final{margin:2.6rem 0 0}
 .acto-flora>.contenedor:last-of-type .cta-seccion{margin-top:2rem}
 .faq-lista .cta-seccion{margin-top:2rem}
 .acto-blog .cta-seccion{margin-top:2.4rem}

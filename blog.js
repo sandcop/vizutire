@@ -1,9 +1,15 @@
 /* Blog · listado y artículo
    Todo artículo que se publique en Sanity (tipo "post") sale con este mismo formato: no hay nada
-   que maquetar a mano. Sin ?slug= se ve el listado; con ?slug=mi-articulo, ese artículo.
+   que maquetar a mano. blog.html es el listado; cada artículo vive en /blog/<slug>.
    Campos que usa de cada post: title, slug, category, publishedAt, excerpt, image (con alt opcional)
    y body (texto enriquecido: párrafos, títulos h2–h4, listas, citas, enlaces, negrita, cursiva,
-   imágenes con pie). Si algún día se agrega otro tipo de bloque, se ignora sin romper la página. */
+   imágenes con pie). Si algún día se agrega otro tipo de bloque, se ignora sin romper la página.
+
+   El HTML se arma con las mismas funciones en dos lugares:
+   - al publicar, preparar-publicacion.js las usa (require) para dejar el listado y cada artículo
+     como páginas ya armadas, que Google lee sin ejecutar JavaScript;
+   - en el navegador, si la página ya viene armada solo se activan los botones y se revisa si en
+     Sanity hay algo más nuevo; si no viene armada (un artículo recién publicado), se arma aquí. */
 (function(){
 'use strict';
 
@@ -12,8 +18,8 @@ var SANITY_DATASET = 'production';
 var SANITY_API_URL = 'https://' + SANITY_PROJECT_ID + '.api.sanity.io/v2021-10-21/data/query/' + SANITY_DATASET;
 var SITIO = 'https://kairal.cl';
 var AGENDA = 'reservar.html';
-var raiz = document.getElementById('blog-contenido');
-if (!raiz) return;
+var CAMPOS = 'title, category, publishedAt, excerpt, image, _updatedAt, "slug": slug.current';
+var TITULO_LISTADO = 'Blog de medicina funcional · Dra. Yusneily Sánchez | Kairal';
 
 var FLECHA = '<svg class="btn-reserva-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 var DUNAS = '<svg class="ae-dunas" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70 C 160 20 300 20 460 62 C 620 104 760 96 920 56 C 1080 16 1240 28 1440 76 L1440 120 L0 120 Z"/></svg>';
@@ -22,10 +28,12 @@ var FLOR = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 46 V24"/><p
 function esc(s){
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+// Siempre con la hora de Chile: la página armada al publicar (en un servidor en UTC) y la que arma
+// el navegador deben mostrar el mismo día.
 function fecha(d){
   if (!d) return '';
   var f = new Date(d);
-  return isNaN(f) ? '' : f.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+  return isNaN(f) ? '' : f.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Santiago' });
 }
 function imgUrl(img, ancho){
   var ref = img && img.asset && img.asset._ref;
@@ -36,7 +44,9 @@ function imgUrl(img, ancho){
     '?w=' + ancho + '&auto=format';
 }
 function slugDe(p){ return typeof p.slug === 'string' ? p.slug : (p.slug && p.slug.current) || ''; }
-function enlaceDe(p){ return 'blog.html?slug=' + encodeURIComponent(slugDe(p)); }
+// Relativo a la raíz del sitio: las páginas de artículo llevan <base href="/">.
+function enlaceDe(p){ return 'blog/' + encodeURIComponent(slugDe(p)); }
+function urlArticulo(slug){ return SITIO + '/blog/' + encodeURIComponent(slug); }
 function soloTexto(bloques){
   return (bloques || []).filter(function(b){ return b._type === 'block'; })
     .map(function(b){ return (b.children || []).map(function(c){ return c.text || ''; }).join(''); }).join(' ');
@@ -49,6 +59,10 @@ function consulta(query, params){
   var url = SANITY_API_URL + '?query=' + encodeURIComponent(query);
   Object.keys(params || {}).forEach(function(k){ url += '&%24' + k + '=' + encodeURIComponent(JSON.stringify(params[k])); });
   return fetch(url).then(function(r){ if (!r.ok) throw new Error('sanity ' + r.status); return r.json(); }).then(function(d){ return d.result; });
+}
+// Huella del listado: cambia si se agrega, quita o edita un artículo.
+function firmaListado(posts){
+  return (posts || []).map(function(p){ return slugDe(p) + '@' + (p._updatedAt || ''); }).join('|');
 }
 
 /* ─── cuerpo del artículo (texto enriquecido de Sanity → HTML) ─── */
@@ -116,27 +130,29 @@ function tarjeta(p, destacada){
       '<span class="bl-card-pie">' + esc(fecha(p.publishedAt)) + '<span class="bl-card-leer">Leer ' + FLECHA + '</span></span>' +
     '</span></a>';
 }
-function meta(nombre, valor){
-  var m = document.querySelector(nombre);
-  if (m) m.setAttribute('content', valor);
-}
-function estado(titulo, texto){
-  raiz.innerHTML = '<section class="ae-hero ae-hero--corto"><div class="ae-hero-int"><p class="eyebrow">Blog</p><h1 class="display">' + esc(titulo) + '</h1>' +
+function htmlEstado(titulo, texto){
+  return '<section class="ae-hero ae-hero--corto"><div class="ae-hero-int"><p class="eyebrow">Blog</p><h1 class="display">' + esc(titulo) + '</h1>' +
     '<p class="ae-lede">' + esc(texto) + '</p></div>' + DUNAS + '</section>' +
     '<div class="ae-luz"><div class="contenedor"><a class="btn btn-solido" href="blog.html">Ver todos los artículos</a></div></div>';
 }
 
+/* cierre común: invitación a conversar */
+function pie(){
+  return '<aside class="bl-cierre"><div><p class="eyebrow">¿Te reconociste en algo?</p>' +
+    '<h2>Conversemos sobre tu caso.</h2>' +
+    '<p>Si lo que lees se parece a lo que vives, la consulta de 50 minutos con la Dra. Yusneily es el lugar para entender el porqué.</p></div>' +
+    '<div class="bl-cierre-botones"><a class="btn btn-reserva" href="' + AGENDA + '" target="_blank" rel="noopener">Agendemos tu consulta ' + FLECHA + '</a>' +
+    '<a class="btn btn-ghost" href="autoevaluacion.html">Empecemos con tu autoevaluación</a></div></aside>';
+}
+
 /* ─── listado ─── */
-function pintarListado(posts){
-  document.title = 'Blog · Kairal';
+function htmlListado(posts){
   if (!posts || !posts.length){
-    estado('Pronto, nuevos artículos', 'Estamos preparando contenido de medicina funcional. Mientras tanto, puedes empezar con tu autoevaluación.');
-    return;
+    return htmlEstado('Pronto, nuevos artículos', 'Estamos preparando contenido de medicina funcional. Mientras tanto, puedes empezar con tu autoevaluación.');
   }
   var cats = [];
   posts.forEach(function(p){ if (p.category && cats.indexOf(p.category) < 0) cats.push(p.category); });
-  raiz.innerHTML =
-    '<section class="ae-hero ae-hero--corto"><div class="ae-hero-int">' +
+  return '<section class="ae-hero ae-hero--corto"><div class="ae-hero-int">' +
       '<p class="eyebrow">El blog de Kairal</p>' +
       '<h1 class="display">Medicina funcional, <em>explicada en simple.</em></h1>' +
       '<p class="ae-lede">Artículos de la Dra. Yusneily Sánchez para entender qué te dice tu cuerpo: causa raíz, intestino, estrés, sueño y energía.</p>' +
@@ -148,6 +164,86 @@ function pintarListado(posts){
       '<p class="bl-vacio" id="bl-vacio" hidden>No hay artículos de este tema todavía.</p>' +
       pie() +
     '</div></div>';
+}
+
+/* ─── artículo ─── */
+// Título, descripción, dirección, imagen y datos estructurados de un artículo
+function datosArticulo(p){
+  var titulo = p.title || 'Artículo';
+  var url = urlArticulo(slugDe(p));
+  var portada = imgUrl(p.image, 1600);
+  var desc = (p.excerpt || soloTexto(p.body)).replace(/\s+/g, ' ').trim().slice(0, 155);
+  var ld = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting', headline: titulo, description: desc, url: url, mainEntityOfPage: url,
+        datePublished: p.publishedAt || undefined, dateModified: p._updatedAt || p.publishedAt || undefined,
+        image: portada || undefined, inLanguage: 'es-CL',
+        articleSection: p.category || undefined,
+        author: { '@type': 'Person', name: 'Dra. Yusneily Sánchez', jobTitle: 'Médico funcional', url: SITIO + '/#doctora' },
+        publisher: { '@type': 'Organization', name: 'Kairal', url: SITIO, logo: { '@type': 'ImageObject', url: SITIO + '/Kairallogo-email.png' } }
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Inicio', item: SITIO + '/' },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: SITIO + '/blog.html' },
+          { '@type': 'ListItem', position: 3, name: titulo, item: url }
+        ]
+      }
+    ]
+  };
+  return { titulo: titulo, tituloPagina: titulo + ' · Kairal', url: url, portada: portada, desc: desc, ld: ld };
+}
+function htmlArticulo(p, otros){
+  var d = datosArticulo(p), min = minutosLectura(p.body);
+  var texto = encodeURIComponent(d.titulo + ' · Kairal ' + d.url);
+  var mas = (otros || []).filter(function(o){ return slugDe(o) !== slugDe(p); }).slice(0, 3);
+  return '<article class="bl-art">' +
+    '<header class="ae-hero ae-hero--corto bl-art-hero"><div class="ae-hero-int">' +
+      '<a class="bl-volver" href="blog.html">← Todos los artículos</a>' +
+      (p.category ? '<p class="eyebrow">' + esc(p.category) + '</p>' : '<p class="eyebrow">Blog</p>') +
+      '<h1 class="display">' + esc(d.titulo) + '</h1>' +
+      '<div class="bl-meta"><span class="bl-autora"><span class="bl-avatar" aria-hidden="true">YS</span>Dra. Yusneily Sánchez</span>' +
+        (p.publishedAt ? '<span>' + esc(fecha(p.publishedAt)) + '</span>' : '') +
+        '<span>' + min + ' min de lectura</span></div>' +
+    '</div>' + DUNAS + '</header>' +
+    '<div class="ae-luz"><div class="contenedor bl-art-cont">' +
+      (d.portada ? '<img class="bl-portada" src="' + esc(d.portada) + '" alt="' + esc((p.image && p.image.alt) || d.titulo) + '" fetchpriority="high">' : '') +
+      '<div class="bl-cuerpo">' + cuerpo(p.body) + '</div>' +
+      '<div class="bl-compartir"><span>Compartir</span>' +
+        '<a class="bl-comp" href="https://wa.me/?text=' + texto + '" target="_blank" rel="noopener">WhatsApp</a>' +
+        '<button type="button" class="bl-comp" id="bl-copiar">Copiar enlace</button></div>' +
+      pie() +
+      (mas.length ? '<section class="bl-mas"><h2>Sigue leyendo</h2><div class="bl-grid bl-grid--mas">' +
+        mas.map(function(o){ return tarjeta(o, false); }).join('') + '</div></section>' : '') +
+    '</div></div></article>';
+}
+
+var API = {
+  CAMPOS: CAMPOS, TITULO_LISTADO: TITULO_LISTADO, SITIO: SITIO,
+  esc: esc, slugDe: slugDe, urlArticulo: urlArticulo, firmaListado: firmaListado,
+  htmlListado: htmlListado, htmlArticulo: htmlArticulo, datosArticulo: datosArticulo
+};
+// En Node (al publicar) solo se exportan las funciones: no hay página que activar.
+if (typeof module !== 'undefined' && module.exports){ module.exports = API; return; }
+
+/* ═══ Navegador ═══ */
+var raiz = document.getElementById('blog-contenido');
+if (!raiz) return;
+
+// "Ir al contenido" apunta a esta misma página (las de artículo llevan <base href="/">)
+var skip = document.querySelector('a.skip[href$="#blog-contenido"]');
+if (skip) skip.setAttribute('href', location.pathname + location.search + '#blog-contenido');
+
+function meta(nombre, valor){
+  var m = document.querySelector(nombre);
+  if (m) m.setAttribute('content', valor);
+}
+function estado(titulo, texto){ raiz.innerHTML = htmlEstado(titulo, texto); }
+
+function activarListado(){
   var chips = raiz.querySelectorAll('.bl-chip'), grid = document.getElementById('bl-grid');
   chips.forEach(function(chip){
     chip.addEventListener('click', function(){
@@ -162,60 +258,13 @@ function pintarListado(posts){
     });
   });
 }
-
-/* cierre común: invitación a conversar */
-function pie(){
-  return '<aside class="bl-cierre"><div><p class="eyebrow">¿Te reconociste en algo?</p>' +
-    '<h2>Conversemos sobre tu caso.</h2>' +
-    '<p>Si lo que lees se parece a lo que vives, la consulta de 50 minutos con la Dra. Yusneily es el lugar para entender el porqué.</p></div>' +
-    '<div class="bl-cierre-botones"><a class="btn btn-reserva" href="' + AGENDA + '" target="_blank" rel="noopener">Agendemos tu consulta ' + FLECHA + '</a>' +
-    '<a class="btn btn-ghost" href="autoevaluacion.html">Empecemos con tu autoevaluación</a></div></aside>';
+function pintarListado(posts){
+  document.title = TITULO_LISTADO;
+  raiz.innerHTML = htmlListado(posts);
+  activarListado();
 }
 
-/* ─── artículo ─── */
-function pintarArticulo(p, otros){
-  var titulo = p.title || 'Artículo';
-  var url = SITIO + '/blog.html?slug=' + encodeURIComponent(slugDe(p));
-  var portada = imgUrl(p.image, 1600), min = minutosLectura(p.body);
-  document.title = titulo + ' · Kairal';
-  var desc = (p.excerpt || soloTexto(p.body)).replace(/\s+/g, ' ').trim().slice(0, 155);
-  meta('meta[name="description"]', desc);
-  meta('#og-title', titulo); meta('#og-desc', desc); meta('#og-type', 'article');
-  if (portada) meta('#og-img', portada);
-  var canon = document.getElementById('canonical'); if (canon) canon.setAttribute('href', url);
-  var ld = document.createElement('script');
-  ld.type = 'application/ld+json';
-  ld.textContent = JSON.stringify({
-    '@context': 'https://schema.org', '@type': 'BlogPosting', headline: titulo, description: desc,
-    datePublished: p.publishedAt || undefined, image: portada || undefined, mainEntityOfPage: url,
-    author: { '@type': 'Person', name: 'Dra. Yusneily Sánchez', jobTitle: 'Médico funcional' },
-    publisher: { '@type': 'Organization', name: 'Kairal', url: SITIO }
-  });
-  document.head.appendChild(ld);
-
-  var texto = encodeURIComponent(titulo + ' · Kairal ' + url);
-  var mas = (otros || []).filter(function(o){ return slugDe(o) !== slugDe(p); }).slice(0, 3);
-  raiz.innerHTML =
-    '<article class="bl-art">' +
-    '<header class="ae-hero ae-hero--corto bl-art-hero"><div class="ae-hero-int">' +
-      '<a class="bl-volver" href="blog.html">← Todos los artículos</a>' +
-      (p.category ? '<p class="eyebrow">' + esc(p.category) + '</p>' : '<p class="eyebrow">Blog</p>') +
-      '<h1 class="display">' + esc(titulo) + '</h1>' +
-      '<div class="bl-meta"><span class="bl-autora"><span class="bl-avatar" aria-hidden="true">YS</span>Dra. Yusneily Sánchez</span>' +
-        (p.publishedAt ? '<span>' + esc(fecha(p.publishedAt)) + '</span>' : '') +
-        '<span>' + min + ' min de lectura</span></div>' +
-    '</div>' + DUNAS + '</header>' +
-    '<div class="ae-luz"><div class="contenedor bl-art-cont">' +
-      (portada ? '<img class="bl-portada" src="' + esc(portada) + '" alt="' + esc((p.image && p.image.alt) || titulo) + '" fetchpriority="high">' : '') +
-      '<div class="bl-cuerpo">' + cuerpo(p.body) + '</div>' +
-      '<div class="bl-compartir"><span>Compartir</span>' +
-        '<a class="bl-comp" href="https://wa.me/?text=' + texto + '" target="_blank" rel="noopener">WhatsApp</a>' +
-        '<button type="button" class="bl-comp" id="bl-copiar">Copiar enlace</button></div>' +
-      pie() +
-      (mas.length ? '<section class="bl-mas"><h2>Sigue leyendo</h2><div class="bl-grid bl-grid--mas">' +
-        mas.map(function(o){ return tarjeta(o, false); }).join('') + '</div></section>' : '') +
-    '</div></div></article>';
-
+function activarArticulo(url){
   var copiar = document.getElementById('bl-copiar');
   if (copiar) copiar.addEventListener('click', function(){
     function listo(){ copiar.textContent = '¡Enlace copiado!'; setTimeout(function(){ copiar.textContent = 'Copiar enlace'; }, 2200); }
@@ -223,23 +272,58 @@ function pintarArticulo(p, otros){
     else listo();
   });
 }
-
-/* ─── arranque ─── */
-var slug = new URLSearchParams(location.search).get('slug');
-var CAMPOS = 'title, category, publishedAt, excerpt, image, "slug": slug.current';
-
-if (!slug){
-  consulta('*[_type == "post" && defined(slug.current)] | order(publishedAt desc){ ' + CAMPOS + ' }')
-    .then(pintarListado)
-    .catch(function(){ estado('No pudimos cargar los artículos', 'Inténtalo de nuevo en unos momentos, o escríbenos por WhatsApp.'); });
-} else {
-  Promise.all([
+function pintarArticulo(p, otros){
+  var d = datosArticulo(p);
+  document.title = d.tituloPagina;
+  meta('meta[name="description"]', d.desc);
+  meta('#og-title', d.titulo); meta('#og-desc', d.desc); meta('#og-type', 'article');
+  if (d.portada) meta('#og-img', d.portada);
+  var canon = document.getElementById('canonical'); if (canon) canon.setAttribute('href', d.url);
+  var viejo = document.getElementById('ld-articulo'); if (viejo) viejo.parentNode.removeChild(viejo);
+  var ld = document.createElement('script');
+  ld.type = 'application/ld+json';
+  ld.id = 'ld-articulo';
+  ld.textContent = JSON.stringify(d.ld);
+  document.head.appendChild(ld);
+  raiz.innerHTML = htmlArticulo(p, otros);
+  activarArticulo(d.url);
+}
+function cargarArticulo(slug, alCargar){
+  return Promise.all([
     consulta('*[_type == "post" && slug.current == $slug][0]{ ' + CAMPOS + ', body }', { slug: slug }),
     consulta('*[_type == "post" && defined(slug.current) && slug.current != $slug] | order(publishedAt desc)[0...3]{ ' + CAMPOS + ' }', { slug: slug }).catch(function(){ return []; })
   ]).then(function(r){
     if (!r[0]){ estado('Artículo no encontrado', 'Este artículo no existe o fue retirado. Mira los demás artículos del blog.'); return; }
     pintarArticulo(r[0], r[1]);
-    window.scrollTo(0, 0);
-  }).catch(function(){ estado('No pudimos cargar el artículo', 'Inténtalo de nuevo en unos momentos.'); });
+    if (alCargar) alCargar();
+  });
+}
+
+/* ─── arranque ─── */
+// El artículo se reconoce por la dirección /blog/<slug> (o la antigua blog.html?slug=…)
+var enRuta = location.pathname.match(/\/blog\/([^\/]+?)(?:\.html)?\/?$/);
+var slug = enRuta ? decodeURIComponent(enRuta[1]) : new URLSearchParams(location.search).get('slug');
+var armada = raiz.getAttribute('data-prerender');      // 'listado' | 'articulo' | null
+var version = raiz.getAttribute('data-version') || '';  // huella del listado o _updatedAt del artículo
+
+if (!slug){
+  var pedirListado = consulta('*[_type == "post" && defined(slug.current)] | order(publishedAt desc){ ' + CAMPOS + ' }');
+  if (armada === 'listado'){
+    activarListado();
+    // Si desde la última publicación se agregó o editó un artículo, se actualiza el listado
+    pedirListado.then(function(posts){ if (posts && firmaListado(posts) !== version) pintarListado(posts); }).catch(function(){});
+  } else {
+    pedirListado.then(pintarListado)
+      .catch(function(){ estado('No pudimos cargar los artículos', 'Inténtalo de nuevo en unos momentos, o escríbenos por WhatsApp.'); });
+  }
+} else if (armada === 'articulo'){
+  activarArticulo(urlArticulo(slug));
+  // Si el artículo se editó en Sanity después de la última publicación, se muestra la versión nueva
+  consulta('*[_type == "post" && slug.current == $slug][0]._updatedAt', { slug: slug })
+    .then(function(u){ if (u && u !== version) return cargarArticulo(slug); })
+    .catch(function(){});
+} else {
+  cargarArticulo(slug, function(){ window.scrollTo(0, 0); })
+    .catch(function(){ estado('No pudimos cargar el artículo', 'Inténtalo de nuevo en unos momentos.'); });
 }
 })();

@@ -1,0 +1,804 @@
+<!-- Generado por appscript-reservas/pruebas/generar-panel-sitio.js desde PanelPagina.html: no editar a mano. -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/svg+xml" href="Kairallogo.svg">
+<link rel="stylesheet" href="fonts/fonts.css">
+<title>Reservas · Kairal</title>
+<style>
+  /* Kairal · Panel de reservas — sistema visual: tinta del desierto, arena, teal y la luz del alba */
+  :root{
+    --tinta:#081F1D;--tinta2:#0C2B28;--arena:#EDE5D6;--fondo:#F4EFE6;--papel:#FFFDF8;--borde:#E6DDCC;--borde2:#D6C9B2;
+    --texto:#17221F;--suave:#58645F;--tenue:#89928E;--teal:#0E7C6B;--teal2:#0A6457;--teal-bg:#E1F3EE;--bruma:#7FB5AB;
+    --rosa:#C75C84;--alba:#F2A65A;--ambar:#8F5500;--ambar-bg:#FCEFD6;--peligro:#A63D5F;
+    --radio:16px;--sombra:0 1px 2px rgba(8,31,29,.04),0 6px 18px -10px rgba(8,31,29,.14);--sombra2:0 2px 6px rgba(8,31,29,.06),0 18px 36px -18px rgba(8,31,29,.28);
+    --lateral:250px;--fuente:Poppins,-apple-system,"Segoe UI",system-ui,sans-serif
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--fondo);color:var(--texto);font-family:var(--fuente);font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .26 0 0 0 0 .16 0 0 0 .055 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  button,input,select,textarea{font:inherit;color:inherit}
+  .oculto{display:none!important}
+  a{color:var(--teal)}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .ico{display:inline-flex;flex:none;width:18px;height:18px}
+  .ico svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .logo{flex:none;display:block}
+  .marca-kairal{position:relative;display:flex;align-items:center;gap:14px;font-size:30px;font-weight:600;letter-spacing:-.6px;color:var(--arena)}
+  .marca-kairal .logo{width:52px;height:38px}
+  .eyebrow{margin:0;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--teal)}
+
+  /* Botones */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:10px;padding:9px 16px;font-weight:600;font-size:13.5px;line-height:1.2;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s,box-shadow .15s,transform .1s}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{opacity:.55;cursor:default}
+  .btn .ico{width:16px;height:16px}
+  .btn-ok{background:var(--teal);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 1px 2px rgba(8,31,29,.22)}
+  .btn-ok:hover{background:var(--teal2)}
+  .btn-sec{background:var(--papel);color:var(--texto);border-color:var(--borde2)}
+  .btn-sec:hover{background:#fff;border-color:var(--suave)}
+  .btn-peligro{background:var(--papel);color:var(--peligro);border-color:#EACAD6}
+  .btn-peligro:hover{background:#FCF1F5;border-color:var(--peligro)}
+  .btn-wsp{background:#25D366;color:#05301A}
+  .btn-fantasma{background:transparent;color:inherit;border-color:rgba(237,229,214,.16)}
+  .btn-fantasma:hover{background:rgba(237,229,214,.07)}
+  .btn-grande{width:100%;margin-top:12px;padding:14px 18px;font-size:15px;border-radius:12px}
+
+  /* ── Entrada ── */
+  #entrada{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}
+  .entrada-arte{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:40px;padding:44px 52px;color:var(--arena);background:radial-gradient(120% 90% at 15% 0%,#15423C 0%,var(--tinta) 55%,#04110F 100%)}
+  .entrada-arte .contornos{position:absolute;left:-12%;top:-8%;width:130%;height:125%;color:var(--bruma);opacity:.2;pointer-events:none}
+  .entrada-arte .sol{position:absolute;right:20%;top:24%;width:92px;height:92px;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 36% 32%,#FFD9A3 0%,#F59B1B 62%);box-shadow:0 0 0 22px rgba(245,155,27,.06),0 0 0 56px rgba(245,155,27,.035),0 0 0 98px rgba(245,155,27,.02),0 0 160px 50px rgba(245,155,27,.2)}
+  .entrada-lema{position:relative;max-width:380px}
+  .entrada-lema .eyebrow{color:var(--bruma)}
+  .entrada-lema h2{margin:12px 0 10px;font-size:32px;line-height:1.12;font-weight:600;letter-spacing:-1px;color:var(--arena)}
+  .entrada-lema p:last-child{margin:0;font-size:14px;color:rgba(237,229,214,.66)}
+  .entrada-form{display:flex;align-items:center;justify-content:center;padding:44px 28px}
+  .tarjeta-entrada{width:100%;max-width:380px}
+  .tarjeta-entrada h1{margin:8px 0 8px;font-size:32px;font-weight:600;letter-spacing:-1.1px;line-height:1.1;color:var(--tinta)}
+  .tarjeta-entrada p{margin:0 0 22px;color:var(--suave);font-size:14.5px}
+  .tarjeta-entrada input{width:100%;padding:14px 16px;border:1px solid var(--borde2);border-radius:12px;background:var(--papel);font-size:16px;transition:border-color .15s,box-shadow .15s}
+  .tarjeta-entrada input:focus{outline:0;border-color:var(--teal);box-shadow:0 0 0 4px rgba(14,124,107,.14)}
+  .boton-google{display:flex;min-height:44px;margin-top:4px}
+  #cargandoEntrada{display:flex;align-items:center;gap:10px}
+  #cargandoEntrada::before{content:"";width:16px;height:16px;border-radius:50%;border:2px solid var(--borde2);border-top-color:var(--teal);animation:girar .8s linear infinite}
+  #msgEntrada{min-height:22px;margin:14px 0 0;font-size:13px;color:var(--peligro);font-weight:500}
+  .entrada-seguro{display:flex;gap:10px;align-items:flex-start;margin-top:30px;padding-top:20px;border-top:1px solid var(--borde);font-size:12.5px;line-height:1.55;color:var(--tenue)}
+  .entrada-seguro .ico{width:16px;height:16px;margin-top:1px;color:var(--teal)}
+
+  /* ── Estructura del panel ── */
+  #panel{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:var(--lateral) minmax(0,1fr)}
+  .lateral{position:sticky;top:0;height:100vh;overflow:hidden;display:flex;flex-direction:column;gap:30px;padding:28px 16px 18px;background:var(--tinta);color:var(--arena)}
+  .lateral .contornos{position:absolute;left:-45%;bottom:-28%;width:190%;height:70%;color:var(--bruma);opacity:.09;pointer-events:none}
+  .lat-marca{position:relative;display:flex;align-items:center;gap:10px;padding:0 10px}
+  .lat-marca .logo{width:36px;height:26px}
+  .lat-nombre{font-size:20px;font-weight:600;letter-spacing:-.4px;color:var(--arena)}
+  .lat-sub{align-self:flex-end;margin-bottom:3px}
+  .lat-sub{font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--bruma)}
+  .pestanas{position:relative;display:flex;flex-direction:column;gap:2px}
+  .pestana{display:flex;align-items:center;gap:12px;width:100%;border:0;border-radius:10px;padding:10px 12px;background:transparent;color:rgba(237,229,214,.66);font-weight:500;font-size:14px;text-align:left;cursor:pointer;transition:background .15s,color .15s}
+  .pestana:hover{background:rgba(237,229,214,.06);color:var(--arena)}
+  .pestana .pestana-txt{flex:1}
+  .pestana .n{min-width:22px;padding:1px 7px;border-radius:999px;background:rgba(237,229,214,.09);font-size:11.5px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+  .pestana .n.cero{opacity:.5}
+  .pestana.activa{background:rgba(127,181,171,.14);color:#fff;box-shadow:inset 3px 0 0 var(--alba)}
+  .pestana.activa .ico{color:var(--alba)}
+  .pestana.urgente .n{background:var(--alba);color:#2A1A0C;opacity:1}
+  .lat-pie{position:relative;margin-top:auto;display:flex;flex-direction:column;gap:12px;padding:16px 12px 0;border-top:1px solid rgba(237,229,214,.1)}
+  .cuenta-usuario{display:flex;align-items:center;gap:10px;min-width:0}
+  .avatar{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,var(--alba),var(--rosa))}
+  .avatar:empty{display:none}
+  #usuario{min-width:0;font-size:12.5px;color:rgba(237,229,214,.74);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lat-pie .btn{justify-content:flex-start}
+
+  .contenido{min-width:0}
+  header.barra{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px 16px;max-width:1080px;margin:0 auto;padding:34px 40px 6px}
+  .titulos{min-width:0}
+  .fecha-hoy{margin:0 0 4px;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+  .titulos h1{margin:0;font-size:30px;font-weight:600;letter-spacing:-1px;line-height:1.1;color:var(--tinta)}
+  .espacio{flex:1}
+  #actualizado{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--tenue);padding-bottom:10px}
+  #actualizado::before{content:"";width:7px;height:7px;border-radius:50%;background:#2BB673;box-shadow:0 0 0 3px rgba(43,182,115,.18)}
+  #actualizado:empty{display:none}
+  main{max-width:1080px;margin:0 auto;padding:18px 40px 80px}
+
+  /* Indicadores */
+  .resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:6px 0 24px}
+  .dato{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:14px 16px 15px;background:var(--papel);border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);text-align:left;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
+  .dato:hover{transform:translateY(-1px);border-color:var(--borde2);box-shadow:var(--sombra2)}
+  .dato .ico{width:32px;height:32px;padding:7px;margin-bottom:8px;border-radius:9px;background:var(--fondo);color:var(--teal)}
+  .dato b{font-size:28px;line-height:1;font-weight:600;letter-spacing:-1px;color:var(--tinta);font-variant-numeric:tabular-nums}
+  .dato-txt{font-size:12.5px;color:var(--suave)}
+  .dato.alerta{background:linear-gradient(180deg,#FFF8EA,#FFF2D9);border-color:#F0D49E}
+  .dato.alerta .ico{background:#FBE1B0;color:var(--ambar)}
+  .dato.alerta b{color:var(--ambar)}
+  .dato.alerta::after{content:"";position:absolute;top:18px;right:18px;width:8px;height:8px;border-radius:50%;background:var(--alba);animation:latido 1.8s ease-out infinite}
+
+  /* Búsqueda */
+  .filtros{display:flex;gap:10px;margin-bottom:20px}
+  .buscador{position:relative;flex:1;min-width:0;display:flex}
+  .buscador .ico{position:absolute;left:14px;top:50%;width:17px;height:17px;transform:translateY(-50%);color:var(--tenue);pointer-events:none}
+  .filtros input,.filtros select{height:44px;padding:0 14px;border:1px solid var(--borde);border-radius:12px;background:var(--papel);font-size:14.5px;box-shadow:var(--sombra);transition:border-color .15s,box-shadow .15s}
+  .filtros input{flex:1;min-width:0;padding-left:42px}
+  .filtros input:focus,.filtros select:focus{outline:0;border-color:var(--teal);box-shadow:0 0 0 4px rgba(14,124,107,.12)}
+
+  /* Lista */
+  h2.dia{display:flex;align-items:center;gap:12px;margin:28px 2px 12px;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--suave)}
+  h2.dia:first-child{margin-top:4px}
+  h2.dia::after{content:"";order:1;flex:1;height:1px;background:var(--borde)}
+  h2.dia .cuenta-dia{order:2;font-weight:500;letter-spacing:.02em;text-transform:none;color:var(--tenue)}
+  h2.dia.hoy{color:var(--rosa)}
+  .vacio{display:flex;flex-direction:column;align-items:center;gap:14px;margin:8px 0;padding:52px 20px;text-align:center;font-size:14px;color:var(--suave);background:var(--papel);border:1px dashed var(--borde2);border-radius:var(--radio)}
+  .vacio .ico{width:46px;height:46px;padding:12px;border-radius:50%;background:var(--teal-bg);color:var(--teal)}
+  .esqueleto{height:122px;margin-bottom:10px;border-radius:var(--radio);background:linear-gradient(90deg,#EEE7D9 0%,#F8F3EA 40%,#EEE7D9 80%);background-size:200% 100%;animation:brillo 1.3s linear infinite}
+
+  /* Tarjeta de reserva */
+  .reserva{position:relative;display:grid;grid-template-columns:92px minmax(0,1fr);margin-bottom:10px;background:var(--papel);border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);overflow:hidden;transition:border-color .15s,box-shadow .15s}
+  .reserva:hover{border-color:var(--borde2);box-shadow:var(--sombra2)}
+  .reserva::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acento,var(--borde2))}
+  .r-confirmada{--acento:var(--teal)}.r-pago-informado{--acento:var(--alba)}.r-retenida{--acento:#6C82A6}.r-realizada{--acento:#5E9C8E}
+  .r-ausente{--acento:var(--rosa)}.r-dra-ausente{--acento:#8D5BB0}.r-reembolsada{--acento:#7D9A45}.r-cancelada{--acento:#B9AE9C}
+  .reserva.urgente{background:linear-gradient(90deg,#FFF8EC 0%,var(--papel) 45%);border-color:#F0D9A6}
+  .r-hora{display:flex;flex-direction:column;gap:2px;padding:18px 0 16px 22px}
+  .r-hora b{font-size:20px;line-height:1.1;font-weight:600;letter-spacing:-.6px;color:var(--tinta);font-variant-numeric:tabular-nums}
+  .r-hora small{font-size:11.5px;color:var(--tenue)}
+  .r-hora .rel{margin-top:6px;font-size:11px;font-weight:600;color:var(--rosa)}
+  .r-cuerpo{min-width:0;padding:16px 20px 14px 6px}
+  .fila1{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .r-quien{display:flex;align-items:center;gap:12px;min-width:0}
+  .r-ini{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--tinta2);background:var(--fondo);border:1px solid var(--borde)}
+  .r-id{min-width:0}
+  .nombre{margin:0;font-size:15.5px;font-weight:600;line-height:1.3;letter-spacing:-.2px;color:var(--texto)}
+  .meta{margin:1px 0 0;font-size:12.5px;color:var(--tenue);word-break:break-word;font-variant-numeric:tabular-nums}
+  .r-estados{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .estado{flex:none;display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;background:#EEE;color:#444}
+  .estado::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.75}
+  .e-confirmada{background:#DDF1EC;color:#0B5F52}.e-pago-informado{background:#FBE9BF;color:#6B4600}
+  .e-retenida{background:#E3E9F2;color:#33445E}.e-realizada{background:#D7ECE7;color:#0B5F52}
+  .e-ausente{background:#F6DCE5;color:#8A2C4B}.e-dra-ausente{background:#EBDDF3;color:#5B2C7A}
+  .e-expirada,.e-rechazada,.e-cancelada{background:#ECE7DE;color:#5C5648}.e-reembolsada{background:#E4EAD8;color:#476022}
+  .pendiente{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;color:var(--ambar);background:var(--ambar-bg);border:1px dashed #E3BC74}
+  .r-aviso{display:inline-flex;align-items:center;gap:6px;margin:12px 0 0;padding:5px 10px;border-radius:8px;font-size:12.5px;font-weight:500;color:var(--ambar);background:var(--ambar-bg)}
+  .r-aviso .ico{width:14px;height:14px}
+  .r-aviso.tranquilo{color:var(--suave);background:var(--fondo)}
+  .contacto{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:6px 11px;border-radius:9px;border:1px solid var(--borde);background:#fff;font-size:12.5px;font-weight:500;color:var(--texto);text-decoration:none;transition:border-color .15s,background .15s}
+  .chip span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip:hover{border-color:var(--borde2);background:var(--papel)}
+  .chip .ico{width:15px;height:15px;color:var(--suave)}
+  .chip.wsp{background:#EAF8EF;border-color:#CDEBD8;color:#116A3A}.chip.wsp .ico{color:#1FA855}
+  .chip.meet{background:var(--teal-bg);border-color:#BFE3DA;color:var(--teal2)}.chip.meet .ico{color:var(--teal)}
+  .acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--borde)}
+  .notatxt{margin-top:12px;padding:10px 14px;border-radius:10px;font-size:13px;white-space:pre-wrap;word-break:break-word;color:#4F4636;background:#FBF6EA;border:1px solid #F0E4C8}
+  details.nota{margin-top:10px;font-size:12.5px}
+  details.nota summary{display:inline-flex;align-items:center;gap:6px;padding:3px 0;list-style:none;cursor:pointer;font-weight:500;color:var(--suave)}
+  details.nota summary::-webkit-details-marker{display:none}
+  details.nota summary:hover{color:var(--teal)}
+  details.nota summary .ico{width:14px;height:14px}
+  details.nota textarea{display:block;width:100%;min-height:76px;margin:8px 0;padding:10px 12px;border:1px solid var(--borde2);border-radius:10px;background:#fff;font-size:13.5px;resize:vertical}
+  details.nota textarea:focus{outline:0;border-color:var(--teal);box-shadow:0 0 0 4px rgba(14,124,107,.12)}
+
+  /* Calendario */
+  .cal-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 10px}
+  .cal-stat{display:flex;flex-direction:column;gap:2px;padding:14px 16px;background:var(--papel);border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra)}
+  .cal-stat b{font-size:26px;line-height:1.1;font-weight:600;letter-spacing:-.9px;color:var(--tinta);font-variant-numeric:tabular-nums}
+  .cal-stat span{font-size:12.5px;color:var(--suave)}
+  .cal-stat.cal-prox{background:var(--tinta);border-color:var(--tinta)}
+  .cal-stat.cal-prox span{color:var(--bruma)}
+  .cal-stat.cal-prox b{font-size:17px;letter-spacing:-.3px;color:var(--arena);margin-top:auto}
+  .cal-nota{margin:0 2px 18px;font-size:12.5px;color:var(--tenue)}
+  .cal-barra{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 20px;margin:0 2px 14px}
+  .cal-leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--suave)}
+  .cal-leyenda i{display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:3px;vertical-align:-1px}
+  .lg-libre{background:#CDEBE3;box-shadow:inset 0 0 0 1px #9FD3C6}.lg-reservada{background:#FBE1B0;box-shadow:inset 0 0 0 1px #EBC680}.lg-ocupada{background:#E7E0D3}
+  .cal-opc{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--suave);cursor:pointer}
+  .cal-opc input{accent-color:var(--teal);width:15px;height:15px}
+  .cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+  .cal-dia{display:grid;grid-template-columns:62px minmax(0,1fr);gap:14px;padding:14px 16px;background:var(--papel);border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra)}
+  .cal-dia.hoy{border-color:var(--rosa);box-shadow:0 0 0 3px rgba(199,92,132,.1),var(--sombra)}
+  .cal-dia.apagado{background:transparent;box-shadow:none;border-style:dashed}
+  .cal-fecha{display:flex;flex-direction:column;align-items:center;justify-content:center;align-self:start;padding:8px 4px;border-radius:12px;background:var(--fondo)}
+  .cal-fecha small{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--suave)}
+  .cal-fecha b{font-size:24px;line-height:1.15;font-weight:600;letter-spacing:-.8px;color:var(--tinta)}
+  .cal-dia.hoy .cal-fecha{background:var(--rosa)}
+  .cal-dia.hoy .cal-fecha small,.cal-dia.hoy .cal-fecha b{color:#fff}
+  .cal-dia.apagado .cal-fecha{background:#EDE7DC}
+  .cal-info{min-width:0}
+  .cal-cab{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .cal-cab b{font-size:13.5px;font-weight:600;color:var(--tinta)}
+  .cal-cab small{font-size:12px;color:var(--suave)}
+  .cal-cab small.libres{color:var(--teal);font-weight:600}
+  .cal-cab small.lleno{color:var(--rosa);font-weight:600}
+  .cal-medidor{height:4px;margin:8px 0 10px;border-radius:999px;background:#ECE5D7;overflow:hidden}
+  .cal-medidor i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--teal),#43B29A)}
+  .cal-horas{display:flex;flex-wrap:wrap;gap:6px}
+  .hora{padding:5px 10px;border-radius:8px;border:1px solid var(--borde);background:#fff;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--texto)}
+  .hora.libre{background:#E3F4EF;border-color:#BFE3DA;color:var(--teal2)}
+  .hora.reservada{background:#FCEFD6;border-color:#F0D49E;color:var(--ambar);cursor:pointer;transition:background .15s}
+  .hora.reservada:hover{background:#FBE1B0}
+  .hora.agenda,.hora.pasada{background:#F1ECE3;border-color:transparent;color:var(--tenue)}
+  .hora.pasada{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.18)}
+  .cal-motivo{margin:6px 0 0;font-size:12.5px;color:var(--suave)}
+
+  /* Mensajes y confirmaciones */
+  #aviso{position:fixed;left:0;right:0;bottom:24px;z-index:40;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
+  #aviso .caja{pointer-events:auto;display:flex;align-items:center;gap:12px;width:100%;max-width:560px;padding:12px 10px 12px 16px;border-radius:14px;font-size:13.5px;background:var(--tinta);color:var(--arena);box-shadow:0 18px 40px -12px rgba(8,31,29,.5);animation:tostada .3s cubic-bezier(.2,.8,.2,1)}
+  #aviso .caja::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:#2BB673;box-shadow:0 0 0 4px rgba(43,182,115,.22)}
+  #aviso .caja span{flex:1}
+  #aviso .caja.mal{background:#5A1A31}
+  #aviso .caja.mal::before{background:#FF8FB1;box-shadow:0 0 0 4px rgba(255,143,177,.2)}
+  #aviso .btn{padding:8px 12px;font-size:12.5px}
+  #aviso .x{padding:4px 8px;border:0;background:none;color:inherit;font-size:20px;line-height:1;cursor:pointer;opacity:.6}
+  #aviso .x:hover{opacity:1}
+  #modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(4,17,15,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:velo .2s ease}
+  #modal .cuadro{width:100%;max-width:440px;padding:26px 26px 22px;border-radius:20px;background:var(--papel);box-shadow:0 30px 80px -20px rgba(4,17,15,.55);animation:asoma .25s cubic-bezier(.2,.8,.2,1)}
+  #modal h3{margin:0 0 8px;font-size:19px;font-weight:600;letter-spacing:-.4px;line-height:1.3;color:var(--tinta)}
+  #modal p{margin:0 0 22px;font-size:14px;line-height:1.6;color:var(--suave)}
+  #modal .fila{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+  #modal .btn{padding:11px 18px}
+  #modal .fila.col{flex-direction:column}
+  #modal .fila.col .btn{width:100%}
+  .pie{margin:34px 0 0;font-size:12px;text-align:center;color:var(--tenue)}
+
+  /* Animaciones (solo al cambiar de vista, no en cada actualización automática) */
+  .animar>.reserva,.animar>h2.dia,.animar>.cal-dia{animation:subir .42s cubic-bezier(.2,.7,.2,1) both}
+  .animar>:nth-child(2){animation-delay:.03s}.animar>:nth-child(3){animation-delay:.06s}.animar>:nth-child(4){animation-delay:.09s}
+  .animar>:nth-child(5){animation-delay:.12s}.animar>:nth-child(6){animation-delay:.15s}.animar>:nth-child(7){animation-delay:.18s}
+  .animar>:nth-child(n+8){animation-delay:.21s}
+  @keyframes subir{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes latido{0%{box-shadow:0 0 0 0 rgba(242,166,90,.55)}70%{box-shadow:0 0 0 10px rgba(242,166,90,0)}100%{box-shadow:0 0 0 0 rgba(242,166,90,0)}}
+  @keyframes brillo{to{background-position:-200% 0}}
+  @keyframes girar{to{transform:rotate(360deg)}}
+  @keyframes tostada{from{opacity:0;transform:translateY(12px) scale(.98)}}
+  @keyframes velo{from{opacity:0}}
+  @keyframes asoma{from{opacity:0;transform:translateY(10px) scale(.98)}}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+  @media (min-width:900px){#aviso{left:var(--lateral)}}
+  /* Celular: barra superior + navegación inferior */
+  @media (max-width:899px){
+    #entrada{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+    .entrada-arte{gap:26px;padding:26px 24px 30px;min-height:230px}
+    .marca-kairal{font-size:24px}
+    .marca-kairal .logo{width:42px;height:30px}
+    .entrada-arte .sol{width:40px;height:40px;right:28px;top:34px}
+    .entrada-lema h2{font-size:23px;letter-spacing:-.6px}
+    .entrada-form{align-items:flex-start;padding:30px 22px 40px}
+    .tarjeta-entrada h1{font-size:27px}
+
+    #panel{display:block}
+    .lateral{position:sticky;top:0;z-index:20;height:auto;flex-direction:row;align-items:center;gap:12px;padding:10px 14px 10px 6px;padding-top:calc(10px + env(safe-area-inset-top))}
+    .lateral .contornos{display:none}
+    .lat-marca{padding:0 4px 0 8px}
+    .lat-sub{display:none}
+    .lat-pie{flex-direction:row;align-items:center;gap:8px;margin:0 0 0 auto;padding:0;border:0}
+    #usuario{display:none}
+    .pestanas{position:fixed;left:0;right:0;bottom:0;z-index:30;flex-direction:row;gap:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom));background:var(--tinta);border-top:1px solid rgba(237,229,214,.08);box-shadow:0 -10px 30px -12px rgba(4,17,15,.4)}
+    .pestana{position:relative;flex:1;min-width:0;flex-direction:column;gap:3px;padding:6px 2px;border-radius:10px;font-size:10.5px;text-align:center}
+    .pestana .ico{width:21px;height:21px}
+    .pestana .pestana-txt{flex:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pestana .n{position:absolute;top:1px;left:calc(50% + 5px);min-width:17px;padding:0 5px;font-size:10px;line-height:17px;background:rgba(237,229,214,.18);color:#fff}
+    .pestana .n.cero{display:none}
+    .pestana.activa{background:transparent;box-shadow:none}
+    header.barra{flex-wrap:nowrap;align-items:center;padding:18px 16px 2px}
+    .titulos{flex:1}
+    header.barra .espacio{display:none}
+    .titulos h1{font-size:23px}
+    .fecha-hoy{font-size:10.5px;letter-spacing:.08em}
+    .barra .btn-txt,.lat-pie .btn-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+    #btnActualizar,#btnSalir{width:40px;height:40px;padding:0;border-radius:12px}
+    #btnSalir .ico,#btnActualizar .ico{width:18px;height:18px}
+    #actualizado{display:none}
+    main{padding:14px 16px calc(112px + env(safe-area-inset-bottom))}
+    .resumen{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}
+    .dato{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ico num" "ico txt";align-items:center;column-gap:12px;row-gap:0;padding:12px}
+    .dato .ico{grid-area:ico;margin:0;width:36px;height:36px;padding:8px}
+    .dato b{grid-area:num;font-size:22px}
+    .dato-txt{grid-area:txt;font-size:12px;line-height:1.3}
+    .dato.alerta::after{top:10px;right:10px}
+    .reserva{grid-template-columns:1fr}
+    .r-hora{flex-direction:row;align-items:baseline;gap:8px;padding:14px 16px 0 18px}
+    .r-hora .rel{margin:0 0 0 auto}
+    .r-cuerpo{padding:10px 16px 14px 18px}
+    .fila1{flex-wrap:wrap}
+    .r-estados{flex-direction:row;align-items:center}
+    .acciones .btn{flex:1 1 auto}
+    .filtros{flex-direction:column}
+    .filtros select{width:100%}
+    .cal-grid{grid-template-columns:1fr}
+    .cal-res{gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    #aviso{bottom:calc(86px + env(safe-area-inset-bottom))}
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="marca-kairal" viewBox="0 0 55.45 39.85"><circle fill="#F59B1B" cx="27.79" cy="3.98" r="3.98"/><path fill="#48B9B2" d="M0,35.93s.04-.06.06-.03c.58.72,3.49,3.79,9.6,1.54,6.94-2.55,8.16-10.56,10.63-15.98,0,0,2.82-7.46,6.26-10.06s5.84-4.79,15.84-5.56c8.46-.66,12.03-4.39,12.92-5.52.05-.07.16-.01.14.07-.39,1.32-2.16,5.61-8.84,7.56-7.95,2.32-10.91,2.82-14.85,5.77-3.94,2.96-4.93,4.93-8.73,12.81-3.8,7.88-7.53,11.12-11.12,12.46S1.39,40.67,0,35.93Z"/><path fill="#48B9B2" d="M33.65,21.45c-1.21-1.37-2.73-3.76-.48-5.34,0,0,3.1-1.62,5.35,3.03,0,0,1.76,3.11.91,8.52-.84,5.41-3.03,8.45-7.11,10.59,0,0-1.94,1.16-4.22,1.45-.04,0-.06-.06-.02-.07,1.19-.54,6.56-3.21,7.65-7.66.48-1.97.56-3.6.43-4.95-.2-2.08-1.13-4.01-2.51-5.57Z"/></symbol><symbol id="contornos" viewBox="0 0 800 800"><g fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"><path d="M336 330C337 332 338 334 337 336C337 338 335 339 333 341C331 342 328 343 325 344C323 344 320 345 318 345C316 346 314 347 312 347C310 348 309 349 307 349C305 350 302 351 300 351C298 351 295 351 293 351C291 351 288 350 286 350C284 349 281 349 279 348C276 348 273 347 271 346C269 344 267 343 266 341C265 339 265 337 266 335C266 333 268 332 269 330C270 328 272 327 273 326C274 324 274 323 274 322C275 320 274 318 275 317C276 315 277 313 279 312C280 311 283 310 285 309C287 308 290 308 293 308C295 308 298 308 300 308C302 308 305 308 307 309C310 309 312 309 314 310C316 311 318 312 320 313C321 314 322 316 324 317C325 319 326 320 327 321C328 322 330 324 332 325C333 327 335 328 336 330Z"/><path d="M376 330C377 334 379 338 378 342C377 346 373 350 369 353C365 355 358 357 353 359C348 360 342 360 337 362C332 363 329 364 325 365C321 367 318 370 314 372C310 374 305 376 300 378C295 379 289 379 284 379C278 379 273 377 268 376C262 374 258 372 253 370C248 368 243 366 240 363C236 360 232 357 230 353C228 349 228 345 229 341C229 337 233 333 235 330C237 327 241 324 243 321C245 318 245 316 246 312C247 309 246 305 248 302C249 298 250 293 253 290C256 287 261 284 266 283C272 281 278 281 284 281C289 281 295 282 300 283C305 284 310 284 315 285C320 286 325 286 330 288C335 289 340 291 344 293C347 295 351 298 353 301C356 304 358 307 361 310C363 313 366 316 368 319C371 323 374 326 376 330Z"/><path d="M412 330C413 336 415 342 414 348C412 353 408 359 403 364C397 368 389 371 381 374C373 376 364 377 357 379C350 381 345 382 339 385C333 387 328 392 322 395C315 399 308 404 300 407C292 409 282 411 273 411C264 410 255 407 247 404C240 401 233 396 228 392C222 387 217 382 212 378C208 373 203 368 201 363C198 357 196 352 196 346C196 341 199 335 202 330C204 325 209 321 211 316C214 312 216 308 217 303C218 298 217 292 219 286C221 280 222 273 227 268C231 262 239 257 247 255C254 252 265 252 274 252C283 252 292 255 300 257C308 259 315 262 322 263C330 265 337 266 344 267C352 269 360 270 367 273C373 276 380 280 385 284C390 288 393 293 397 298C400 303 402 308 405 314C407 319 410 324 412 330Z"/><path d="M446 330C446 337 448 345 446 353C444 360 441 368 435 374C429 380 420 386 411 390C402 394 390 396 381 399C371 402 363 403 354 407C346 410 339 415 330 420C321 425 311 432 300 436C289 440 274 443 262 442C250 442 237 438 227 433C217 428 210 419 204 412C197 405 194 397 190 390C185 383 181 377 178 370C174 363 170 357 168 350C167 344 166 337 167 330C168 323 172 317 174 310C176 304 180 298 182 291C184 284 185 277 188 269C191 261 194 252 200 245C206 238 216 230 226 226C237 222 252 221 264 222C276 223 289 228 300 231C311 235 320 240 329 243C339 246 347 247 357 250C367 252 378 252 388 255C398 258 409 262 416 267C424 272 430 279 435 286C439 293 441 301 442 308C444 315 445 323 446 330Z" stroke-width="1.8"/><path d="M482 330C480 339 479 348 476 357C474 366 471 376 465 384C460 392 451 401 442 407C432 413 419 417 407 422C396 426 384 428 372 432C361 436 351 441 339 446C327 452 314 459 300 463C286 467 268 472 253 471C237 470 221 466 209 459C197 452 188 441 182 431C175 421 173 410 169 401C166 392 163 384 159 376C154 369 147 362 143 354C138 347 132 339 129 330C127 321 127 312 129 303C130 295 135 286 139 277C143 268 147 259 153 250C159 241 165 231 174 222C183 214 195 205 208 200C222 196 239 194 255 195C270 196 286 202 300 207C314 211 324 219 336 223C347 228 356 231 368 234C380 236 393 236 407 239C420 242 436 245 447 250C459 256 469 264 475 273C481 281 483 292 484 301C485 311 483 321 482 330Z"/><path d="M522 330C518 341 512 352 507 362C502 373 499 383 493 393C487 403 481 414 471 423C462 432 449 439 436 446C422 452 407 455 392 460C377 465 363 468 348 473C333 477 317 484 300 487C283 491 263 495 245 494C227 493 207 489 193 481C179 474 168 461 160 449C153 438 152 424 148 413C144 402 143 392 137 383C132 374 123 368 114 359C106 350 93 341 87 330C81 319 76 307 76 295C76 284 82 272 88 261C95 250 105 240 116 230C126 220 137 211 150 202C163 194 178 185 194 180C210 175 230 172 247 173C265 174 284 179 300 184C316 190 329 199 342 204C356 210 366 214 380 218C393 221 409 221 425 223C442 226 463 228 478 233C494 239 510 248 519 258C528 268 531 282 531 294C532 306 526 319 522 330Z"/><path d="M566 330C558 343 546 355 538 367C530 379 525 390 518 401C511 413 506 426 497 437C488 448 476 460 462 468C448 477 430 483 412 489C395 494 376 496 357 500C338 503 320 507 300 509C280 511 259 514 239 513C219 511 196 508 179 500C163 493 148 480 139 468C129 456 126 440 121 427C116 415 115 403 108 393C102 382 91 375 80 364C69 354 52 343 42 330C32 317 22 301 21 287C20 272 26 256 36 243C45 231 63 220 79 210C95 200 113 193 131 186C149 179 166 172 185 167C203 163 223 159 242 158C262 158 282 160 300 164C318 168 334 176 350 182C365 187 378 193 394 197C410 201 428 202 447 205C466 208 491 209 511 216C530 222 552 232 564 243C576 255 582 272 582 286C583 301 573 317 566 330Z"/><path d="M609 330C599 346 580 359 568 372C556 385 546 395 538 408C529 421 526 434 517 448C509 461 500 477 486 489C472 500 452 511 433 517C413 524 389 527 367 529C345 531 322 531 300 531C278 531 255 532 233 529C211 527 187 524 167 517C148 510 129 499 115 487C102 475 95 459 87 445C80 432 78 418 70 405C62 393 53 383 41 370C28 358 9 345 -3 330C-14 315 -28 296 -30 279C-31 262 -25 242 -12 228C0 213 24 201 45 192C67 183 93 178 116 173C138 168 159 164 180 160C200 156 219 151 239 148C259 146 280 144 300 145C320 146 340 150 359 154C378 158 395 164 414 168C434 173 453 176 475 181C497 186 524 189 546 197C568 205 594 216 608 229C622 243 631 262 631 279C632 295 620 314 609 330Z" stroke-width="1.8"/><path d="M647 330C635 347 612 362 596 376C581 390 566 400 556 414C545 427 542 441 534 457C526 472 521 492 507 507C494 522 475 537 453 547C432 556 403 560 378 562C352 564 325 560 300 558C275 555 251 552 227 548C203 544 178 540 156 534C133 527 110 518 92 507C75 496 61 480 49 466C38 451 33 435 24 420C16 405 8 392 -3 377C-14 362 -31 347 -43 330C-54 313 -68 292 -70 273C-71 253 -65 231 -51 215C-36 199 -9 185 17 176C42 167 76 165 102 161C128 157 152 157 175 153C197 149 215 144 236 139C257 134 277 126 300 122C323 119 347 117 371 119C394 120 418 126 441 131C464 137 486 144 509 152C533 159 558 167 581 178C603 189 629 202 644 217C659 233 670 254 671 272C671 291 660 313 647 330Z"/><path d="M676 330C664 349 641 365 624 380C608 395 589 406 577 421C565 435 561 450 552 467C544 484 542 507 529 525C516 543 498 565 475 577C452 590 420 597 390 600C361 602 328 595 300 590C272 585 246 576 220 569C194 562 170 556 145 549C120 542 94 535 72 525C49 514 28 501 12 486C-4 471 -14 453 -24 436C-35 419 -40 402 -49 384C-58 366 -69 349 -77 330C-85 311 -97 289 -97 268C-98 248 -93 224 -78 206C-63 189 -35 173 -8 163C19 153 56 151 85 147C114 143 142 145 167 142C191 138 209 132 231 124C253 117 274 104 300 96C326 88 356 80 384 79C413 77 444 81 471 88C499 95 524 107 547 119C571 131 593 145 613 160C633 175 655 191 668 209C682 227 694 249 695 269C696 289 688 311 676 330Z"/><path d="M696 330C688 350 670 368 655 385C641 402 622 415 609 431C597 447 589 463 580 482C571 501 567 525 554 546C540 567 522 593 497 609C472 624 437 636 404 639C371 642 332 634 300 627C268 619 239 603 212 593C184 582 161 572 135 563C109 554 82 548 56 538C30 528 2 518 -20 503C-41 489 -59 470 -71 452C-84 433 -89 412 -96 391C-102 371 -106 351 -110 330C-113 309 -120 287 -118 265C-116 243 -112 219 -98 200C-83 181 -59 162 -32 150C-5 138 33 133 63 128C94 123 125 125 152 121C178 116 199 111 223 102C248 93 271 77 300 66C329 55 364 41 398 38C432 34 471 37 502 45C533 53 561 71 584 88C607 104 624 126 640 146C656 165 669 185 680 206C690 226 701 247 704 267C706 288 704 310 696 330Z"/><path d="M712 330C711 351 704 372 695 391C686 411 670 428 658 447C646 466 634 483 621 504C609 525 600 549 583 572C566 594 547 622 519 639C491 656 452 671 416 675C379 678 335 671 300 661C265 651 233 631 204 616C175 602 153 586 127 574C101 563 74 556 46 547C17 537 -17 530 -44 516C-70 503 -98 485 -115 466C-132 446 -140 422 -146 399C-151 377 -148 353 -147 330C-146 307 -143 285 -138 262C-132 239 -128 215 -114 194C-100 174 -81 152 -56 137C-31 122 4 112 35 104C66 96 101 96 130 90C160 85 185 81 213 71C241 62 267 46 300 35C333 23 372 7 410 3C448 -2 493 -1 528 9C562 18 594 40 616 61C638 82 649 111 660 135C672 159 675 183 682 205C689 227 698 247 702 268C707 288 713 309 712 330Z" stroke-width="1.8"/><path d="M687 650C686 651 685 653 684 654C683 655 682 656 681 657C680 658 680 659 678 660C677 661 676 662 675 662C673 663 671 663 670 664C668 664 667 665 665 665C663 666 662 666 660 667C658 667 656 668 654 668C652 668 649 668 648 667C646 667 644 666 643 664C642 663 642 662 641 660C641 659 640 658 640 657C639 655 638 655 638 653C637 652 636 651 635 650C634 649 634 647 634 646C634 645 635 643 636 642C637 641 638 640 640 639C641 638 643 637 644 636C646 636 647 635 649 634C651 634 653 633 654 633C656 633 658 634 660 634C662 634 663 635 665 636C666 636 668 637 669 637C671 637 673 637 675 638C677 638 679 638 681 638C683 639 685 640 687 641C688 642 688 644 688 646C688 647 687 649 687 650Z"/><path d="M725 650C723 653 719 656 716 659C713 661 711 663 709 666C707 668 706 671 704 674C702 676 700 679 697 681C694 683 690 685 686 687C682 688 678 689 674 690C669 691 665 692 660 693C655 694 650 695 645 695C640 695 634 695 629 693C625 692 620 689 617 686C615 683 613 679 612 676C611 673 611 669 610 666C609 663 608 661 606 658C604 656 601 653 599 650C597 647 595 643 595 640C595 637 596 633 599 630C601 627 605 625 609 622C613 620 618 619 622 617C626 616 630 614 634 613C638 612 642 610 647 610C651 609 656 609 660 609C664 610 669 611 673 612C677 613 680 614 685 615C689 616 693 617 698 618C703 619 709 619 714 621C719 623 724 625 727 628C730 631 731 635 731 639C731 643 728 647 725 650Z"/><path d="M761 650C757 655 750 659 745 663C741 667 736 670 733 674C730 678 730 682 727 687C725 691 724 697 720 701C716 706 711 710 705 714C699 717 691 719 684 720C676 721 668 722 660 722C652 722 644 722 636 721C628 721 619 720 612 717C605 715 598 711 593 707C588 703 586 697 584 691C581 686 582 681 580 676C579 671 578 667 575 663C573 659 568 655 565 650C562 645 557 639 556 634C555 628 557 622 560 617C564 612 571 608 577 605C584 602 592 600 599 598C606 596 613 595 620 593C626 591 632 589 639 588C646 586 653 584 660 584C667 583 675 584 682 585C689 586 696 588 702 590C709 592 716 594 723 596C730 599 738 601 745 604C752 607 760 611 764 616C768 621 771 627 770 633C770 639 766 645 761 650Z"/><path d="M796 650C791 657 782 663 776 668C770 673 764 677 760 683C756 688 755 694 753 700C751 707 750 716 746 723C741 730 735 738 726 744C718 749 706 752 695 753C684 755 671 753 660 752C649 751 638 748 628 746C618 743 608 741 598 737C589 733 580 729 573 724C566 719 561 712 557 706C553 700 552 692 550 686C548 680 547 674 543 668C540 662 535 657 531 650C527 643 520 636 518 628C517 620 517 611 521 604C525 597 534 591 543 587C552 582 565 580 575 578C586 576 596 575 606 573C615 571 623 569 632 566C641 564 650 560 660 558C670 557 681 555 692 556C702 557 712 560 722 563C731 566 740 570 748 575C757 579 765 583 773 589C781 594 790 599 795 606C800 612 804 620 804 628C805 635 800 643 796 650Z" stroke-width="1.8"/><path d="M830 650C826 658 818 666 812 674C805 681 798 686 793 693C788 701 786 708 783 716C779 725 778 736 773 746C767 756 759 767 748 774C737 781 721 786 706 787C691 788 674 785 660 782C646 778 633 772 621 767C609 762 598 757 588 752C577 747 567 743 557 738C548 732 539 726 532 720C525 713 520 705 516 697C512 690 510 682 506 674C502 666 497 659 493 650C489 641 482 632 480 622C478 612 477 601 481 592C486 582 496 573 508 567C519 561 536 558 550 556C564 553 578 554 591 552C603 551 614 549 625 546C637 543 647 538 660 535C673 532 687 528 701 528C714 528 729 531 742 535C754 539 765 546 774 553C784 559 792 567 799 574C807 582 815 589 820 597C826 606 832 614 833 623C835 632 834 642 830 650Z"/><path d="M865 650C864 660 859 671 854 680C849 690 840 698 834 707C828 716 823 725 817 735C811 745 808 758 799 769C791 780 781 794 767 802C754 810 734 816 716 817C698 819 677 814 660 808C643 803 628 792 615 785C601 777 591 769 580 763C568 757 556 754 544 749C532 744 518 740 507 733C495 727 484 719 476 710C468 701 464 691 459 681C454 671 451 661 448 650C445 639 440 628 440 616C439 604 439 591 445 579C450 568 461 557 474 549C488 542 507 537 524 534C541 531 560 532 576 531C592 530 605 530 619 527C633 524 645 518 660 514C675 510 693 504 709 503C726 502 746 503 761 507C776 512 790 521 801 530C812 539 819 550 826 560C833 570 839 580 844 590C850 599 857 609 860 619C864 629 866 640 865 650Z"/><path d="M901 650C903 662 904 675 900 687C897 699 889 711 881 722C873 734 863 744 854 755C845 766 836 779 824 790C812 801 800 815 783 824C766 832 745 840 724 841C704 842 679 838 660 831C641 825 624 812 609 803C594 793 584 783 571 776C558 769 546 765 530 761C515 756 496 754 479 748C462 742 443 735 430 725C418 715 408 703 402 690C396 677 396 663 395 650C395 637 397 623 400 610C403 596 406 582 414 569C422 557 433 544 447 535C462 526 483 519 502 515C521 511 543 511 561 510C579 509 596 510 612 507C629 505 643 500 660 495C677 490 697 482 717 480C737 478 761 477 780 481C799 485 817 495 830 505C842 516 849 531 856 544C863 556 865 569 871 581C876 593 882 603 887 615C892 626 899 638 901 650Z"/></g></symbol></svg>
+<section id="entrada">
+  <div class="entrada-arte">
+    <svg class="contornos" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid slice"><use href="#contornos"/></svg>
+    <div class="sol" aria-hidden="true"></div>
+    <div class="marca-kairal"><svg class="logo" aria-hidden="true" focusable="false"><use href="#marca-kairal"/></svg><span>Kairal</span></div>
+    <div class="entrada-lema">
+      <p class="eyebrow">Panel interno</p>
+      <h2>Todas tus reservas, en un solo lugar.</h2>
+      <p>Confirma pagos, revisa la agenda y avisa a tus pacientes sin salir de aquí.</p>
+    </div>
+  </div>
+  <div class="entrada-form">
+  <div class="tarjeta-entrada">
+    <p class="eyebrow">Acceso privado</p>
+    <h1>Entrar al panel</h1>
+    <p id="cargandoEntrada">Un momento…</p>
+
+    <!-- Entrar con Google (el modo normal): solo pasan las cuentas que la Dra. autorizó -->
+    <div id="bloqueGoogle" class="oculto">
+      <p>Entra con tu cuenta de Google. Solo pueden ver las reservas las personas que la Dra. autorizó.</p>
+      <div id="botonGoogle" class="boton-google"></div>
+    </div>
+
+    <!-- Entrar con clave (solo mientras Google no está configurado) -->
+    <form id="formEntrada" class="oculto" autocomplete="off">
+      <p>Para ver las reservas, escribe la clave que te dio la Dra.</p>
+      <label for="clave" class="oculto">Clave</label>
+      <input id="clave" type="password" inputmode="text" autocapitalize="none" autocomplete="off" placeholder="Clave">
+      <button class="btn btn-ok btn-grande" id="btnEntrar" type="submit">Entrar</button>
+    </form>
+    <p id="msgEntrada" role="status"></p>
+    <div class="entrada-seguro"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span>Solo entran las cuentas autorizadas por la Dra. Cada ingreso y cada acción quedan registrados.</span></div>
+  </div>
+  </div>
+</section>
+
+<div id="panel" class="oculto">
+  <aside class="lateral">
+    <svg class="contornos" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid slice"><use href="#contornos"/></svg>
+    <div class="lat-marca"><svg class="logo" aria-hidden="true" focusable="false"><use href="#marca-kairal"/></svg><span class="lat-nombre">Kairal</span><span class="lat-sub">Reservas</span></div>
+    <nav class="pestanas" id="pestanas" role="tablist" aria-label="Secciones"></nav>
+    <div class="lat-pie">
+      <div class="cuenta-usuario"><span class="avatar" id="avatarUsuario" aria-hidden="true"></span><small id="usuario"></small></div>
+      <button class="btn btn-fantasma" id="btnSalir" type="button"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></span><span class="btn-txt">Salir</span></button>
+    </div>
+  </aside>
+  <div class="contenido">
+    <header class="barra">
+      <div class="titulos"><p class="fecha-hoy" id="fechaHoy"></p><h1 id="tituloVista">Reservas</h1></div>
+      <span class="espacio"></span>
+      <small id="actualizado"></small>
+      <button class="btn btn-sec" id="btnActualizar" type="button"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg></span><span class="btn-txt">Actualizar</span></button>
+    </header>
+    <main>
+      <div class="resumen" id="resumen"></div>
+      <div class="filtros" id="filtros">
+        <label class="buscador"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><input id="buscar" type="search" placeholder="Buscar por nombre, RUT, correo o código" aria-label="Buscar"></label>
+        <select id="filtroEstado" aria-label="Filtrar por estado" class="oculto"></select>
+      </div>
+      <div id="lista"></div>
+      <div id="calendario" class="oculto"></div>
+      <p class="pie">Se actualiza sola cada minuto. La sesión dura 6 horas.</p>
+    </main>
+  </div>
+</div>
+
+<div id="aviso" class="oculto"></div>
+<div id="modal" class="oculto" role="dialog" aria-modal="true"></div>
+
+<script>window.KAIRAL_API = "https://script.google.com/macros/s/AKfycbznoR3keSxp58PBxbEKU61qyeH74B1SWiE0AvljFKnzwW3vRvSEbawevV91WTPPIwuO/exec";</script>
+<script>
+(function () {
+  'use strict';
+  var S = { sesion: null, items: [], hoy: '', desfase: 0, pestana: 'confirmar', q: '', estado: '', cargando: false, abiertas: {} };
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ── DOM seguro: todo lo que viene de pacientes se inserta como TEXTO, nunca como HTML ──
+  function el(tag, attrs, hijos) {
+    var e = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === 'clase') e.className = attrs[k];
+      else if (k === 'texto') e.textContent = attrs[k];
+      else if (k === 'click') e.addEventListener('click', attrs[k]);
+      else if (attrs[k] !== false && attrs[k] != null) e.setAttribute(k, attrs[k]);
+    });
+    (hijos || []).forEach(function (h) { if (h) e.appendChild(typeof h === 'string' ? document.createTextNode(h) : h); });
+    return e;
+  }
+  function vaciar(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+  function normal(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  function slug(s) { return normal(s).replace(/[^a-z]+/g, '-'); }
+
+  // Íconos de línea (texto fijo del propio panel, nunca datos de pacientes)
+  var ICONOS = {
+    confirmar: '<path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
+    proximas: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>',
+    retenidas: '<path d="M6 2h12M6 22h12M7 2c0 5 5 6 5 10s-5 5-5 10M17 2c0 5-5 6-5 10s5 5 5 10"/>',
+    historial: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+    calendario: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
+    hoy: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    buscar: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    wsp: '<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/>',
+    correo: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+    meet: '<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3"/>',
+    nota: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    vacio: '<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>'
+  };
+  function icono(n) {
+    var s = document.createElement('span'); s.className = 'ico'; s.setAttribute('aria-hidden', 'true');
+    s.innerHTML = '<svg viewBox="0 0 24 24">' + (ICONOS[n] || '') + '</svg>';
+    return s;
+  }
+  var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function fechaDe(ymd) { var p = String(ymd || '').split('-'); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
+  function fechaLarga(ymd) { var d = fechaDe(ymd); if (!d) return ''; var x = DIAS[d.getDay()] + ' ' + d.getDate() + ' de ' + MESES[d.getMonth()]; return x.charAt(0).toUpperCase() + x.slice(1); }
+  function fechaCorta(ymd) { var d = fechaDe(ymd); return d ? DIAS[d.getDay()].slice(0, 3) + ' ' + d.getDate() + ' ' + MESES[d.getMonth()].slice(0, 3) : ''; }
+  function relativo(ms) {
+    var m = Math.round(Math.abs(ms) / 60000); if (m < 1) return 'menos de 1 min'; if (m < 60) return m + ' min';
+    var h = Math.round(m / 60); if (h < 24) return h + ' h'; var d = Math.round(h / 24); return d + (d === 1 ? ' día' : ' días');
+  }
+  function iniciales(n) { return String(n || '').trim().split(/\s+/).slice(0, 2).map(function (x) { return x.charAt(0).toUpperCase(); }).join(''); }
+  function esqueletos(cont, n) { for (var i = 0; i < n; i++) cont.appendChild(el('div', { clase: 'esqueleto', 'aria-hidden': 'true' })); }
+
+  // ── Llamadas al servidor ──
+  // Dentro de Apps Script se usa google.script.run. Como página del sitio (panel-reservas.html) se define
+  // window.KAIRAL_API y se llama por POST al mismo Apps Script: así no depende de cuál cuenta de Google tenga
+  // abierta el navegador (el marco de Apps Script falla cuando hay varias).
+  function llamar(fn, args, ok, mal) {
+    function falla(e) { if (mal) mal(e); else mostrar('No pude comunicarme con el servidor. Revisa tu conexión e inténtalo de nuevo.', true); }
+    if (window.KAIRAL_API) {
+      fetch(window.KAIRAL_API, { method: 'POST', body: JSON.stringify({ action: 'panel', fn: fn, args: args }) })
+        .then(function (r) { return r.json(); }).then(ok).catch(falla);
+      return;
+    }
+    var run = google.script.run.withSuccessHandler(ok).withFailureHandler(falla);
+    run[fn].apply(run, args);
+  }
+
+  // ── Entrada ──
+  function guardarSesion(s) { try { if (s) sessionStorage.setItem('kp', s); else sessionStorage.removeItem('kp'); } catch (e) {} }
+  function leerSesion() { try { return sessionStorage.getItem('kp'); } catch (e) { return null; } }
+
+  // Entrar con clave (modo de transición)
+  $('formEntrada').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var b = $('btnEntrar'); b.disabled = true; $('msgEntrada').textContent = 'Revisando…';
+    llamar('panelEntrar', [$('clave').value], function (r) {
+      b.disabled = false;
+      if (!r.ok) { $('msgEntrada').textContent = r.mensaje; if (r.error === 'usa_google') iniciarEntrada(); else $('clave').select(); return; }
+      $('clave').value = ''; $('msgEntrada').textContent = '';
+      S.sesion = r.sesion; guardarSesion(r.sesion);
+      abrirPanel();
+    }, function () { b.disabled = false; $('msgEntrada').textContent = 'No pude comunicarme con el servidor. Inténtalo de nuevo.'; });
+  });
+
+  // Entrar con Google. El servidor comprueba el inicio de sesión con Google; aquí solo se pasa el "credential".
+  function entroGoogle(resp) {
+    $('msgEntrada').textContent = 'Comprobando tu cuenta…';
+    llamar('panelEntrarGoogle', [resp && resp.credential], function (r) {
+      if (!r.ok) { $('msgEntrada').textContent = r.mensaje; return; }
+      $('msgEntrada').textContent = '';
+      S.sesion = r.sesion; guardarSesion(r.sesion);
+      abrirPanel();
+    }, function () { $('msgEntrada').textContent = 'No pude comunicarme con el servidor. Inténtalo de nuevo.'; });
+  }
+  function cargarGoogle(ok, mal) {
+    if (window.google && google.accounts && google.accounts.id) return ok();
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.defer = true;
+    s.onload = ok; s.onerror = mal;
+    document.head.appendChild(s);
+  }
+  function prepararGoogle(clientId) {
+    $('bloqueGoogle').classList.remove('oculto'); $('formEntrada').classList.add('oculto'); $('cargandoEntrada').classList.add('oculto');
+    // Dentro del marco de Apps Script el inicio con Google no funciona: se manda a la página del sitio
+    if (!window.KAIRAL_API) {
+      $('botonGoogle').textContent = '';
+      $('msgEntrada').textContent = 'Este panel ahora se abre desde kairal.cl/panel-reservas.html.';
+      return;
+    }
+    cargarGoogle(function () {
+      google.accounts.id.initialize({ client_id: clientId, callback: entroGoogle, auto_select: false, ux_mode: 'popup' });
+      vaciar($('botonGoogle'));
+      google.accounts.id.renderButton($('botonGoogle'), { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill', locale: 'es', width: 280 });
+    }, function () {
+      $('msgEntrada').textContent = 'No pude cargar el inicio de sesión de Google. Revisa tu conexión (o si algún bloqueador de anuncios lo está impidiendo) e inténtalo de nuevo.';
+    });
+  }
+  // Pregunta al servidor cómo se entra (Google o clave) y muestra lo que corresponda
+  function iniciarEntrada() {
+    $('cargandoEntrada').classList.remove('oculto'); $('bloqueGoogle').classList.add('oculto'); $('formEntrada').classList.add('oculto');
+    llamar('panelConfig', [], function (c) {
+      if (c && c.modo === 'google') { prepararGoogle(c.clientId); return; }
+      $('cargandoEntrada').classList.add('oculto'); $('formEntrada').classList.remove('oculto'); $('clave').focus();
+    }, function () { $('cargandoEntrada').textContent = 'No pude comunicarme con el servidor. Recarga la página.'; });
+  }
+
+  function abrirPanel() {
+    $('entrada').classList.add('oculto'); $('panel').classList.remove('oculto');
+    if (!S.items.length) { vaciar($('lista')); esqueletos($('lista'), 3); }
+    cargar();
+  }
+  function irAEntrada(mensaje) {
+    S.sesion = null; guardarSesion(null); S.items = []; $('usuario').textContent = ''; $('avatarUsuario').textContent = ''; S.vista = '';
+    $('panel').classList.add('oculto'); $('entrada').classList.remove('oculto');
+    iniciarEntrada();
+    $('msgEntrada').textContent = mensaje || '';
+  }
+  $('btnSalir').addEventListener('click', function () {
+    var s = S.sesion; if (s) llamar('panelSalir', [s], function () {}, function () {});
+    try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch (e) {}
+    irAEntrada('');
+  });
+  $('btnActualizar').addEventListener('click', function () { cargar(true); });
+
+  // ── Datos ──
+  function cargar(manual) {
+    if (!S.sesion || S.cargando) return;
+    S.cargando = true;
+    llamar('panelDatos', [S.sesion], function (r) {
+      S.cargando = false;
+      if (!r.ok) { irAEntrada(r.error === 'sesion' ? r.mensaje : ''); return; }
+      S.items = r.items; S.hoy = r.hoy; S.desfase = r.ahora - Date.now();
+      $('usuario').textContent = r.usuario || '';
+      $('avatarUsuario').textContent = String(r.usuario || '').charAt(0).toUpperCase();
+      var h = new Date(r.ahora);
+      $('actualizado').textContent = 'Actualizado ' + ('0' + h.getHours()).slice(-2) + ':' + ('0' + h.getMinutes()).slice(-2);
+      pintar();
+      if (S.pestana === 'calendario') { S.agenda = null; pintar(); }
+      if (manual) mostrar('Lista actualizada.');
+    }, function () { S.cargando = false; if (manual) mostrar('No pude actualizar. Revisa tu conexión.', true); });
+  }
+  setInterval(function () { if (S.sesion && !document.hidden && !$('modal').firstChild) cargar(); }, 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) cargar(); });
+
+  // ── Clasificación ──
+  var FINALES = { 'Realizada': 1, 'Ausente': 1, 'Dra. ausente': 1, 'Expirada': 1, 'Rechazada': 1, 'Cancelada': 1, 'Reembolsada': 1 };
+  function ahora() { return Date.now() + S.desfase; }
+  function esVencida(r) { return r.estado === 'Retenida' && r.retencionHasta && r.retencionHasta <= ahora(); }
+  function pestanaDe(r) {
+    if (r.estado === 'Pago informado') return 'confirmar';
+    if (r.estado === 'Confirmada' && r.dia >= S.hoy) return 'proximas';
+    if (r.estado === 'Retenida' && !esVencida(r)) return 'retenidas';
+    return 'historial';
+  }
+  var PESTANAS = [['confirmar', 'Por confirmar'], ['proximas', 'Próximas'], ['retenidas', 'Retenidas'], ['historial', 'Historial'], ['calendario', 'Calendario']];
+  var TITULOS = { confirmar: 'Por confirmar', proximas: 'Próximas consultas', retenidas: 'Horas retenidas', historial: 'Historial', calendario: 'Calendario' };
+
+  function pintar() {
+    var conteo = { confirmar: 0, proximas: 0, retenidas: 0, historial: 0, calendario: '' }, hoyN = 0;
+    S.items.forEach(function (r) { conteo[pestanaDe(r)]++; if (r.estado === 'Confirmada' && r.dia === S.hoy) hoyN++; });
+
+    var res = $('resumen'); vaciar(res);
+    [['Por confirmar', conteo.confirmar, 'confirmar', conteo.confirmar > 0, 'confirmar'], ['Consultas hoy', hoyN, 'proximas', false, 'hoy'],
+     ['Próximas', conteo.proximas, 'proximas', false, 'proximas'], ['Horas retenidas', conteo.retenidas, 'retenidas', false, 'retenidas']].forEach(function (d) {
+      res.appendChild(el('button', { type: 'button', clase: 'dato' + (d[3] ? ' alerta' : ''), click: function () { S.pestana = d[2]; S.q = ''; $('buscar').value = ''; pintar(); } },
+        [icono(d[4]), el('b', { texto: String(d[1]) }), el('span', { clase: 'dato-txt', texto: d[0] })]));
+    });
+
+    var pe = $('pestanas'); vaciar(pe);
+    PESTANAS.forEach(function (p) {
+      var activa = S.pestana === p[0] && !S.q;
+      pe.appendChild(el('button', { type: 'button', role: 'tab', 'aria-selected': String(activa), clase: 'pestana' + (activa ? ' activa' : '') + (p[0] === 'confirmar' && conteo.confirmar ? ' urgente' : ''),
+        click: function () { S.pestana = p[0]; S.q = ''; $('buscar').value = ''; pintar(); window.scrollTo(0, 0); } },
+        [icono(p[0]), el('span', { clase: 'pestana-txt', texto: p[1] }), p[0] === 'calendario' ? '' : el('span', { clase: 'n' + (conteo[p[0]] ? '' : ' cero'), texto: String(conteo[p[0]]) })]));
+    });
+    $('tituloVista').textContent = S.q ? 'Búsqueda' : TITULOS[S.pestana];
+    $('fechaHoy').textContent = fechaLarga(S.hoy) + (hoyN ? ' · ' + hoyN + (hoyN === 1 ? ' consulta hoy' : ' consultas hoy') : '');
+
+    // filtro de estado solo en el historial
+    var fe = $('filtroEstado');
+    var mostrarFiltro = S.pestana === 'historial' && !S.q;
+    fe.classList.toggle('oculto', !mostrarFiltro);
+    if (mostrarFiltro && !fe.options.length) {
+      [['', 'Todos los estados'], ['Realizada', 'Realizadas'], ['Ausente', 'Ausentes'], ['Dra. ausente', 'Dra. ausente'], ['Reembolsada', 'Reembolsadas'], ['Expirada', 'Expiradas'], ['Rechazada', 'Rechazadas'], ['Cancelada', 'Canceladas']]
+        .forEach(function (o) { fe.appendChild(el('option', { value: o[0], texto: o[1] })); });
+    }
+
+    var enCal = S.pestana === 'calendario' && !S.q;
+    $('lista').classList.toggle('oculto', enCal); $('calendario').classList.toggle('oculto', !enCal); $('resumen').classList.toggle('oculto', enCal); $('filtros').classList.toggle('oculto', enCal);
+    if (enCal) { fe.classList.add('oculto'); pintarCalendario(); return; }
+    var lista = $('lista'); vaciar(lista);
+    var q = normal(S.q).trim();
+    lista.classList.toggle('animar', S.vista !== S.pestana + '|' + q); S.vista = S.pestana + '|' + q;
+    var vistas;
+    if (q) {
+      vistas = S.items.filter(function (r) { return normal([r.nombre, r.rut, r.correo, r.codigo, r.telefono].join(' ')).indexOf(q) >= 0; })
+        .sort(function (a, b) { return b.inicio - a.inicio; });
+    } else {
+      vistas = S.items.filter(function (r) { return pestanaDe(r) === S.pestana && (S.pestana !== 'historial' || !S.estado || r.estado === S.estado); });
+      if (S.pestana === 'historial') vistas.sort(function (a, b) { return b.inicio - a.inicio; });
+      else if (S.pestana === 'confirmar') vistas.sort(function (a, b) { return a.pagoInformado - b.pagoInformado; });
+    }
+    if (!vistas.length) {
+      lista.appendChild(el('p', { clase: 'vacio' }, [icono(q ? 'buscar' : 'vacio'), el('span', { texto: q ? 'No encontré reservas con "' + S.q + '".' : ({ confirmar: 'No hay transferencias por confirmar. Todo al día.', proximas: 'No hay consultas próximas confirmadas.', retenidas: 'No hay horas retenidas ahora.', historial: 'Todavía no hay historial.' })[S.pestana] })]));
+      return;
+    }
+    if (q) lista.appendChild(el('h2', { clase: 'dia', texto: vistas.length + (vistas.length === 1 ? ' resultado' : ' resultados') }));
+    var diaActual = null;
+    vistas.forEach(function (r) {
+      if (!q && S.pestana === 'proximas' && r.dia !== diaActual) {
+        diaActual = r.dia;
+        var nDia = vistas.filter(function (x) { return x.dia === r.dia; }).length;
+        lista.appendChild(el('h2', { clase: 'dia' + (r.dia === S.hoy ? ' hoy' : '') }, [(r.dia === S.hoy ? 'Hoy · ' : '') + (fechaLarga(r.dia) || r.diaTxt),
+          el('span', { clase: 'cuenta-dia', texto: nDia + (nDia === 1 ? ' consulta' : ' consultas') })]));
+      }
+      lista.appendChild(tarjeta(r));
+    });
+  }
+
+  // ── Tarjeta de una reserva ──
+  function cuentaAtras(r) {
+    var ms = r.retencionHasta - ahora(); if (ms <= 0) return 'La retención venció';
+    var m = Math.ceil(ms / 60000); return 'Se libera en ' + m + ' min si no transfiere';
+  }
+  function tarjeta(r) {
+    var urgente = r.estado === 'Pago informado';
+    var t = ahora();
+    // Columna de la hora (con "en 40 min" cuando la consulta es pronto)
+    var rel = '';
+    if (r.estado === 'Confirmada' && r.inicio > t && r.inicio - t < 86400000) rel = 'en ' + relativo(r.inicio - t);
+    else if (r.estado === 'Confirmada' && r.inicio <= t && t - r.inicio < 3600000) rel = 'en curso';
+    var hora = el('div', { clase: 'r-hora' }, [el('b', { texto: r.hora || '—' }), el('small', { texto: fechaCorta(r.dia) || r.diaTxt }), rel ? el('span', { clase: 'rel', texto: rel }) : '']);
+
+    var estados = [el('span', { clase: 'estado e-' + slug(r.estado), texto: esVencida(r) ? 'Retención vencida' : r.estado })];
+    if (r.reembolsoPendiente) estados.push(el('span', { clase: 'pendiente', texto: 'Reembolso pendiente' }));
+    var hijos = [el('div', { clase: 'fila1' }, [
+      el('div', { clase: 'r-quien' }, [el('span', { clase: 'r-ini', 'aria-hidden': 'true', texto: iniciales(r.nombre) }),
+        el('div', { clase: 'r-id' }, [el('p', { clase: 'nombre', texto: r.nombre }),
+          el('p', { clase: 'meta', texto: 'RUT ' + r.rut + ' · Código ' + r.codigo + (r.reagendas ? ' · reagendó ' + r.reagendas + (r.reagendas === 1 ? ' vez' : ' veces') : '') })])]),
+      el('div', { clase: 'r-estados' }, estados)])];
+
+    var aviso = '';
+    if (r.estado === 'Pago informado') aviso = 'Avisó que transfirió' + (r.pagoInformado ? ' hace ' + relativo(t - r.pagoInformado) : '');
+    else if (r.estado === 'Retenida') aviso = cuentaAtras(r);
+    if (aviso) hijos.push(el('p', { clase: 'r-aviso' + (r.estado === 'Retenida' && !esVencida(r) ? ' tranquilo' : '') }, [icono('reloj'), aviso]));
+
+    var c = [];
+    if (r.telefono) c.push(el('a', { href: r.wsp, target: '_blank', rel: 'noopener noreferrer', clase: 'chip wsp' }, [icono('wsp'), el('span', { texto: 'WhatsApp +' + r.telefono })]));
+    if (r.correo) c.push(el('a', { href: 'mailto:' + r.correo, clase: 'chip' }, [icono('correo'), el('span', { texto: r.correo })]));
+    if (r.meet && r.estado === 'Confirmada') c.push(el('a', { href: r.meet, target: '_blank', rel: 'noopener noreferrer', clase: 'chip meet' }, [icono('meet'), el('span', { texto: 'Abrir Meet' })]));
+    if (c.length) hijos.push(el('div', { clase: 'contacto' }, c));
+
+    var acc = [];
+    if (r.acciones.indexOf('confirmar') >= 0) acc.push(el('button', { type: 'button', clase: 'btn btn-ok', texto: 'Confirmar pago', click: function () {
+      pedir('Confirmar el pago de ' + r.nombre, 'Se crea la cita con su enlace de Meet y se le envía el correo de confirmación. Hazlo solo si ya viste la transferencia en tu banco.', 'Sí, confirmar', 'ok', function () { hacer(r, 'confirmar'); }); } }));
+    if (r.acciones.indexOf('rechazar') >= 0) acc.push(el('button', { type: 'button', clase: 'btn btn-peligro', texto: 'No encuentro el pago', click: function () {
+      pedir('¿No encuentras el pago?', 'Se le avisa a ' + r.nombre + ' por correo y la hora queda libre para otra persona.', 'Sí, avisar y liberar', 'peligro', function () { hacer(r, 'rechazar'); }); } }));
+    if (r.acciones.indexOf('ausente') >= 0) acc.push(el('button', { type: 'button', clase: 'btn btn-sec', texto: 'No asistió', click: function () {
+      pedir('¿' + r.nombre + ' no asistió?', 'Se le envía un correo explicando que puede reagendar una vez sin pagar, dentro de 5 días.', 'Sí, no asistió', 'peligro', function () { hacer(r, 'ausente'); }); } }));
+    if (r.acciones.indexOf('dra_ausente') >= 0) acc.push(el('button', { type: 'button', clase: 'btn btn-sec', texto: 'La Dra. no pudo atender', click: function () {
+      pedir('¿La Dra. no pudo atender?', 'Se le avisa a ' + r.nombre + ' y puede elegir reagendar sin costo o pedir el reembolso.', 'Sí, avisar', 'peligro', function () { hacer(r, 'dra_ausente'); }); } }));
+    if (r.acciones.indexOf('cancelar') >= 0) acc.push(el('button', { type: 'button', clase: 'btn btn-sec', texto: 'Cancelar reserva', click: function () { pedirCancelar(r); } }));
+    if (r.acciones.indexOf('reembolsada') >= 0) acc.push(el('button', { type: 'button', clase: 'btn btn-ok', texto: 'Marcar reembolsada', click: function () {
+      pedir('¿Ya devolviste el dinero?', 'Se le envía a ' + r.nombre + ' un correo avisando que el reembolso fue realizado. El dinero lo devuelves tú desde tu banco: aquí solo se registra y se avisa.', 'Sí, ya lo devolví y avisar', 'ok', function () { hacer(r, 'reembolsada'); }); } }));
+    if (acc.length) hijos.push(el('div', { clase: 'acciones' }, acc));
+
+    if (r.notas) hijos.push(el('div', { clase: 'notatxt', texto: r.notas }));
+    var ta = el('textarea', { maxlength: '400', 'aria-label': 'Nota', placeholder: 'Ej.: pidió cambiar de hora, pagó con otra cuenta…' });
+    ta.value = r.notas;
+    var det = el('details', { clase: 'nota' }, [el('summary', {}, [icono('nota'), r.notas ? 'Editar nota' : 'Agregar nota']), ta,
+      el('button', { type: 'button', clase: 'btn btn-sec', texto: 'Guardar nota', click: function () {
+        llamar('panelAccion', [S.sesion, r.codigo, 'nota', ta.value], function (res) { if (sesionCaida(res)) return; mostrar(res.mensaje, !res.ok); if (res.ok) { S.abiertas[r.codigo] = false; cargar(); } });
+      } })]);
+    if (S.abiertas[r.codigo]) det.open = true;
+    det.addEventListener('toggle', function () { S.abiertas[r.codigo] = det.open; });
+    hijos.push(det);
+    return el('article', { clase: 'reserva r-' + slug(r.estado) + (urgente ? ' urgente' : '') }, [hora, el('div', { clase: 'r-cuerpo' }, hijos)]);
+  }
+
+  function sesionCaida(res) { if (res && res.error === 'sesion') { irAEntrada(res.mensaje); return true; } return false; }
+  function hacer(r, accion, texto) {
+    llamar('panelAccion', [S.sesion, r.codigo, accion, texto || ''], function (res) {
+      if (sesionCaida(res)) return;
+      mostrar(res.mensaje, !res.ok, res.wsp ? { texto: 'Avisar por WhatsApp', href: res.wsp } : null);
+      cargar();
+    });
+  }
+
+  // Cancelar una reserva confirmada: se elige si hay reembolso
+  function pedirCancelar(r) {
+    var m = $('modal'); vaciar(m);
+    function cerrar() { m.classList.add('oculto'); vaciar(m); }
+    var si = el('button', { type: 'button', clase: 'btn btn-ok', texto: 'Cancelar y reembolsar', click: function () { cerrar(); hacer(r, 'cancelar', 'reembolso'); } });
+    m.appendChild(el('div', { clase: 'cuadro' }, [el('h3', { texto: 'Cancelar la reserva de ' + r.nombre }),
+      el('p', { texto: 'La hora queda libre, se borra de tu calendario y se le avisa por correo. Elige si le devuelves el pago: si es así, la reserva quedará con "Reembolso pendiente" hasta que hagas la transferencia y la marques como reembolsada.' }),
+      el('div', { clase: 'fila col' }, [si,
+        el('button', { type: 'button', clase: 'btn btn-peligro', texto: 'Cancelar sin reembolso', click: function () { cerrar(); hacer(r, 'cancelar', 'sin'); } }),
+        el('button', { type: 'button', clase: 'btn btn-sec', texto: 'Volver', click: cerrar })])]));
+    m.classList.remove('oculto'); si.focus();
+  }
+
+  // ── Calendario de días y horas libres ──
+  function cargarAgenda(manual) {
+    if (!S.sesion || S.cargandoAgenda) return;
+    S.cargandoAgenda = true;
+    llamar('panelAgenda', [S.sesion], function (r) {
+      S.cargandoAgenda = false;
+      if (!r.ok) { irAEntrada(r.error === 'sesion' ? r.mensaje : ''); return; }
+      S.agenda = r; pintar();
+    }, function () { S.cargandoAgenda = false; mostrar('No pude cargar el calendario. Revisa tu conexión.', true); });
+  }
+  function pintarCalendario() {
+    var cont = $('calendario'); vaciar(cont);
+    if (!S.agenda) { esqueletos(cont, 3); cargarAgenda(); return; }
+    var dias = S.agenda.dias, libres = 0, diasLibres = 0, reservadas = 0, proxima = null;
+    dias.forEach(function (d) {
+      var lib = d.horas.filter(function (h) { return h.estado === 'libre'; });
+      libres += lib.length; if (lib.length) { diasLibres++; if (!proxima) proxima = { fecha: d.fecha, hora: lib[0].hora }; }
+      reservadas += d.horas.filter(function (h) { return h.estado === 'reservada'; }).length;
+    });
+    function dato(n, txt) { return el('div', { clase: 'cal-stat' }, [el('b', { texto: String(n) }), el('span', { texto: txt })]); }
+    cont.appendChild(el('div', { clase: 'cal-res' }, [
+      dato(libres, libres === 1 ? 'hora libre' : 'horas libres'), dato(diasLibres, diasLibres === 1 ? 'día con horas' : 'días con horas'),
+      dato(reservadas, reservadas === 1 ? 'hora reservada' : 'horas reservadas'),
+      el('div', { clase: 'cal-stat cal-prox' }, [el('span', { texto: 'Próxima hora libre' }), el('b', { texto: proxima ? fechaCorta(proxima.fecha) + ' · ' + proxima.hora : 'Sin horas libres' })])]));
+    cont.appendChild(el('p', { clase: 'cal-nota', texto: 'Es lo mismo que ve el público al reservar: horarios, bloqueos, feriados, reservas y tu agenda de Google.' }));
+
+    var chk = el('input', { type: 'checkbox', id: 'verSin' }); chk.checked = !!S.verSinAtencion;
+    chk.addEventListener('change', function () { S.verSinAtencion = chk.checked; pintarCalendario(); });
+    cont.appendChild(el('div', { clase: 'cal-barra' }, [
+      el('div', { clase: 'cal-leyenda' }, [el('span', {}, [el('i', { clase: 'lg-libre' }), 'Libre']), el('span', {}, [el('i', { clase: 'lg-reservada' }), 'Reservada (toca para verla)']),
+        el('span', {}, [el('i', { clase: 'lg-ocupada' }), 'Ocupada en tu agenda o ya pasó'])]),
+      el('label', { clase: 'cal-opc', for: 'verSin' }, [chk, 'Mostrar días sin atención'])]));
+
+    var grid = el('div', { clase: 'cal-grid' + (S.vista !== 'cal' ? ' animar' : '') }); S.vista = 'cal';
+    dias.forEach(function (d) {
+      if (d.estado === 'sin_horario' && !S.verSinAtencion) return;
+      var f = fechaDe(d.fecha), n = d.horas.filter(function (h) { return h.estado === 'libre'; }).length;
+      var resumen = d.estado === 'bloqueado' ? 'Bloqueado' : d.estado === 'sin_horario' ? 'Sin atención' : (n ? n + ' de ' + d.horas.length + ' libres' : 'Completo');
+      var info = [el('div', { clase: 'cal-cab' }, [el('b', { texto: d.fecha === S.agenda.hoy ? 'Hoy' : fechaLarga(d.fecha) }),
+        el('small', { clase: d.estado === 'completo' ? 'lleno' : (n ? 'libres' : ''), texto: resumen })])];
+      if (d.estado === 'bloqueado' && d.motivo) info.push(el('p', { clase: 'cal-motivo', texto: d.motivo }));
+      if (d.horas.length) {
+        var medidor = el('div', { clase: 'cal-medidor', 'aria-hidden': 'true' }, [el('i', { style: 'width:' + Math.round(n / d.horas.length * 100) + '%' })]);
+        info.push(medidor, el('div', { clase: 'cal-horas' }, d.horas.map(function (h) {
+          var txt = h.hora + (h.estado === 'reservada' ? ' · ' + h.nombre.split(' ')[0] : '');
+          var o = { type: 'button', clase: 'hora ' + h.estado, texto: txt, title: ({ libre: 'Libre', reservada: 'Ver la reserva', agenda: 'Ocupada en tu agenda', pasada: 'Ya pasó o es muy pronto para reservar' })[h.estado] };
+          if (h.estado === 'reservada') o.click = function () { S.q = h.codigo; $('buscar').value = h.codigo; pintar(); window.scrollTo(0, 0); };
+          else o.disabled = true;
+          return el('button', o);
+        })));
+      }
+      grid.appendChild(el('div', { clase: 'cal-dia' + (d.fecha === S.agenda.hoy ? ' hoy' : '') + (d.estado === 'bloqueado' || d.estado === 'sin_horario' ? ' apagado' : '') }, [
+        el('div', { clase: 'cal-fecha' }, [el('small', { texto: f ? DIAS[f.getDay()].slice(0, 3) : '' }), el('b', { texto: f ? String(f.getDate()) : '' }), el('small', { texto: f ? MESES[f.getMonth()].slice(0, 3) : '' })]),
+        el('div', { clase: 'cal-info' }, info)]));
+    });
+    cont.appendChild(grid);
+  }
+
+  // ── Mensajes y confirmaciones ──
+  var tAviso = 0;
+  function mostrar(texto, malo, boton) {
+    var a = $('aviso'); vaciar(a); clearTimeout(tAviso);
+    var caja = el('div', { clase: 'caja' + (malo ? ' mal' : ''), role: 'status' }, [el('span', { texto: texto })]);
+    if (boton) caja.appendChild(el('a', { href: boton.href, target: '_blank', rel: 'noopener noreferrer', clase: 'btn btn-wsp', texto: boton.texto }));
+    caja.appendChild(el('button', { type: 'button', clase: 'x', 'aria-label': 'Cerrar', texto: '×', click: function () { a.classList.add('oculto'); } }));
+    a.appendChild(caja); a.classList.remove('oculto');
+    tAviso = setTimeout(function () { a.classList.add('oculto'); }, boton ? 20000 : 6000);
+  }
+  function pedir(titulo, texto, textoOk, tipo, siOk) {
+    var m = $('modal'); vaciar(m);
+    function cerrar() { m.classList.add('oculto'); vaciar(m); }
+    var ok = el('button', { type: 'button', clase: 'btn ' + (tipo === 'peligro' ? 'btn-peligro' : 'btn-ok'), texto: textoOk, click: function () { cerrar(); siOk(); } });
+    m.appendChild(el('div', { clase: 'cuadro' }, [el('h3', { texto: titulo }), el('p', { texto: texto }),
+      el('div', { clase: 'fila' }, [el('button', { type: 'button', clase: 'btn btn-sec', texto: 'Cancelar', click: cerrar }), ok])]));
+    m.classList.remove('oculto'); ok.focus();
+  }
+  $('modal').addEventListener('click', function (e) { if (e.target === this) { this.classList.add('oculto'); vaciar(this); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('modal').classList.contains('oculto')) { $('modal').classList.add('oculto'); vaciar($('modal')); } });
+
+  $('buscar').addEventListener('input', function () { S.q = this.value; pintar(); });
+  $('filtroEstado').addEventListener('change', function () { S.estado = this.value; pintar(); });
+
+  // ── Arranque: si hay una sesión viva en esta pestaña, se retoma ──
+  var previa = leerSesion();
+  if (previa) { S.sesion = previa; abrirPanel(); } else { iniciarEntrada(); }
+})();
+</script>
+</body>
+</html>
