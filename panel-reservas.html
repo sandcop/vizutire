@@ -223,6 +223,15 @@
   .hora.reservada:hover{background:#FBE1B0}
   .hora.agenda,.hora.pasada{background:#F1ECE3;border-color:transparent;color:var(--tenue)}
   .hora.pasada{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.18)}
+  .hora.pronto{background:#fff;border:1px dashed #9FD3C6;color:var(--teal2)}
+  .lg-pronto{background:#fff;box-shadow:inset 0 0 0 1px #9FD3C6}
+  /* Elegir hora dentro de una ventana */
+  .elegir{max-height:280px;overflow:auto;margin:0 0 18px;padding:2px 2px 2px 0}
+  .elegir .dia-elegir{margin:10px 0 6px;font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--suave)}
+  .elegir .dia-elegir:first-child{margin-top:0}
+  .elegir .hora{cursor:pointer;margin:0 6px 6px 0}
+  .elegir .hora:hover{background:#CFEBE3}
+  #modal .aviso-modal{margin:-8px 0 14px;padding:8px 12px;border-radius:10px;font-size:13px;color:#8A2C4B;background:#FCEFF3}
   .cal-motivo{margin:6px 0 0;font-size:12.5px;color:var(--suave)}
 
   /* Mensajes y confirmaciones */
@@ -685,6 +694,10 @@
       pedir('¿' + r.nombre + ' no asistió?', 'Se le envía un correo explicando que puede reagendar una vez sin pagar, dentro de 5 días.', 'Sí, no asistió', 'peligro', function () { hacer(r, 'ausente'); }); } }));
     if (r.acciones.indexOf('dra_ausente') >= 0) acc.push(el('button', { type: 'button', clase: 'btn btn-sec', texto: 'La Dra. no pudo atender', click: function () {
       pedir('¿La Dra. no pudo atender?', 'Se le avisa a ' + r.nombre + ' y puede elegir reagendar sin costo o pedir el reembolso.', 'Sí, avisar', 'peligro', function () { hacer(r, 'dra_ausente'); }); } }));
+    if (r.acciones.indexOf('reactivar') >= 0) {
+      var txtReac = r.estado === 'Rechazada' ? 'Sí encontré el pago' : (r.estado === 'Retenida' && !esVencida(r) ? 'Ya vi su pago' : 'Pagó fuera de plazo');
+      acc.push(el('button', { type: 'button', clase: 'btn btn-ok', texto: txtReac, click: function () { pedirReactivar(r); } }));
+    }
     if (r.acciones.indexOf('cancelar') >= 0) acc.push(el('button', { type: 'button', clase: 'btn btn-sec', texto: 'Cancelar reserva', click: function () { pedirCancelar(r); } }));
     if (r.acciones.indexOf('reembolsada') >= 0) acc.push(el('button', { type: 'button', clase: 'btn btn-ok', texto: 'Marcar reembolsada', click: function () {
       pedir('¿Ya devolviste el dinero?', 'Se le envía a ' + r.nombre + ' un correo avisando que el reembolso fue realizado. El dinero lo devuelves tú desde tu banco: aquí solo se registra y se avisa.', 'Sí, ya lo devolví y avisar', 'ok', function () { hacer(r, 'reembolsada'); }); } }));
@@ -725,6 +738,70 @@
     m.classList.remove('oculto'); si.focus();
   }
 
+  // Pagó fuera de plazo (o se encontró el pago después de rechazarlo): confirmar en su hora o en otra
+  function pedirReactivar(r) {
+    var m = $('modal'); vaciar(m);
+    function cerrar() { m.classList.add('oculto'); vaciar(m); }
+    var aviso = el('p', { clase: 'aviso-modal oculto', role: 'alert' });
+    var zonaHoras = el('div', { clase: 'elegir oculto' });
+    var original = r.inicio && r.inicio > ahora();
+    function enviar(slot) {
+      aviso.classList.add('oculto');
+      m.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+      llamar('panelAccion', [S.sesion, r.codigo, 'reactivar', slot], function (res) {
+        if (sesionCaida(res)) { cerrar(); return; }
+        m.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+        if (!res.ok) {
+          aviso.textContent = res.mensaje; aviso.classList.remove('oculto');
+          if (res.error === 'ocupada' && zonaHoras.classList.contains('oculto')) mostrarHoras();
+          return;
+        }
+        cerrar();
+        S.agenda = null;
+        mostrar(res.mensaje, false, res.wsp ? { texto: 'Avisar por WhatsApp', href: res.wsp } : null);
+        cargar();
+      }, function () {
+        m.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+        aviso.textContent = 'No pude comunicarme con el servidor. Inténtalo de nuevo.'; aviso.classList.remove('oculto');
+      });
+    }
+    function mostrarHoras() {
+      zonaHoras.classList.remove('oculto'); vaciar(zonaHoras);
+      zonaHoras.appendChild(el('p', { clase: 'dia-elegir', texto: 'Buscando horas libres…' }));
+      llamar('panelAgenda', [S.sesion], function (ag) {
+        if (sesionCaida(ag)) { cerrar(); return; }
+        vaciar(zonaHoras);
+        if (!ag.ok) { zonaHoras.appendChild(el('p', { clase: 'dia-elegir', texto: ag.error === 'accion' ? 'Para elegir otra hora hace falta publicar la versión nueva del Apps Script.' : (ag.mensaje || 'No pude cargar las horas.') })); return; }
+        var hay = false;
+        ag.dias.forEach(function (d) {
+          var horas = d.horas.filter(function (h) { return h.estado === 'libre' || h.estado === 'pronto'; });
+          if (!horas.length) return;
+          hay = true;
+          zonaHoras.appendChild(el('p', { clase: 'dia-elegir', texto: d.fecha === ag.hoy ? 'Hoy' : fechaLarga(d.fecha) }));
+          var fila = el('div');
+          horas.forEach(function (h) {
+            fila.appendChild(el('button', { type: 'button', clase: 'hora ' + h.estado, texto: h.hora,
+              title: h.estado === 'pronto' ? 'El público ya no puede reservarla (menos de 12 h), pero tú sí puedes darla' : 'Confirmar a esta hora',
+              click: function () { enviar(d.fecha + 'T' + h.hora); } }));
+          });
+          zonaHoras.appendChild(fila);
+        });
+        if (!hay) zonaHoras.appendChild(el('p', { clase: 'dia-elegir', texto: 'No hay horas libres en las próximas semanas.' }));
+      }, function () { vaciar(zonaHoras); zonaHoras.appendChild(el('p', { clase: 'dia-elegir', texto: 'No pude cargar las horas. Revisa tu conexión.' })); });
+    }
+    var botones = [];
+    if (original) botones.push(el('button', { type: 'button', clase: 'btn btn-ok', texto: 'Confirmar el ' + r.diaTxt + ', ' + r.hora + ' h', click: function () { enviar(''); } }));
+    botones.push(el('button', { type: 'button', clase: 'btn ' + (original ? 'btn-sec' : 'btn-ok'), texto: original ? 'Elegir otra hora' : 'Elegir la hora', click: mostrarHoras }));
+    botones.push(el('button', { type: 'button', clase: 'btn btn-sec', texto: 'Volver', click: cerrar }));
+    m.appendChild(el('div', { clase: 'cuadro' }, [
+      el('h3', { texto: 'Confirmar la reserva de ' + r.nombre }),
+      el('p', { texto: 'Hazlo solo si ya viste la transferencia en tu banco. Se crea la cita con su enlace de Meet y se le envía el correo de confirmación.'
+        + (original ? '' : ' Su hora original ya pasó: elige una nueva.') }),
+      aviso, zonaHoras, el('div', { clase: 'fila col' }, botones)]));
+    m.classList.remove('oculto'); botones[0].focus();
+    if (!original) mostrarHoras();
+  }
+
   // ── Calendario de días y horas libres ──
   function cargarAgenda(manual) {
     if (!S.sesion || S.cargandoAgenda) return;
@@ -762,6 +839,7 @@
     chk.addEventListener('change', function () { S.verSinAtencion = chk.checked; pintarCalendario(); });
     cont.appendChild(el('div', { clase: 'cal-barra' }, [
       el('div', { clase: 'cal-leyenda' }, [el('span', {}, [el('i', { clase: 'lg-libre' }), 'Libre']), el('span', {}, [el('i', { clase: 'lg-reservada' }), 'Reservada (toca para verla)']),
+        el('span', {}, [el('i', { clase: 'lg-pronto' }), 'Libre solo para ti (menos de 12 h)']),
         el('span', {}, [el('i', { clase: 'lg-ocupada' }), 'Ocupada en tu agenda o ya pasó'])]),
       el('label', { clase: 'cal-opc', for: 'verSin' }, [chk, 'Mostrar días sin atención'])]));
 
@@ -777,7 +855,7 @@
         var medidor = el('div', { clase: 'cal-medidor', 'aria-hidden': 'true' }, [el('i', { style: 'width:' + Math.round(n / d.horas.length * 100) + '%' })]);
         info.push(medidor, el('div', { clase: 'cal-horas' }, d.horas.map(function (h) {
           var txt = h.hora + (h.estado === 'reservada' ? ' · ' + h.nombre.split(' ')[0] : '');
-          var o = { type: 'button', clase: 'hora ' + h.estado, texto: txt, title: ({ libre: 'Libre', reservada: 'Ver la reserva', agenda: 'Ocupada en tu agenda', pasada: 'Ya pasó o es muy pronto para reservar' })[h.estado] };
+          var o = { type: 'button', clase: 'hora ' + h.estado, texto: txt, title: ({ libre: 'Libre', reservada: 'Ver la reserva', agenda: 'Ocupada en tu agenda', pasada: 'Ya pasó', pronto: 'Libre, pero el público ya no puede reservarla (menos de 12 h)' })[h.estado] };
           if (h.estado === 'reservada') o.click = function () { S.q = h.codigo; $('buscar').value = h.codigo; pintar(); window.scrollTo(0, 0); };
           else o.disabled = true;
           return el('button', o);
