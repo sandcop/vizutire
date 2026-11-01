@@ -542,16 +542,28 @@
     S.cargando = true;
     llamar('panelDatos', [S.sesion], function (r) {
       S.cargando = false;
-      if (!r.ok) { irAEntrada(r.error === 'sesion' ? r.mensaje : ''); return; }
+      if (!r.ok) {
+        if (r.error === 'sesion') { irAEntrada(r.mensaje); return; }
+        // Otro error del servidor: se avisa y la sesión sigue (antes sacaba del panel sin explicar nada)
+        falloCarga('No pude cargar las reservas: ' + (r.mensaje || 'el servidor respondió con un error') + ' Prueba con "Actualizar".');
+        return;
+      }
       S.items = r.items; S.hoy = r.hoy; S.desfase = r.ahora - Date.now();
       $('usuario').textContent = r.usuario || '';
       $('avatarUsuario').textContent = String(r.usuario || '').charAt(0).toUpperCase();
       var h = new Date(r.ahora);
       $('actualizado').textContent = 'Actualizado ' + ('0' + h.getHours()).slice(-2) + ':' + ('0' + h.getMinutes()).slice(-2);
       pintar();
-      if (S.pestana === 'calendario') { S.agenda = null; pintar(); }
+      if (S.pestana === 'calendario') { S.agenda = null; S.agendaError = ''; pintar(); }
       if (manual) mostrar('Lista actualizada.');
-    }, function () { S.cargando = false; if (manual) mostrar('No pude actualizar. Revisa tu conexión.', true); });
+    }, function () {
+      S.cargando = false;
+      if (manual || !S.items.length) falloCarga('No pude comunicarme con el servidor. Revisa tu conexión y prueba con "Actualizar".');
+    });
+  }
+  function falloCarga(texto) {
+    if (!S.items.length) { var l = $('lista'); vaciar(l); l.appendChild(el('p', { clase: 'vacio' }, [el('span', { texto: texto })])); }
+    mostrar(texto, true);
   }
   setInterval(function () { if (S.sesion && !document.hidden && !$('modal').firstChild) cargar(); }, 60000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) cargar(); });
@@ -719,12 +731,19 @@
     S.cargandoAgenda = true;
     llamar('panelAgenda', [S.sesion], function (r) {
       S.cargandoAgenda = false;
-      if (!r.ok) { irAEntrada(r.error === 'sesion' ? r.mensaje : ''); return; }
-      S.agenda = r; pintar();
+      if (!r.ok) {
+        if (r.error === 'sesion') { irAEntrada(r.mensaje); return; }
+        S.agendaError = r.error === 'accion'
+          ? 'El calendario necesita la versión nueva del Apps Script de reservas (Panel.gs). Cuando se publique, aparecerá aquí.'
+          : 'No pude cargar el calendario: ' + (r.mensaje || 'el servidor respondió con un error') + ' Prueba con "Actualizar".';
+        pintar(); return;
+      }
+      S.agendaError = ''; S.agenda = r; pintar();
     }, function () { S.cargandoAgenda = false; mostrar('No pude cargar el calendario. Revisa tu conexión.', true); });
   }
   function pintarCalendario() {
     var cont = $('calendario'); vaciar(cont);
+    if (!S.agenda && S.agendaError) { cont.appendChild(el('p', { clase: 'vacio' }, [el('span', { texto: S.agendaError })])); return; }
     if (!S.agenda) { esqueletos(cont, 3); cargarAgenda(); return; }
     var dias = S.agenda.dias, libres = 0, diasLibres = 0, reservadas = 0, proxima = null;
     dias.forEach(function (d) {
