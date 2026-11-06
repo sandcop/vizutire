@@ -144,6 +144,7 @@ function mix(c1,c2,t){
 }
 
 var lanzarHero = null;
+var HERO_NUEVO = !!document.getElementById('hero-historia') || !document.getElementById('hero-copy');   // el hero es estático (sin escena de scroll)
 var COL = { tinta:'#081F1D', teal:'#0E7C6B', bruma:'#7FB5AB', arena:'#EDE5D6', duna:'#C9B79A', flor:'#C75C84', alba:'#F2A65A', noche:'#03100E' };
 
 /* ============================================================
@@ -151,6 +152,7 @@ var COL = { tinta:'#081F1D', teal:'#0E7C6B', bruma:'#7FB5AB', arena:'#EDE5D6', d
 ============================================================ */
 var terreno = (function(){
   var cv = document.getElementById('lienzo-terreno');
+  if (!cv) return { setP:function(){}, amanecer:function(){}, resize:function(){} };   // hero estático: sin lienzo
   var ctx = cv.getContext('2d');
   var W=0, H=0, dawn = 0, scrollP = 0, visible = true, dawnT0 = null;
   var n1 = makeNoise(1), n2 = makeNoise(2), n3 = makeNoise(3), nh = makeNoise(9);
@@ -867,6 +869,9 @@ if (gsapOK){
     procesar(el);
     return letras;
   }
+  // El hero ya no es una escena fijada al scroll: esta parte (H1 → frases → giro con arena y paradas de scroll)
+  // solo se arma si la página todavía trae el hero antiguo. Nada de lo que define se usa más abajo.
+  if (!HERO_NUEVO) (function(){
   var wsH1 = splitWords(document.getElementById('h1'));
   gsap.set(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas'], {opacity:0, y:24});
   // instantaneo=true: sin animación, para cuando la página se carga con el
@@ -1563,6 +1568,8 @@ if (gsapOK){
     e.preventDefault();
     irAParada(1);
   });
+
+  })();
 
   // ─── Acto 4: una gota por etapa + tarjetas cinematográficas ───
   var etapasCtl = (function(){
@@ -2382,7 +2389,7 @@ var metodoEl = document.getElementById('metodo');
 function onScroll(){
   var y = window.scrollY;
   var hMax = document.documentElement.scrollHeight - window.innerHeight;
-  header.classList.toggle('solido', y > window.innerHeight*0.7);
+  header.classList.toggle('solido', y > 40);
   fab.classList.toggle('visible', hMax > 0 && y/hMax > 0.42);
   if (movil && metodoEl){
     barra.classList.toggle('visible', y > metodoEl.offsetTop - window.innerHeight*0.5);
@@ -3679,6 +3686,7 @@ try{
   var velo = document.getElementById('velo');
   var btn = document.getElementById('velo-btn');
   var cvv = document.getElementById('lienzo-velo');
+  if (!velo || !btn || !cvv){ document.documentElement.classList.remove('velado'); return; }   // sin pantalla de entrada
   document.documentElement.classList.add('velado');
   // Refuerzo del arranque-desde-el-hero: además del scrollRestoration:manual
   // del <head>, se vuelve a llevar el scroll al tope acá (el layout ya está
@@ -3992,11 +4000,11 @@ try{
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
   function tarjeta(r){
-    var inicial = r.author_name ? r.author_name[0].toUpperCase() : '?';
+    var inicial = escHtml(r.author_name ? r.author_name[0].toUpperCase() : '?');
     var foto = r.profile_photo_url;
     return '<div style="background:var(--tinta-2);border:1px solid rgba(127,181,171,.18);border-radius:16px;padding:1.4rem">' +
       '<div style="display:flex;gap:2px;margin-bottom:.7rem;color:var(--alba)">' + star.repeat(r.rating || 5) + '</div>' +
-      '<p style="font-size:.92rem;line-height:1.6;margin-bottom:1rem;color:var(--arena)">"' + escHtml(r.text || 'Excelente atención.') + '"</p>' +
+      '<p style="font-size:.92rem;line-height:1.6;margin-bottom:1rem;color:var(--arena)">"' + escHtml(r.text) + '"</p>' +
       '<div style="display:flex;align-items:center;gap:.7rem">' +
       (foto
         ? '<img src="' + escHtml(foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" alt="">'
@@ -4009,7 +4017,8 @@ try{
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (data.status !== 'OK' || !data.result || !data.result.reviews) throw new Error('sin reseñas');
-      var buenas = data.result.reviews.filter(function(r){ return r.rating >= 4; });
+      // Solo reseñas de 4 o 5 estrellas que tengan texto (nunca se inventa una frase)
+      var buenas = data.result.reviews.filter(function(r){ return r.rating >= 4 && r.text; });
       var carga = document.getElementById('resenas-carga');
       var grid = document.getElementById('resenas-grid');
       if (carga) carga.style.display = 'none';
