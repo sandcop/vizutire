@@ -5,11 +5,31 @@
 /* ═══ Páginas internas: header, menú móvil, barra inferior ═══ */
 var header = document.getElementById('header');
 var barraMovil = document.getElementById('barra-movil');
+// En el celular el menú y la barra de abajo se turnan, igual que en la portada (ver onScroll en script.js):
+// al bajar se esconde el menú y se ve la barra; al subir vuelve el menú y se esconde la barra.
+var mqMovil = window.matchMedia('(max-width: 920px)');
+var PASO_NAV = 8, LIMITE_BARRA = 400, navY = Math.max(0, window.scrollY), navBajando = null;
+function esconderNav(si){ document.documentElement.classList.toggle('nav-oculta', si); }
+function menuYBarra(y){
+  if (!barraMovil || document.documentElement.classList.contains('menu-abierto')) return;
+  var hMax = document.documentElement.scrollHeight - window.innerHeight;
+  var yr = Math.min(Math.max(y, 0), Math.max(hMax, 0));
+  if (!mqMovil.matches || yr <= LIMITE_BARRA){
+    barraMovil.classList.remove('visible'); esconderNav(false);
+    navY = yr; navBajando = null;
+    return;
+  }
+  var d = yr - navY;
+  if (Math.abs(d) >= PASO_NAV){ navBajando = d > 0; navY = yr; }
+  esconderNav(navBajando === true);
+  barraMovil.classList.toggle('visible', navBajando !== false);
+}
 function alScroll(){
   var y = window.scrollY;
   if (header) header.classList.toggle('solido', y > 40);
-  if (barraMovil) barraMovil.classList.toggle('visible', y > 400);
+  menuYBarra(y);
 }
+if (header) header.addEventListener('focusin', function(){ esconderNav(false); });   // con teclado, el menú nunca queda oculto
 window.addEventListener('scroll', alScroll, { passive: true });
 alScroll();
 

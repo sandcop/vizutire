@@ -63,7 +63,7 @@ body.reduced .rev .w{opacity:1;transform:none;filter:none}
   position:fixed;top:0;left:0;right:0;z-index:50;
   display:flex;align-items:center;justify-content:space-between;
   padding:1.1rem var(--margen-x);
-  transition:background .5s var(--ease-tierra),-webkit-backdrop-filter .5s,backdrop-filter .5s,box-shadow .5s;
+  transition:background .5s var(--ease-tierra),-webkit-backdrop-filter .5s,backdrop-filter .5s,box-shadow .5s,transform .5s var(--ease-tierra);
 }
 .header.solido{background:rgba(8,31,29,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(127,181,171,.12)}
 .logo{text-decoration:none;display:flex;flex-direction:column;gap:.3rem}
@@ -1551,3 +1551,12 @@ body.reduced .hh-giro{opacity:1;animation:none;transform:none;margin-top:1.8rem}
 @media(min-width:921px){
   .metodo-escena{height:min(100svh,34rem);min-height:540px}
 }
+
+/* Celular: el menú y la barra inferior se turnan al hacer scroll (ver onScroll en script.js e interna.js). El mismo
+   tiempo que la barra (.5s), para que se crucen. El botón de sonido vive en la fila del menú, pero fuera de él. */
+.toggle-sonido{transition:transform .5s var(--ease-tierra)}
+@media(max-width:920px){
+  html.nav-oculta .header{transform:translateY(-110%)}
+  html.nav-oculta .toggle-sonido{transform:translateY(-250%)}
+}
+@media(prefers-reduced-motion:reduce){.header,.barra-movil,.toggle-sonido{transition:none}}

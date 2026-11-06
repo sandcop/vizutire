@@ -2386,15 +2386,35 @@ var header = document.getElementById('header');
 var fab = document.getElementById('fab-wsp');
 var barra = document.getElementById('barra-movil');
 var metodoEl = document.getElementById('metodo');
+// En el celular el menú y la barra de abajo se turnan: desde el punto en que aparece la barra, al bajar se
+// esconde el menú y se ve la barra; al subir vuelve el menú y se esconde la barra. El CSS solo lo aplica en
+// pantallas de 920 px o menos. PASO_NAV evita parpadeos con los temblores del dedo; la posición se limita al
+// rango real de la página para que el rebote de iOS en los extremos no cuente como cambio de dirección.
+var mqMovil = window.matchMedia('(max-width: 920px)');
+var PASO_NAV = 8, navY = Math.max(0, window.scrollY), navBajando = null;
+function esconderNav(si){ document.documentElement.classList.toggle('nav-oculta', si); }
+function menuYBarra(y, hMax, limite){
+  if (document.documentElement.classList.contains('menu-abierto')) return;
+  var yr = Math.min(Math.max(y, 0), Math.max(hMax, 0));
+  if (!mqMovil.matches || yr <= limite){
+    barra.classList.remove('visible'); esconderNav(false);
+    navY = yr; navBajando = null;
+    return;
+  }
+  var d = yr - navY;
+  if (Math.abs(d) >= PASO_NAV){ navBajando = d > 0; navY = yr; }
+  esconderNav(navBajando === true);
+  barra.classList.toggle('visible', navBajando !== false);
+}
 function onScroll(){
   var y = window.scrollY;
   var hMax = document.documentElement.scrollHeight - window.innerHeight;
+  var limite = metodoEl ? metodoEl.offsetTop - window.innerHeight*0.5 : Infinity;
   header.classList.toggle('solido', y > 40);
   fab.classList.toggle('visible', hMax > 0 && y/hMax > 0.42);
-  if (movil && metodoEl){
-    barra.classList.toggle('visible', y > metodoEl.offsetTop - window.innerHeight*0.5);
-  }
+  menuYBarra(y, hMax, limite);
 }
+header.addEventListener('focusin', function(){ esconderNav(false); });   // con teclado, el menú nunca queda oculto
 window.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
