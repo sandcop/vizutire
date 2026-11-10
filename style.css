@@ -162,7 +162,7 @@ html.menu-abierto{overflow:hidden}
 .btn .btn-texto{position:relative;z-index:2;display:inline-flex;align-items:center;gap:.6em;color:inherit}
 .btn::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;z-index:-1;border-radius:inherit;transform:translateY(103%);transition:transform .55s var(--ease-tierra)}
 .btn:hover::after,.btn:focus-visible::after{transform:translateY(0)}
-.btn-solido{background:var(--teal);color:#fff;box-shadow:0 8px 28px rgba(14,124,107,.35)}
+.btn-solido{background:var(--teal);color:#fff}
 .btn-solido::after{background:linear-gradient(180deg,#16c3a6,#0fae93)}
 .btn-ghost{background:transparent;border-color:rgba(237,229,214,.35);color:var(--texto-claro)}
 .btn-ghost:hover{border-color:var(--bruma)}
@@ -173,14 +173,14 @@ html.menu-abierto{overflow:hidden}
 /* Reservar (hero): dorado como "Está esperando florecer.", con un brillo
    que lo recorre cada pocos segundos para llamar la atención sin gritar */
 .btn-reserva{background:linear-gradient(135deg,#F7B871 0%,var(--alba) 55%,#E08A3C 100%);color:#2A1A0C;font-weight:600;
-  box-shadow:0 8px 30px rgba(242,166,90,.42),inset 0 1px 0 rgba(255,255,255,.35)}
+}
 /* el borde transparente dejaba ver, repetido, el extremo oscuro del degradado: una línea más oscura a la izquierda y arriba */
 .btn-reserva{background-origin:border-box;background-clip:border-box}
 .btn-reserva::after{background:linear-gradient(135deg,#FFC98A,#F2A65A)}
 .btn-reserva::before{content:'';position:absolute;z-index:1;top:0;bottom:0;left:-60%;width:45%;pointer-events:none;
   background:linear-gradient(100deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.55) 50%,rgba(255,255,255,0) 100%);
   transform:skewX(-20deg);animation:reserva-brillo 4.5s ease-in-out 2.5s infinite}
-.btn-reserva:hover{transform:translateY(-2px);box-shadow:0 14px 38px rgba(242,166,90,.55),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn-reserva:hover{transform:translateY(-2px)}
 .btn-reserva svg{position:relative;z-index:2;width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .btn-reserva-flecha{transition:transform .35s var(--ease-tierra)}
 .btn-reserva:hover .btn-reserva-flecha{transform:translateX(4px)}
@@ -195,7 +195,7 @@ body.reduced .btn::after{transition:none}
 body.reduced .acto-superficie{height:auto}
 .escenario{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
 body.reduced .escenario{position:relative;height:auto;min-height:100svh;padding-bottom:4rem}
-#lienzo-terreno{position:absolute;inset:0;width:100%;height:100%;display:block}
+#lienzo-terreno{position:fixed;left:0;top:0;width:100%;height:100vh;height:100lvh;display:block;z-index:-1;pointer-events:none}
 /* Enjambre que viaja entre las letras de cada frase del scroll (H1 →
    espejismos → giro) — por encima de todos los textos (z-index más alto
    que .hero-copy/.espejismo en 3 y .giro en 4). Ver construirPolvoTextos
@@ -520,7 +520,6 @@ body.reduced .tarjeta-etapa svg :is(path,circle){stroke-dashoffset:0}
 .acto-doctora{position:relative;background:var(--arena);color:var(--texto-oscuro);padding:clamp(6rem,14vh,10rem) 0 clamp(9rem,20vh,14rem);overflow:hidden}
 #lienzo-jardin{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .acto-doctora .contenedor{position:relative;z-index:1}
-.acto-doctora::before{content:'';position:absolute;top:0;left:0;right:0;height:110px;background:linear-gradient(180deg,#0C2B28,rgba(12,43,40,0));pointer-events:none;z-index:2}
 .doctora-grid{display:grid;grid-template-columns:5fr 7fr;gap:clamp(2rem,6vw,5rem);align-items:center}
 @media(max-width:920px){
   .doctora-grid{grid-template-columns:1fr}
@@ -1072,17 +1071,28 @@ body.reduced .blog-foto--2,body.reduced .blog-foto--3{display:none}
 body.reduced .faq-item summary::before{transition:none}
 
 /* ============ ACTO 7 · CTA FINAL ============ */
-.acto-cta{position:relative;min-height:100svh;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center}
+.acto-cta{position:relative;min-height:100svh;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:left}
 #lienzo-flor{position:absolute;inset:0;width:100%;height:100%}
-.acto-cta::before{content:'';position:absolute;top:0;left:0;right:0;height:110px;background:linear-gradient(180deg,#E4D9C6,rgba(228,217,198,0));z-index:1;pointer-events:none}
-.cta-copy{position:relative;z-index:3;padding:6rem var(--margen-x);max-width:54rem}
+/* misma estructura que el resto de la página: título a la izquierda y el contenido a la derecha (en celular, apilado y alineado a la izquierda como el hero) */
+.cta-copy{position:relative;z-index:3;width:100%;max-width:calc(1760px + 2 * var(--margen-x));margin-inline:auto;padding:6rem var(--margen-x)}
+@media(min-width:1000px){
+  .cta-copy{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);column-gap:clamp(2.2rem,4.5vw,4.5rem);align-items:center}
+  .cta-copy h2{font-size:clamp(2.2rem,min(5.2vw,8.4vh),5rem)}
+  /* menos aire: la sección ya no ocupa toda la pantalla y el bloque queda un poco sobre el centro (abajo van las flores) */
+  .acto-cta{min-height:clamp(34rem,80svh,48rem)}
+  .cta-copy{padding:5rem var(--margen-x) 7.5rem}
+}
 .cta-copy h2{font-size:clamp(2.4rem,5.6vw,5.2rem);color:var(--arena)}
-.cta-copy h2 em{font-family:var(--script);font-style:normal;letter-spacing:normal;font-size:1.25em;color:var(--flor);text-shadow:0 0 40px rgba(199,92,132,.45)}
-.cta-copy p{margin:1.4rem auto 2.4rem;max-width:36rem;color:rgba(237,229,214,.85)}
-/* texto crema con sombra oscura: el verde agua se perdía sobre el degradado naranja */
-.cta-copy .micro{font-family:var(--mono);font-size:.8rem;font-weight:500;letter-spacing:.12em;line-height:1.7;text-transform:uppercase;color:#FBF7EF;text-shadow:0 1px 3px rgba(5,21,18,.55),0 0 18px rgba(5,21,18,.45);margin-top:1.6rem}
-.cta-copy .micro a{color:#FBF7EF!important;font-weight:700}
-.cta-botones{display:flex;flex-wrap:wrap;gap:1rem;justify-content:center}
+.cta-copy h2 em{font-family:var(--script);font-style:normal;letter-spacing:normal;font-size:1.25em;color:var(--alba)}
+.cta-copy p{margin:1.4rem 0 2.4rem;max-width:36rem;color:rgba(237,229,214,.85)}
+.cta-der>p:first-child{margin-top:0}
+/* las dos líneas de abajo usan las mismas letras que el párrafo (antes iban en mayúsculas, muy espaciadas y en negrita): solo cambia el margen */
+.cta-copy .micro{margin:1.4rem 0 0}
+.cta-copy .micro a{color:var(--arena)!important;font-weight:600;text-decoration:underline;text-underline-offset:.2em}
+.cta-botones{display:flex;flex-wrap:wrap;gap:1rem;justify-content:flex-start}
+/* mismo tamaño que los llamados a la acción de las demás secciones (.cta-seccion .btn) */
+.cta-botones .btn{font-size:.92rem;padding:.85em 1.5em}
+.cta-botones .btn-reserva-flecha{width:1.05em;height:1.05em}
 
 /* ============ FOOTER ============ */
 .footer{background:#051512;padding:4rem 0 2.5rem;font-size:.92rem}
@@ -1118,20 +1128,9 @@ body.reduced .faq-item summary::before{transition:none}
 .actos-nav a:hover span{opacity:1}
 
 /* ============ FLOTANTES ============ */
-.fab-wsp{
-  position:fixed;right:1.4rem;bottom:1.4rem;z-index:49;
-  width:54px;height:54px;border-radius:50%;background:#1FAF5E;
-  display:flex;align-items:center;justify-content:center;text-decoration:none;
-  box-shadow:0 10px 30px rgba(0,0,0,.35);
-  opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
-  transition:all .5s var(--ease-tierra);
-}
-.fab-wsp.visible{opacity:1;transform:none;pointer-events:auto}
-.fab-wsp svg{width:26px;height:26px;fill:#fff}
-
-/* asistente Raíz — gancho de IA a futuro */
+/* asistente Raíz (preguntas frecuentes): el único botón flotante; antes iba encima del de WhatsApp */
 .fab-raiz{
-  position:fixed;right:1.4rem;bottom:5.7rem;z-index:49;
+  position:fixed;right:1.4rem;bottom:1.4rem;z-index:49;
   width:54px;height:54px;border-radius:50%;border:none;
   background:radial-gradient(circle at 32% 28%,#1bb99c,#0E7C6B 60%,#0a5c4f);
   display:flex;align-items:center;justify-content:center;
@@ -1143,10 +1142,10 @@ body.reduced .faq-item summary::before{transition:none}
 .fab-raiz[aria-expanded="true"]::after{animation:none;opacity:0}
 @keyframes raizLatido{0%{opacity:.9;transform:scale(1)}60%,100%{opacity:0;transform:scale(1.4)}}
 body.reduced .fab-raiz::after{animation:none}
-@media(max-width:920px){.fab-raiz{bottom:9.7rem}}
+@media(max-width:920px){.fab-raiz{bottom:5.4rem}}
 
 .panel-raiz{
-  position:fixed;right:1.4rem;bottom:9.5rem;z-index:56;
+  position:fixed;right:1.4rem;bottom:5.2rem;z-index:56;
   width:min(360px, calc(100vw - 2.4rem));max-height:min(660px,82vh);
   background:#0A2622;border:1px solid rgba(127,181,171,.22);border-radius:22px;
   box-shadow:0 30px 70px rgba(3,16,14,.55);
@@ -1220,7 +1219,7 @@ body.reduced .panel-raiz.abierto{filter:none}
 }
 .barra-movil.visible{transform:none}
 .barra-movil .btn{width:100%;justify-content:center}
-@media(max-width:920px){.barra-movil{display:flex}.fab-wsp{bottom:5.4rem}}
+@media(max-width:920px){.barra-movil{display:flex}}
 
 .toggle-sonido{
   position:fixed;left:1.4rem;bottom:1.4rem;z-index:49;
@@ -1310,7 +1309,9 @@ body.reduced .velo-contenido > *{transition:none}
   .motor-lado{padding-right:3.8rem}   /* el texto de la escena no queda bajo los flotantes */
   /* menú: si no cabe en pantalla (teléfonos chicos o apaisados) se desplaza en vez de cortarse */
   /* texto chico sobre el degradado naranja: fondo propio para que se lea */
-  .cta-copy .micro{display:block;max-width:30rem;margin-left:auto;margin-right:auto;padding:.8rem 1rem;border-radius:12px;
+  .cta-copy h2{margin-bottom:1.6rem}
+  .cta-botones .btn{flex:1 1 15rem;justify-content:center}
+  .cta-copy .micro{display:block;max-width:30rem;margin-left:0;margin-right:0;padding:.8rem 1rem;border-radius:12px;
     background:rgba(5,21,18,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--arena);line-height:1.7}
   #resenas-error a{display:inline-block;padding:.7rem .5rem}
   /* zonas táctiles ampliadas sin cambiar el tamaño visible */
@@ -1474,7 +1475,7 @@ html.modal-abierto{overflow:hidden}
 .hh-grid{position:relative;z-index:1;display:grid;gap:clamp(2.2rem,4.5vw,4.5rem);align-items:center;width:100%;max-width:1760px;margin-inline:auto}
 @media(min-width:1000px){.hh-grid{grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr)}}
 .hh-contenido{max-width:46rem}
-.hh h1{font-size:clamp(2.2rem,min(5.2vw,8.4vh),5rem);color:var(--arena);margin-top:1.3rem}
+.hh h1{font-size:clamp(2.2rem,min(5.2vw,8.4vh),5rem);color:var(--arena)}
 .hh h1 em{font-family:var(--script);font-style:normal;letter-spacing:normal;font-size:1.25em;color:var(--alba);font-weight:400}
 .hh-firma{margin-top:1.3rem;color:var(--arena);font-weight:500;font-size:clamp(.95rem,1.2vw,1.06rem);line-height:1.55}
 .hh-firma b{color:var(--alba);font-weight:600}
@@ -1482,9 +1483,6 @@ html.modal-abierto{overflow:hidden}
 .hh-bajada{margin-top:1rem;max-width:34rem;color:rgba(237,229,214,.82);font-size:clamp(1rem,1.3vw,1.15rem)}
 .hh-ctas{display:flex;flex-wrap:wrap;gap:1rem;margin-top:2rem}
 
-.hh-dunas{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:clamp(4.5rem,15vh,8.5rem);display:block;z-index:-1;pointer-events:none}
-.hh-dunas .d1{fill:rgba(201,183,154,.10)}
-.hh-dunas .d2{fill:rgba(12,43,40,1)}
 
 /* la escena de las frases: una línea fina de agua y un punto de alba, y el texto que va apareciendo */
 .hh-escena{
@@ -1507,7 +1505,8 @@ html.modal-abierto{overflow:hidden}
 /* modo arena (lo activa hero-historia.js): el CSS suelta las frases y las muestra la arena */
 .hh-escena.hh-arena .hh-voces li,.hh-escena.hh-arena .hh-giro{opacity:0;animation:none;transform:none}
 .hh-giro{opacity:0;animation:hhGiro 1.1s var(--ease-tierra) both;animation-delay:16s}
-.hh-giro h2{font-size:clamp(2rem,4.2vw,3.8rem);color:var(--arena);max-width:16ch;margin-top:1rem}
+.hh-giro h2{font-size:clamp(1.6rem,2.6vw,2.4rem);color:var(--arena);max-width:24ch}
+.hh-mov{display:none}
 .hh-giro h2 em{font-family:var(--script);font-style:normal;letter-spacing:normal;font-size:1.25em;color:var(--alba)}
 @keyframes hhVoz{0%{opacity:0;transform:translateY(16px)}11%{opacity:1;transform:none}86%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-10px)}}
 @keyframes hhGiro{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -1535,9 +1534,18 @@ body.reduced .hh-giro{opacity:1;animation:none;transform:none;margin-top:1.8rem}
   .hh-ctas{order:4;margin-top:.4rem}
   .hh-firma{order:5;margin-top:.6rem}
   .hh-bajada{order:6;margin-top:0}
-  .hh-escena{min-height:clamp(9.5rem,21vh,12rem)}
+  .hh-escena{min-height:0}   /* la caja mide lo que la frase o el cierre más altos (comparten celda): sin hueco y sin saltos */
+  /* orden de la referencia: título, línea corta ámbar, la historia (con su efecto de arena, sin la línea vertical) y los botones */
+  .hh h1::after{content:'';display:block;width:2.6rem;height:2px;background:var(--alba);margin-top:1.2rem}
+  .hh-escena{padding-left:0;border-left:0;align-content:start}
+  .hh-escena::before{display:none}
+  .hh-voces li,.hh-giro{align-self:start}   /* el texto arranca justo bajo la línea; la caja sigue reservando el alto del cierre */
   .hh-voces li{font-size:clamp(1.85rem,8vw,2.4rem)}
-  .hh-giro h2{font-size:clamp(2.1rem,9vw,2.8rem);max-width:14ch}
+  .hh-giro h2{font-size:clamp(1.45rem,6.4vw,1.75rem);max-width:none}
+  /* en celular el título pierde «no está roto.» y la línea de la Dra. y la descripción salen de la vista (siguen en el HTML para lectores de pantalla y buscadores) */
+  .hh-escr{display:none}
+  .hh-mov{display:inline}
+  .hh-firma,.hh-bajada{position:absolute;width:1px;height:1px;margin:0;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
   .hh-ctas .btn{flex:1 1 15rem;justify-content:center}
 }
 /* pantallas muy angostas: sin el ícono del calendario para que «Agendemos tu consulta» quepa en una línea */
@@ -1560,3 +1568,14 @@ body.reduced .hh-giro{opacity:1;animation:none;transform:none;margin-top:1.8rem}
   html.nav-oculta .toggle-sonido{transform:translateY(-250%)}
 }
 @media(prefers-reduced-motion:reduce){.header,.barra-movil,.toggle-sonido{transition:none}}
+/* Con el paisaje vivo (lo activa script.js al encontrar el lienzo) el hero y «Bajo la superficie» dejan de pintar su propio fondo
+   y muestran el paisaje fijo que hay detrás. Sin JavaScript conservan sus degradados de siempre. */
+html.paisaje-vivo .hh{background:none}
+html.paisaje-vivo .acto-raiz{background:linear-gradient(to bottom,rgba(5,21,18,0) 0,rgba(5,21,18,.4) 24vh,rgba(5,21,18,.4) 100%)}
+/* El método Kairal también se ve sobre el paisaje: velo para que el texto y la gota se lean, y fundido final al verde con que empieza «La doctora».
+   El velo de «Bajo la superficie» termina en .4 y el del método empieza en .4: sin escalón (sin línea) en el empalme. */
+html.paisaje-vivo .acto-metodo{background:linear-gradient(to bottom,rgba(5,21,18,.4) 0,rgba(5,21,18,.22) 30vh,rgba(5,21,18,.2) calc(100% - 26vh),#0c2b28 100%)}
+
+/* Al llegar por un enlace del menú, el título de estas secciones queda libre del menú fijo (antes la etiqueta pequeña de arriba daba ese espacio) */
+.acto-motor,.acto-blog,.acto-faq{scroll-margin-top:3.5rem}
+.acto-metodo{scroll-margin-top:1.5rem}

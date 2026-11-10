@@ -60,8 +60,14 @@ function bucleVisible(el, paso, margen){
     corriendo = true; reanudo = true;
     requestAnimationFrame(tick);
   }
-  if (el) new IntersectionObserver(function(en){ vis = en[0].isIntersecting; despertar(); },
-    { rootMargin: margen || '0px' }).observe(el);
+  if (el){
+    var els = Array.isArray(el) ? el : [el], dentro = [];
+    var io = new IntersectionObserver(function(en){
+      en.forEach(function(e){ var i = dentro.indexOf(e.target); if (e.isIntersecting && i < 0) dentro.push(e.target); else if (!e.isIntersecting && i >= 0) dentro.splice(i, 1); });
+      vis = dentro.length > 0; despertar();
+    }, { rootMargin: margen || '0px' });
+    els.forEach(function(x){ if (x) io.observe(x); });
+  }
   document.addEventListener('visibilitychange', despertar);
   return { despertar: despertar, visible: function(){ return vis; } };
 }
@@ -154,6 +160,7 @@ var terreno = (function(){
   var cv = document.getElementById('lienzo-terreno');
   if (!cv) return { setP:function(){}, amanecer:function(){}, resize:function(){} };   // hero estático: sin lienzo
   var ctx = cv.getContext('2d');
+  document.documentElement.classList.add('paisaje-vivo');   // el hero y «Bajo la superficie» muestran este paisaje (ver style.css)
   var W=0, H=0, dawn = 0, scrollP = 0, visible = true, dawnT0 = null;
   var n1 = makeNoise(1), n2 = makeNoise(2), n3 = makeNoise(3), nh = makeNoise(9);
   var polvo = [];
@@ -300,7 +307,8 @@ var terreno = (function(){
   }
 
   resize();
-  window.addEventListener('resize', resize);
+  // en el celular la barra de direcciones dispara 'resize' sin cambiar el tamaño del lienzo (100lvh): no se rehace nada
+  window.addEventListener('resize', function(){ if (cv.clientWidth !== W || cv.clientHeight !== H) resize(); });
 
   if (reduced){
     dawn = 1;
@@ -308,7 +316,7 @@ var terreno = (function(){
   } else {
     // amanecer al cargar
     var t0 = performance.now(), ultimoCuadro = 0, ultimaP = -1;
-    bucleVisible(cv.closest('.acto-superficie'), function(now){
+    bucleVisible([document.getElementById('inicio'), document.getElementById('causa-raiz'), document.getElementById('metodo')], function(now){
       var t = (now - t0)/1000;
       var amaneciendo = dawnT0 !== null && now - dawnT0 < 2700;
       if (dawnT0 !== null){
@@ -326,6 +334,8 @@ var terreno = (function(){
     amanecer: function(){ if (dawnT0 === null) dawnT0 = performance.now(); }
   };
 })();
+// Sin pantalla de entrada el amanecer arranca solo al cargar (antes lo disparaba el botón «Iniciar el viaje»)
+if (!document.getElementById('velo')) terreno.amanecer();
 
 /* ============================================================
    1b · GOTA DE FONDO (Acto 4 — animada con el scroll)
@@ -2065,13 +2075,15 @@ try{ (function(){
   function dibujarFondo(){
     // cielo en alba plena
     var g = ctx.createLinearGradient(0,0,0,H);
+    // El texto del cierre (párrafo y letra pequeña) queda en la mitad de abajo: el cielo se mantiene oscuro hasta casi el
+    // horizonte y el sol asoma detrás de las flores, para que el texto crema se lea (antes el naranja le restaba contraste).
     g.addColorStop(0, '#0B2B27');
-    g.addColorStop(0.5, '#1E4A42');
-    g.addColorStop(0.8, '#8a5e3c');
-    g.addColorStop(1, '#a06a40');
+    g.addColorStop(0.55, '#1E4A42');
+    g.addColorStop(0.86, '#40382d');
+    g.addColorStop(1, '#654a32');
     ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-    var sg = ctx.createRadialGradient(W*0.5,H*0.86,0,W*0.5,H*0.86,Math.max(W,H)*0.6);
-    sg.addColorStop(0,'rgba(242,166,90,0.55)');
+    var sg = ctx.createRadialGradient(W*0.5,H*0.97,0,W*0.5,H*0.97,Math.max(W,H)*0.42);
+    sg.addColorStop(0,'rgba(242,166,90,0.34)');
     sg.addColorStop(1,'rgba(242,166,90,0)');
     ctx.fillStyle = sg; ctx.fillRect(0,0,W,H);
     // duna
@@ -2383,7 +2395,6 @@ if (!reduced){
 
 // header + flotantes por scroll
 var header = document.getElementById('header');
-var fab = document.getElementById('fab-wsp');
 var barra = document.getElementById('barra-movil');
 var metodoEl = document.getElementById('metodo');
 // En el celular el menú y la barra de abajo se turnan: desde el punto en que aparece la barra, al bajar se
@@ -2411,7 +2422,8 @@ function onScroll(){
   var hMax = document.documentElement.scrollHeight - window.innerHeight;
   var limite = metodoEl ? metodoEl.offsetTop - window.innerHeight*0.5 : Infinity;
   header.classList.toggle('solido', y > 40);
-  fab.classList.toggle('visible', hMax > 0 && y/hMax > 0.42);
+  // el sol baja poco a poco y las tres capas de montañas suben a distinta velocidad (parallax) desde el hero hasta el final de El método
+  if (metodoEl) terreno.setP(clamp(y / Math.max(1, metodoEl.offsetTop + metodoEl.offsetHeight - window.innerHeight), 0, 1) * 0.9);
   menuYBarra(y, hMax, limite);
 }
 header.addEventListener('focusin', function(){ esconderNav(false); });   // con teclado, el menú nunca queda oculto
