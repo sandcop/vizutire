@@ -1034,21 +1034,24 @@ body.reduced .faq-item summary::before{transition:none}
 .actos-nav a:hover span{opacity:1}
 
 /* ============ FLOTANTES ============ */
-/* asistente Raíz (preguntas frecuentes): el único botón flotante; antes iba encima del de WhatsApp */
+/* asistente Raíz (preguntas frecuentes): chico, translúcido y abajo del todo en la esquina, para que no compita
+   con el contenido. En celular la píldora de .barra-movil aparece a su izquierda, a la misma altura. */
 .fab-raiz{
-  position:fixed;right:1.4rem;bottom:1.4rem;z-index:49;
-  width:54px;height:54px;border-radius:50%;border:none;
-  background:radial-gradient(circle at 32% 28%,#1bb99c,#0E7C6B 60%,#0a5c4f);
+  position:fixed;right:1.4rem;bottom:calc(1.4rem + env(safe-area-inset-bottom, 0px));z-index:49;
+  width:46px;height:46px;border-radius:50%;
+  background:rgba(8,31,29,.42);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  border:1.5px solid rgba(237,229,214,.25);
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 10px 30px rgba(14,124,107,.4);
+  box-shadow:0 4px 24px rgba(0,0,0,.18);
+  transition:background .3s,border-color .3s;
 }
-.fab-raiz svg{width:24px;height:24px;fill:none;stroke:#EDE5D6;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.fab-raiz::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid rgba(14,124,107,.55);pointer-events:none;
-  opacity:0;animation:raizLatido 3.4s ease-out infinite}
-.fab-raiz[aria-expanded="true"]::after{animation:none;opacity:0}
-@keyframes raizLatido{0%{opacity:.9;transform:scale(1)}60%,100%{opacity:0;transform:scale(1.4)}}
-body.reduced .fab-raiz::after{animation:none}
-@media(max-width:920px){.fab-raiz{bottom:5.4rem}}
+.fab-raiz svg{width:20px;height:20px;fill:none;stroke:#EDE5D6;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.fab-raiz:hover,.fab-raiz[aria-expanded="true"]{background:rgba(14,124,107,.4);border-color:rgba(127,181,171,.7)}
+.fab-raiz:focus-visible{outline:2px solid var(--bruma);outline-offset:3px}
+@media(max-width:920px){
+  .fab-raiz{width:40px;height:40px;right:var(--margen-x);bottom:calc(1rem + env(safe-area-inset-bottom, 0px))}
+  .fab-raiz svg{width:18px;height:18px}
+}
 
 .panel-raiz{
   position:fixed;right:1.4rem;bottom:5.2rem;z-index:56;
@@ -1112,19 +1115,18 @@ body.reduced .panel-raiz.abierto{filter:none}
 .raiz-form button{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--teal);color:#fff;border:none;font-size:1rem}
 .raiz-form button:hover{background:#0fae93}
 @media(max-width:640px){
-  .panel-raiz{right:.7rem;left:.7rem;width:auto;bottom:5.4rem;max-height:70vh}
+  .panel-raiz{right:.7rem;left:.7rem;width:auto;bottom:calc(4.2rem + env(safe-area-inset-bottom, 0px));max-height:70vh}
 }
 
 .barra-movil{
-  position:fixed;left:0;right:0;bottom:0;z-index:49;
-  background:rgba(8,31,29,.85);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-  padding:.8rem 1rem calc(.8rem + env(safe-area-inset-bottom));
-  display:none;justify-content:center;
-  transform:translateY(110%);transition:transform .5s var(--ease-tierra);
-  border-top:1px solid rgba(127,181,171,.15);
+  position:fixed;right:var(--margen-x);bottom:calc(1rem + env(safe-area-inset-bottom, 0px));z-index:49;
+  display:none;opacity:0;visibility:hidden;transform:translateY(calc(100% + 1.5rem));
+  transition:transform .5s var(--ease-tierra),opacity .35s var(--ease-tierra),visibility 0s linear .5s;
 }
-.barra-movil.visible{transform:none}
-.barra-movil .btn{width:100%;justify-content:center}
+.fab-raiz ~ .barra-movil{right:calc(var(--margen-x) + 40px + .5rem)}   /* a la izquierda del botón Raíz */
+.barra-movil.visible{opacity:1;visibility:visible;transform:none;
+  transition:transform .5s var(--ease-tierra),opacity .35s var(--ease-tierra),visibility 0s}
+.barra-movil .btn{height:40px;padding:0 1.15em;font-size:.84rem;box-shadow:0 4px 18px rgba(3,16,14,.28)}
 @media(max-width:920px){.barra-movil{display:flex}}
 
 .toggle-sonido{
@@ -1140,7 +1142,6 @@ body.reduced .panel-raiz.abierto{filter:none}
 .toggle-sonido.on .eq i:nth-child(2){animation-delay:.2s}
 .toggle-sonido.on .eq i:nth-child(3){animation-delay:.4s}
 @keyframes eq{0%,100%{height:3px}50%{height:10px}}
-@media(max-width:920px){.toggle-sonido{bottom:5.4rem}}
 body.reduced .toggle-sonido .eq i{animation:none}
 
 /* cursor custom */
@@ -1224,15 +1225,15 @@ body.con-cursor,body.con-cursor a,body.con-cursor button{cursor:none}
    textura de grano a pantalla completa; fondos un poco más opacos en su lugar. */
 @media(max-width:920px){
   .grain{display:none}
-  .header.solido,.barra-movil,.toggle-sonido,.menu-movil{-webkit-backdrop-filter:none;backdrop-filter:none}
+  .header.solido,.fab-raiz,.toggle-sonido,.menu-movil{-webkit-backdrop-filter:none;backdrop-filter:none}
   .header.solido{background:rgba(8,31,29,.95)}
-  .barra-movil{background:rgba(8,31,29,.96)}
+  .fab-raiz{background:rgba(8,31,29,.62)}
   .toggle-sonido{background:rgba(8,31,29,.85)}
 }
 html.tier-bajo .grain{display:none}
-html.tier-bajo .header.solido,html.tier-bajo .barra-movil,html.tier-bajo .toggle-sonido,html.tier-bajo .menu-movil{-webkit-backdrop-filter:none;backdrop-filter:none}
+html.tier-bajo .header.solido,html.tier-bajo .fab-raiz,html.tier-bajo .toggle-sonido,html.tier-bajo .menu-movil{-webkit-backdrop-filter:none;backdrop-filter:none}
 html.tier-bajo .header.solido{background:rgba(8,31,29,.95)}
-html.tier-bajo .barra-movil{background:rgba(8,31,29,.96)}
+html.tier-bajo .fab-raiz{background:rgba(8,31,29,.62)}
 
 /* ============ CTA DE RESERVA POR SECCIÓN ============
    Una invitación a reservar con texto propio de cada sección. Fondo oscuro: texto crema;
@@ -1331,7 +1332,7 @@ html.modal-abierto{overflow:hidden}
 .cookies-botones{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1rem}
 .cookies-botones .btn{flex:1 1 auto;justify-content:center;font-size:.85rem;padding:.75em 1.1em}
 /* en el teléfono va sobre la barra inferior fija */
-@media(max-width:920px){.cookies-aviso{bottom:calc(5.4rem + env(safe-area-inset-bottom, 0px));left:1rem;right:1rem;width:auto}}
+@media(max-width:920px){.cookies-aviso{bottom:calc(4.2rem + env(safe-area-inset-bottom, 0px));left:1rem;right:1rem;width:auto}}
 
 /* ============ HERO · historia por tiempo (sin scroll, sin pantalla de entrada) ============
    Título, descripción y botones se ven desde el primer segundo y NO se animan (así el navegador y Google los
@@ -1398,7 +1399,7 @@ body.reduced .hh-voces{display:block}
 body.reduced .hh-voces li{opacity:1;animation:none;transform:none;margin:0 0 1rem}
 body.reduced .hh-giro{opacity:1;animation:none;transform:none;margin-top:1.8rem}
 @media(max-width:999px){
-  .hh{align-items:stretch;padding-top:clamp(5.6rem,11vh,7rem);padding-bottom:9rem}
+  .hh{align-items:stretch;padding-top:clamp(5.6rem,11vh,7rem);padding-bottom:calc(4.6rem + env(safe-area-inset-bottom, 0px))}
   /* en el celular la historia sube entre el título y los botones: así se ve en la primera pantalla y el botón de
      agendar sigue a la vista; la firma y la descripción quedan debajo (siguen en el HTML, en el mismo orden) */
   .hh-grid{gap:1.4rem;grid-template-rows:auto 1fr auto}   /* título arriba, historia en el hueco del medio, botones al pie de la primera pantalla */
