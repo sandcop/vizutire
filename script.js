@@ -417,7 +417,9 @@ var gotaFondo = (function(){
     };
   }
 
+  var tamano = '';   // en el iPhone la barra de Safari dispara 'resize' sin cambiar el tamaño: no se rehace nada
   function resize(){
+    var t = cv.clientWidth + 'x' + cv.clientHeight; if (t === tamano) return; tamano = t;
     W = cv.clientWidth; H = cv.clientHeight;
     medirTitulo();
     cv.width = W*DPR; cv.height = H*DPR;
@@ -1097,7 +1099,11 @@ try{ (function(){
     cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6';
     fijo.appendChild(cv);
     var ctx = cv.getContext('2d');
-    function ajustar(){ cv.width = fijo.clientWidth * dpr; cv.height = fijo.clientHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+    var tamano = '';
+    function ajustar(){
+      var t = fijo.clientWidth + 'x' + fijo.clientHeight; if (t === tamano) return; tamano = t;
+      cv.width = fijo.clientWidth * dpr; cv.height = fijo.clientHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
     ajustar();
     window.addEventListener('resize', ajustar);
     // en el celular la sección mide lo que mide su contenido (cambia al cargar fuentes o al abrir un texto)
@@ -1318,7 +1324,9 @@ try{ (function(){
   var W=0, H=0, parts = [], inicio = 0, lanzado = false, visible = false;
   var nD = makeNoise(21);
 
+  var tamano = '';
   function resize(){
+    var t = cv.clientWidth + 'x' + cv.clientHeight; if (t === tamano) return; tamano = t;   // mismo tamaño: ni se borra ni se re-sortea
     W = cv.clientWidth; H = cv.clientHeight;
     cv.width = W*DPR; cv.height = H*DPR;
     ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -1964,7 +1972,9 @@ try{ (function(){
     }
   }
 
+  var tamano = '';
   function resize(){
+    var t = cv.clientWidth + 'x' + cv.clientHeight; if (t === tamano) return; tamano = t;
     W = cv.clientWidth; H = cv.clientHeight;
     cv.width = W*DPR; cv.height = H*DPR;
     ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -2206,7 +2216,9 @@ try{ (function(){
     var rotacion = 0, ultimoNow = 0, activo = false, viajes = 0, grosor = 1;
     var etiqueta = stage.querySelector('.motor-permanente');
 
+    var tamano = '';
     function resize(){
+      var t = stage.clientWidth + 'x' + stage.clientHeight; if (t === tamano) return; tamano = t;
       W = stage.clientWidth; H = stage.clientHeight;
       cv.width = W * DPR; cv.height = H * DPR;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);

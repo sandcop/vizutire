@@ -119,12 +119,15 @@ function bucleVisible(el, paso){
 
     function sm(t){ t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
 
+    var tamano = '';   // la barra de Safari (iPhone) dispara 'resize' sin cambiar el tamaño: no se rehace nada
     function resize(){
+      var t = escenarioEl.clientWidth + 'x' + escenarioEl.clientHeight; if (t === tamano) return false; tamano = t;
       W = escenarioEl.clientWidth; H = escenarioEl.clientHeight;
       cv.width = W * DPR; cv.height = H * DPR;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       ctx.imageSmoothingEnabled = false;   // pedacitos 1:1, sin suavizado ni costuras
       grupos = [];
+      return true;
     }
 
     // "Fotografía" del grupo g: cada letra dibujada con su fuente y color
@@ -403,7 +406,7 @@ function bucleVisible(el, paso){
     }
 
     function medirEnFrio(){
-      resize();
+      if (!resize()) return;
       if (premedirListo){ clearTimeout(tPremedir); tPremedir = setTimeout(premedir, 800); }
     }
     // Fotografiar cada frase (medir) cuesta: se adelanta en ratos libres, una
