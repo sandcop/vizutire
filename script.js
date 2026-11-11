@@ -750,12 +750,14 @@ var gotaFondo = (function(){
     // brote final: el agua dio fruto (puente hacia la floracion)
     brote(x, yFin+2, clamp((clamp(P,0,1)-0.94)/0.06, 0, 1), tm);
 
-    // amanecer: la luz sube desde abajo — emergemos hacia la superficie
+    // amanecer: la luz sube desde abajo — emergemos hacia la superficie. El brillo se apaga antes del borde inferior de la
+    // escena: si llegara al borde con fuerza, el lienzo se cortaría ahí y se vería una franja recta sobre el botón de abajo.
     var albaFin = clamp((clamp(P,0,1) - 0.92)/0.08, 0, 1);
     if (albaFin > 0){
       var ga = ctx.createLinearGradient(0, H, 0, H*0.3);
-      ga.addColorStop(0, 'rgba(242,166,90,'+(0.3*albaFin).toFixed(3)+')');
-      ga.addColorStop(0.45, 'rgba(237,229,214,'+(0.12*albaFin).toFixed(3)+')');
+      ga.addColorStop(0, 'rgba(242,166,90,0)');
+      ga.addColorStop(0.2, 'rgba(242,166,90,'+(0.3*albaFin).toFixed(3)+')');
+      ga.addColorStop(0.55, 'rgba(237,229,214,'+(0.12*albaFin).toFixed(3)+')');
       ga.addColorStop(1, 'rgba(237,229,214,0)');
       ctx.fillStyle = ga;
       ctx.fillRect(0, 0, W, H);
@@ -1761,7 +1763,7 @@ function actualizarNav(){
   navPend = false;
   var corte = window.innerHeight * 0.45, id = 'inicio';
   for (var q = 0; q < elsNav.length; q++){
-    if (elsNav[q] && elsNav[q].getBoundingClientRect().top <= corte) id = ordenNav[q];
+    if (elsNav[q] && elsNav[q].getClientRects().length && elsNav[q].getBoundingClientRect().top <= corte) id = ordenNav[q];   // una sección oculta no cuenta
   }
   if (id === 'inicio' && supNav){
     // dentro de la superficie: hero hasta la primera frase, después «¿Te suena familiar?»
@@ -3242,8 +3244,9 @@ try{
 /* ============================================================
    13 · RESEÑAS REALES DE GOOGLE
    La función /.netlify/functions/reviews las pide a Google (Places API). Solo se muestran las de 4 o 5
-   estrellas que traen texto; nunca se inventa ni se completa una frase. Si Google no responde, la
-   sección muestra el enlace a la ficha en vez de tarjetas.
+   estrellas que traen texto; nunca se inventa ni se completa una frase. Si Google no responde (o no hay
+   ninguna reseña que mostrar), la sección entera y sus enlaces del menú quedan ocultos: el CSS solo la
+   muestra con data-resenas="listas".
 ============================================================ */
 (function(){
   var seccion = document.getElementById('floraciones');
@@ -3259,6 +3262,7 @@ try{
     })
     .catch(function(e){
       estado('error');
+      document.documentElement.classList.add('sin-resenas');
       console.log('Reseñas de Google:', e);
     });
 })();
