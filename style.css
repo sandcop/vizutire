@@ -1523,10 +1523,10 @@ body.reduced .hh-voces{display:block}
 body.reduced .hh-voces li{opacity:1;animation:none;transform:none;margin:0 0 1rem}
 body.reduced .hh-giro{opacity:1;animation:none;transform:none;margin-top:1.8rem}
 @media(max-width:999px){
-  .hh{align-items:flex-start;padding-top:clamp(5.6rem,11vh,7rem)}
+  .hh{align-items:stretch;padding-top:clamp(5.6rem,11vh,7rem);padding-bottom:9rem}
   /* en el celular la historia sube entre el título y los botones: así se ve en la primera pantalla y el botón de
      agendar sigue a la vista; la firma y la descripción quedan debajo (siguen en el HTML, en el mismo orden) */
-  .hh-grid{gap:1.4rem}
+  .hh-grid{gap:1.4rem;grid-template-rows:auto 1fr auto}   /* título arriba, historia en el hueco del medio, botones al pie de la primera pantalla */
   .hh-contenido{display:contents}
   .hh-contenido .eyebrow{order:1}
   .hh h1{order:2;margin-top:0}
@@ -1537,9 +1537,9 @@ body.reduced .hh-giro{opacity:1;animation:none;transform:none;margin-top:1.8rem}
   .hh-escena{min-height:0}   /* la caja mide lo que la frase o el cierre más altos (comparten celda): sin hueco y sin saltos */
   /* orden de la referencia: título, línea corta ámbar, la historia (con su efecto de arena, sin la línea vertical) y los botones */
   .hh h1::after{content:'';display:block;width:2.6rem;height:2px;background:var(--alba);margin-top:1.2rem}
-  .hh-escena{padding-left:0;border-left:0;align-content:start}
+  .hh-escena{padding-left:0;border-left:0;align-content:center}
   .hh-escena::before{display:none}
-  .hh-voces li,.hh-giro{align-self:start}   /* el texto arranca justo bajo la línea; la caja sigue reservando el alto del cierre */
+  .hh-voces li,.hh-giro{align-self:center}   /* el texto arranca justo bajo la línea; la caja sigue reservando el alto del cierre */
   .hh-voces li{font-size:clamp(1.4rem,6.2vw,1.75rem)}
   .hh-giro h2{font-size:clamp(1.45rem,6.4vw,1.75rem);max-width:none}
   /* en celular el título pierde «no está roto.» y la línea de la Dra. y la descripción salen de la vista (siguen en el HTML para lectores de pantalla y buscadores) */
