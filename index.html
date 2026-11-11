@@ -268,7 +268,7 @@
   <canvas class="hh-polvo" id="hh-polvo" aria-hidden="true"></canvas>
   <div class="hh-grid">
     <div class="hh-contenido">
-      <h1 class="display" id="h1">Tu cuerpo <span class="hh-escr">no está roto. </span><em><span class="hh-escr">E</span><span class="hh-mov">e</span>stá esperando florecer.</em></h1>
+      <h1 class="display" id="h1">Tu cuerpo <span class="hh-escr">no está roto. </span><em><span class="hh-e">E</span>stá esperando florecer.</em></h1>
       <p class="hh-firma"><b>Dra. Yusneily Sánchez</b> · <span>Médico funcional en Antofagasta · Consulta online para todo Chile</span></p>
       <p class="hh-bajada">Transforma tu salud desde la raíz, descubriendo la causa real de tus síntomas y alcanza tu bienestar óptimo con un enfoque personalizado e integral.</p>
       <div class="hh-ctas">
@@ -640,74 +640,22 @@
 
 
 <!-- ════ ACTO 6 · FLORACIONES ════ -->
-<section class="acto-flora" id="floraciones">
+<section class="acto-flora" id="floraciones" data-resenas="cargando">
   <div class="contenedor flora-head">
     <div>
       <h2 class="display">Cada paciente florece distinto.</h2>
     </div>
     <div class="flora-flechas">
-      <button type="button" class="flora-flecha" data-dir="-1" aria-label="Historia anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <button type="button" class="flora-flecha" data-dir="1" aria-label="Historia siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      <button type="button" class="flora-flecha" data-dir="-1" aria-label="Reseña anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button type="button" class="flora-flecha" data-dir="1" aria-label="Reseña siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
     </div>
   </div>
-  <!-- Carrusel: cada historia es una tarjeta con un paisaje del desierto
-       generado en código (sin fotos: son historias con datos protegidos) y
-       la flor de esa historia en grande. La tarjeta activa crece y muestra
-       la cita; ver "5b · CARRUSEL DE HISTORIAS" en script.js. -->
-  <div class="carril" id="carril" tabindex="0" aria-roledescription="carrusel" aria-label="Historias de pacientes">
-
-    <article class="caso" aria-label="Historia 1 de 4">
-      <svg class="caso-paisaje" data-seed="11" viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
-      <svg class="flor-svg" data-seed="11" viewBox="0 0 56 56" aria-hidden="true"></svg>
-      <div class="caso-texto">
-        <p class="antes"><b>Antes escuchaba</b>«Es estrés, aprende a vivir con eso.»</p>
-        <p class="hoy"><b>Hoy escucho</b>«Entendí qué le pasaba a mi tiroides. Tengo energía para mis hijos otra vez.»</p>
-        <footer><b>M.G. · 41</b><span>Antofagasta · Acompañamiento de 6 meses</span></footer>
-      </div>
-    </article>
-
-    <article class="caso" aria-label="Historia 2 de 4">
-      <svg class="caso-paisaje" data-seed="42" viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
-      <svg class="flor-svg" data-seed="42" viewBox="0 0 56 56" aria-hidden="true"></svg>
-      <div class="caso-texto">
-        <p class="antes"><b>Antes escuchaba</b>«Tus exámenes están perfectos, no tienes nada.»</p>
-        <p class="hoy"><b>Hoy escucho</b>«Mi intestino y mi ansiedad eran la misma conversación. Hoy duermo de verdad.»</p>
-        <footer><b>C.R. · 35</b><span>Calama · Consulta online</span></footer>
-      </div>
-    </article>
-
-    <article class="caso" aria-label="Historia 3 de 4">
-      <svg class="caso-paisaje" data-seed="77" viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
-      <svg class="flor-svg" data-seed="77" viewBox="0 0 56 56" aria-hidden="true"></svg>
-      <div class="caso-texto">
-        <p class="antes"><b>Antes escuchaba</b>«Come menos y muévete más.»</p>
-        <p class="hoy"><b>Hoy escucho</b>«Era resistencia a la insulina. Con el plan correcto, mi cuerpo por fin respondió.»</p>
-        <footer><b>P.S. · 47</b><span>Santiago · Acompañamiento de 8 meses</span></footer>
-      </div>
-    </article>
-
-    <article class="caso" aria-label="Historia 4 de 4">
-      <svg class="caso-paisaje" data-seed="93" viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
-      <svg class="flor-svg" data-seed="93" viewBox="0 0 56 56" aria-hidden="true"></svg>
-      <div class="caso-texto">
-        <p class="antes"><b>Antes escuchaba</b>«El dolor crónico es así, hay que acostumbrarse.»</p>
-        <p class="hoy"><b>Hoy escucho</b>«Encontramos la inflamación de base. Volví a entrenar después de tres años.»</p>
-        <footer><b>J.M. · 39</b><span>Antofagasta · Acompañamiento de 5 meses</span></footer>
-      </div>
-    </article>
-
-  </div>
-  <p class="flora-nota">Historias representativas basadas en motivos de consulta frecuentes, con datos protegidos.</p>
-  <div class="contenedor">
-  </div>
-
-  <div class="flora-resenas" style="margin-top:2.5rem;padding:0 var(--margen-x)">
-    <div id="resenas-carga" style="text-align:center;padding:2rem;opacity:.7">Cargando reseñas reales de Google…</div>
-    <div id="resenas-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem"></div>
-    <div id="resenas-error" style="display:none;text-align:center;padding:1.5rem;opacity:.7">
-      <a href="https://g.page/r/CS9wJfrztidCEAI" target="_blank" rel="noopener" style="color:var(--bruma)">Ver reseñas en Google →</a>
-    </div>
-  </div>
+  <!-- Carrusel de reseñas reales de Google: las tarjetas las arma script.js (kairalHistorias) con lo que
+       devuelve /.netlify/functions/reviews. Acá no se escribe ninguna reseña a mano. -->
+  <div class="carril" id="carril" tabindex="0" aria-roledescription="carrusel" aria-label="Reseñas de pacientes en Google"></div>
+  <p class="flora-estado flora-cargando">Cargando las reseñas de Google…</p>
+  <p class="flora-estado flora-error">No pudimos cargar las reseñas en este momento. <a href="https://g.page/r/CS9wJfrztidCEAI" target="_blank" rel="noopener">Léelas en Google →</a></p>
+  <p class="flora-nota">Reseñas escritas por pacientes en la ficha de Kairal en Google. Las más largas se muestran recortadas. <a href="https://g.page/r/CS9wJfrztidCEAI" target="_blank" rel="noopener">Ver todas en Google →</a></p>
 
   <div class="contenedor">
     <div class="cta-seccion cta-seccion--final">
@@ -974,7 +922,6 @@
 <script src="script.js"></script>
 <script src="recursos.js"></script>
 <script src="cookies.js"></script>
-<script src="script-eyebrow.js"></script>
 <script src="hero-historia.js"></script>
 </body>
 </html>

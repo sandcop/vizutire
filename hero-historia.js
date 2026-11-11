@@ -20,10 +20,11 @@ if (!cv.getContext || !window.requestAnimationFrame) return;
 
 /* ── utilidades (las mismas del script principal, que vive en otro cierre) ── */
 var movil = window.matchMedia('(max-width: 920px)').matches;
+var ritmo = window.kairalRitmo || { cuadro: function(){}, salto: function(){ return 1; }, nivel: function(){ return 0; } };   // lo define script.js
 var tierBajo = (function(){
   var mem = navigator.deviceMemory || 4, nucleos = navigator.hardwareConcurrency || 4;
   var ahorro = !!(navigator.connection && navigator.connection.saveData);
-  return mem <= 3 || nucleos <= 4 || ahorro;
+  return mem <= 3 || nucleos <= 4 || ahorro || ritmo.nivel() > 0;
 })();
 var DPR = Math.min(window.devicePixelRatio || 1, tierBajo ? 1.3 : 1.75);
 var pagVisible = !document.hidden;
@@ -31,9 +32,11 @@ document.addEventListener('visibilitychange', function(){ pagVisible = !document
 function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 // un bucle de cuadros que corre solo mientras el hero se ve y la pestaña está activa
 function bucleVisible(el, paso){
-  var vis = true, corriendo = false;
+  var vis = true, corriendo = false, cuenta = 0;
   function tick(now){
     if (!vis || !pagVisible){ corriendo = false; return; }
+    ritmo.cuadro(now);
+    if (++cuenta % ritmo.salto()){ requestAnimationFrame(tick); return; }   // equipos lentos: 1 de cada 2 o 3 cuadros
     paso(now);
     requestAnimationFrame(tick);
   }

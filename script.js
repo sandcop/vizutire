@@ -1,18 +1,6 @@
 (function(){
 'use strict';
 
-/* ═══ RED DE SEGURIDAD GLOBAL ═══
-   Si CUALQUIER módulo falla más abajo, esto garantiza que la persona
-   nunca quede atrapada en el preloader con el scroll bloqueado. */
-window.addEventListener('error', function(ev){
-  try{
-    console.error('Kairal: error en la experiencia, activando modo seguro.', ev.error || ev.message);
-    document.documentElement.classList.remove('velado');
-    var v = document.getElementById('velo');
-    if (v){ v.classList.add('fuera'); v.style.display = 'none'; }
-  }catch(e){ /* ni el modo seguro puede fallar en silencio, pero no hay más red debajo */ }
-});
-
 var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 var movil = window.matchMedia('(max-width: 920px)').matches;
 
@@ -28,16 +16,54 @@ if (reduced) document.body.classList.add('reduced');
 
 /* ═══ NIVEL DE DISPOSITIVO ═══
    Heurística simple para aligerar partículas y resolución en equipos modestos. */
+var CLAVE_RITMO = 'kairal_ritmo';
+var ritmoGuardado = 0;
+try { ritmoGuardado = Math.min(2, +sessionStorage.getItem(CLAVE_RITMO) || 0); } catch(e){}
 var tierBajo = (function(){
   var mem = navigator.deviceMemory || 4;
   var nucleos = navigator.hardwareConcurrency || 4;
   var ahorroDatos = !!(navigator.connection && navigator.connection.saveData);
-  return mem <= 3 || nucleos <= 4 || ahorroDatos;
+  return mem <= 3 || nucleos <= 4 || ahorroDatos || ritmoGuardado > 0;
 })();
 var DPR = Math.min(window.devicePixelRatio || 1, tierBajo ? 1.3 : 1.75);
 var pagVisible = !document.hidden;
 document.addEventListener('visibilitychange', function(){ pagVisible = !document.hidden; });
-if (tierBajo) document.documentElement.classList.add('tier-bajo');
+
+/* ═══ RITMO ADAPTABLE ═══
+   La heurística de arriba no ve todo (iPhone no informa memoria; un equipo bueno puede estar ocupado o caliente).
+   Por eso además se MIDE: mientras hay animación o scroll se cuentan los cuadros que tardan más de 30 ms. Si dos
+   tandas seguidas de 90 cuadros salen lentas, la página baja un nivel sola:
+     nivel 1: los lienzos se dibujan a la mitad de cuadros y se apagan desenfoques de fondo y grano (html.tier-bajo);
+     nivel 2: los lienzos se dibujan a un tercio.
+   El nivel se recuerda durante la visita (sessionStorage) para que las demás páginas ya partan livianas. */
+var ritmo = (function(){
+  var nivel = Math.max(ritmoGuardado, tierBajo ? 1 : 0), raiz = document.documentElement;
+  var n = 0, lentos = 0, malas = 0, ant = 0;
+  function aplicar(){
+    raiz.classList.toggle('tier-bajo', nivel >= 1);
+    raiz.classList.toggle('ritmo-2', nivel >= 2);
+    try { sessionStorage.setItem(CLAVE_RITMO, nivel); } catch(e){}
+  }
+  aplicar();
+  function cuadro(now){
+    var dt = now - ant; ant = now;
+    if (dt <= 0 || dt > 250) return;   // mismo cuadro visto por otro bucle, o venía de una pausa
+    n++; if (dt > 30) lentos++;
+    if (n < 90) return;
+    malas = lentos / n > 0.3 ? malas + 1 : 0;
+    n = 0; lentos = 0;
+    if (malas >= 2 && nivel < 2){ nivel++; malas = 0; aplicar(); }
+  }
+  // durante el scroll también se mide, aunque no haya ningún lienzo animándose
+  var vigilando = false, ultimoScroll = 0;
+  function vigia(now){ cuadro(now); if (now - ultimoScroll < 400 && pagVisible) requestAnimationFrame(vigia); else vigilando = false; }
+  window.addEventListener('scroll', function(){
+    ultimoScroll = performance.now();
+    if (!vigilando && nivel < 2 && !reduced){ vigilando = true; requestAnimationFrame(vigia); }
+  }, { passive: true });
+  return { cuadro: cuadro, salto: function(){ return nivel + 1; }, nivel: function(){ return nivel; } };
+})();
+window.kairalRitmo = ritmo;
 
 /* ═══ BUCLES SOLO CUANDO SE VEN ═══
    Un bucle de animación que sigue pidiendo cuadros fuera de pantalla gasta
@@ -47,9 +73,11 @@ if (tierBajo) document.documentElement.classList.add('tier-bajo');
    detiene del todo y vuelve a arrancar al reaparecer. `reanudo` es true en el
    primer cuadro después de una pausa (para no contar el tiempo detenido). */
 function bucleVisible(el, paso, margen){
-  var vis = false, corriendo = false;
+  var vis = false, corriendo = false, cuenta = 0;
   function tick(now){
     if (!vis || !pagVisible){ corriendo = false; return; }
+    ritmo.cuadro(now);
+    if (++cuenta % ritmo.salto()){ requestAnimationFrame(tick); return; }   // equipos lentos: se dibuja 1 de cada 2 o 3 cuadros
     var r = reanudo; reanudo = false;
     paso(now, r);
     requestAnimationFrame(tick);
@@ -149,8 +177,6 @@ function mix(c1,c2,t){
   return 'rgb('+Math.round(lerp(a[0],b[0],t))+','+Math.round(lerp(a[1],b[1],t))+','+Math.round(lerp(a[2],b[2],t))+')';
 }
 
-var lanzarHero = null;
-var HERO_NUEVO = !!document.getElementById('hero-historia') || !document.getElementById('hero-copy');   // el hero es estático (sin escena de scroll)
 var COL = { tinta:'#081F1D', teal:'#0E7C6B', bruma:'#7FB5AB', arena:'#EDE5D6', duna:'#C9B79A', flor:'#C75C84', alba:'#F2A65A', noche:'#03100E' };
 
 /* ============================================================
@@ -335,7 +361,7 @@ var terreno = (function(){
   };
 })();
 // Sin pantalla de entrada el amanecer arranca solo al cargar (antes lo disparaba el botón «Iniciar el viaje»)
-if (!document.getElementById('velo')) terreno.amanecer();
+terreno.amanecer();
 
 /* ============================================================
    1b · GOTA DE FONDO (Acto 4 — animada con el scroll)
@@ -842,744 +868,6 @@ if (gsapOK){
     return el.querySelectorAll('.w');
   }
 
-  // Letra a letra, preservando etiquetas anidadas (em, span.calor, etc.)
-  // para que sigan con su propio estilo/animación — se usa para el efecto de
-  // viento/polvo en los textos que aparecen y se van con el scroll.
-  // Las letras de cada palabra se agrupan en un contenedor inline-block: al
-  // quedar cada letra suelta como su propia caja, el navegador puede meter
-  // un salto de línea entre dos letras cualquiera, incluso a mitad de
-  // palabra — el contenedor por palabra lo evita, y solo se puede cortar
-  // línea en los espacios reales entre palabras, como corresponde.
-  function splitLetters(el){
-    var letras = [];
-    function procesar(nodo){
-      Array.prototype.slice.call(nodo.childNodes).forEach(function(n){
-        if (n.nodeType === 3){
-          var frag = document.createDocumentFragment();
-          n.textContent.split(/(\s+)/).forEach(function(trozo){
-            if (trozo === '') return;
-            if (/^\s+$/.test(trozo)){ frag.appendChild(document.createTextNode(trozo)); return; }
-            var palabra = document.createElement('span');
-            palabra.className = 'palabra-viento';
-            trozo.split('').forEach(function(ch){
-              var s = document.createElement('span');
-              s.className = 'letra';
-              s.textContent = ch;
-              palabra.appendChild(s);
-              letras.push(s);
-            });
-            frag.appendChild(palabra);
-          });
-          nodo.replaceChild(frag, n);
-        } else if (n.nodeType === 1){
-          procesar(n);
-        }
-      });
-    }
-    procesar(el);
-    return letras;
-  }
-  // El hero ya no es una escena fijada al scroll: esta parte (H1 → frases → giro con arena y paradas de scroll)
-  // solo se arma si la página todavía trae el hero antiguo. Nada de lo que define se usa más abajo.
-  if (!HERO_NUEVO) (function(){
-  var wsH1 = splitWords(document.getElementById('h1'));
-  gsap.set(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas'], {opacity:0, y:24});
-  // instantaneo=true: sin animación, para cuando la página se carga con el
-  // scroll ya movido a otra sección (el hero no es lo que se ve, así que
-  // no tiene sentido reproducir la entrada vistosa). En ambos casos se
-  // refresca ScrollTrigger al terminar: tlSup captura el "desde" de sus
-  // propios tweens de fundido la primera vez que los evalúa, y si eso pasa
-  // antes de que lanzarHero() corra (porque la página cargó ya scrolleada),
-  // ese "desde" queda fijo en opacity:0 para siempre — el hero no vuelve a
-  // aparecer ni aunque el usuario suba de nuevo hasta ahí. El refresh
-  // fuerza a recalcularlo contra el estado ya asentado.
-  lanzarHero = function(instantaneo){
-    if (instantaneo){
-      gsap.set(wsH1, { opacity:1, y:0, filter:'blur(0px)' });
-      gsap.set(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas'], { opacity:1, y:0 });
-      refrescarScrollTrigger();
-      return;
-    }
-    gsap.to(wsH1, { opacity:1, y:0, filter:'blur(0px)', duration:1.1, stagger:0.08, ease:'power3.out', delay:0.3 });
-    gsap.to(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas'],
-      {opacity:1, y:0, duration:0.9, stagger:0.14, delay:0.7, ease:'power3.out',
-       onComplete: refrescarScrollTrigger});
-  };
-
-  // Textos de arena (H1 → espejismos → giro): el texto MISMO se deshace en
-  // arena y esa arena arma el texto siguiente. Cada frase se "fotografía"
-  // (cada letra con su tipografía, color y posición reales) en un lienzo
-  // propio y se corta en una grilla de pedacitos. Al irse, los pedacitos
-  // se desprenden de izquierda a derecha y el viento se los lleva como una
-  // nube; al llegar la frase siguiente, esos mismos granos vuelan en curva
-  // y la arman pedazo a pedazo (también de izquierda a derecha). Recién al
-  // completarse se muestra el texto real del DOM.
-  //
-  // Un pool fijo de granos: el que se desprende de una frase es el mismo
-  // que arma la siguiente. Si llega otro pedido a mitad de camino (scroll
-  // rápido, scroll hacia atrás), cada grano parte desde donde está ahora.
-  //
-  // API: mostrar(g) arma el grupo g · soltar(g) deshace el grupo g en nube
-  // (solo si g es el que está a la vista o armándose) · medirEnFrio() al
-  // redimensionar. Grupos: 0 = H1, 1–5 = espejismos, 6 = giro.
-  function construirPolvoTextos(cv, gruposDeLetras, contenedores){
-    function verDOM(g, si){ var el = contenedores[g]; if (el) gsap.set(el, { opacity: si ? 1 : 0, y: 0 }); }
-    if (!cv || reduced){
-      return { medirEnFrio:function(){}, mostrar:function(g){ verDOM(g, true); }, soltar:function(g){ verDOM(g, false); } };
-    }
-    var ctx = cv.getContext('2d');
-    var escenarioEl = document.querySelector('.escenario');
-    var W = 0, H = 0, visible = true;
-    // equipos modestos: menos granos y pedacitos más grandes (mismo efecto, menos trabajo por cuadro)
-    var POOL = tierBajo ? (movil ? 650 : 1300) : (movil ? 1100 : 2200);
-    var MAX_CELDAS = tierBajo ? (movil ? 850 : 1600) : (movil ? 1600 : 2800);
-    // granos de arena sobre el fondo oscuro del hero: tonos claros y cálidos
-    var ARENA = [[226,206,170],[214,190,150],[240,222,190],[200,176,138],[226,206,170],[150,206,190],[244,186,120]];
-    var offCv = document.createElement('canvas');
-    var offCtx = offCv.getContext('2d', { willReadFrequently: true });
-    var grupos = [];   // medición por grupo (se invalida al redimensionar)
-
-    // estado de cada grano (arrays planos: miles de granos, cada cuadro)
-    var sx = new Float32Array(POOL), sy = new Float32Array(POOL), tx = new Float32Array(POOL), ty = new Float32Array(POOL);
-    var dl = new Float32Array(POOL), bd = new Float32Array(POOL), tam = new Float32Array(POOL);
-    var r1 = new Float32Array(POOL), r2 = new Float32Array(POOL), r3 = new Float32Array(POOL);
-    var gt = new Int8Array(POOL);      // grupo de texto donde estaba "pegado" al empezar (-1 = suelto)
-    var ya = new Uint8Array(POOL);     // ya estaba en su lugar del texto destino
-    var ca = new Uint8Array(POOL * 3), cb = new Uint8Array(POOL * 3); // color de partida y de llegada
-    for (var i = 0; i < POOL; i++){
-      r1[i] = Math.random(); r2[i] = Math.random(); r3[i] = Math.random();
-      var u = Math.random();
-      tam[i] = u < 0.7 ? 0.8 + Math.random() * 0.6 : 1.4 + Math.random() * 0.9;  // arena fina
-      var a = ARENA[(Math.random() * ARENA.length) | 0];
-      cb[i * 3] = a[0]; cb[i * 3 + 1] = a[1]; cb[i * 3 + 2] = a[2];
-      gt[i] = -1;
-    }
-    var asentado = 0;   // grupo que el DOM muestra ahora (al cargar: el H1)
-    var tr = null;      // transición en curso
-    var vistaNube = 0;  // cuánto se ve la nube suelta (se apaga si nadie la usa)
-
-    function sm(t){ t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
-
-    function resize(){
-      W = escenarioEl.clientWidth; H = escenarioEl.clientHeight;
-      cv.width = W * DPR; cv.height = H * DPR;
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      ctx.imageSmoothingEnabled = false;   // pedacitos 1:1, sin suavizado ni costuras
-      grupos = [];
-    }
-
-    // "Fotografía" del grupo g: cada letra dibujada con su fuente y color
-    // reales en un lienzo del tamaño del grupo, y una grilla de pedacitos
-    // sobre la tinta, ordenada de izquierda a derecha.
-    function medir(g){
-      if (grupos[g]) return grupos[g];
-      var letras = gruposDeLetras[g] || [];
-      var base = escenarioEl.getBoundingClientRect();
-      var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, rects = [];
-      for (var i = 0; i < letras.length; i++){
-        var r = letras[i].getBoundingClientRect();
-        rects.push(r);
-        if (!r.width || !letras[i].textContent.trim()) continue;
-        x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
-      }
-      if (x0 > x1) return (grupos[g] = { n: 0, celdas: [] });
-      // Línea base real de cada letra: una sonda de tamaño cero sobre la línea
-      // de base. Dibujar con textBaseline 'middle' en el centro del rect la
-      // dejaba unos píxeles más arriba que el texto real (que "bajaba" al final).
-      var sondas = [], bases = [];
-      for (var q = 0; q < letras.length; q++){
-        var sd = document.createElement('i');
-        sd.style.cssText = 'display:inline-block;width:0;height:0';
-        letras[q].appendChild(sd); sondas.push(sd);
-      }
-      for (q = 0; q < letras.length; q++) bases.push(sondas[q].getBoundingClientRect().bottom);
-      for (q = 0; q < letras.length; q++) letras[q].removeChild(sondas[q]);
-      var pad = 24;
-      x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
-      // el origen cae en un píxel entero del dispositivo: así cada pedacito se
-      // dibuja sin fracciones y los vecinos no dejan líneas entre sí
-      x0 = base.left + Math.floor((x0 - base.left) * DPR) / DPR;
-      y0 = base.top + Math.floor((y0 - base.top) * DPR) / DPR;
-      var bw = Math.ceil(x1 - x0), bh = Math.ceil(y1 - y0);
-      var c = document.createElement('canvas');
-      c.width = Math.ceil(bw * DPR); c.height = Math.ceil(bh * DPR);
-      var cc = c.getContext('2d', { willReadFrequently: true });
-      cc.setTransform(DPR, 0, 0, DPR, 0, 0);
-      cc.textBaseline = 'alphabetic';
-      for (var j = 0; j < letras.length; j++){
-        var ch = letras[j].textContent;
-        if (!ch || !ch.trim()) continue;
-        var cs = getComputedStyle(letras[j]), rr = rects[j];
-        // el texto real puede ir en mayúsculas por CSS (text-transform): la foto de la arena
-        // tiene que dibujar lo mismo que se ve, o al terminar de formarse el texto «cambia»
-        if (cs.textTransform === 'uppercase') ch = ch.toUpperCase();
-        else if (cs.textTransform === 'lowercase') ch = ch.toLowerCase();
-        cc.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + '/1 ' + cs.fontFamily;
-        cc.fillStyle = cs.color;
-        cc.fillText(ch, rr.left - x0, bases[j] - y0);
-      }
-      var datos;
-      try { datos = cc.getImageData(0, 0, c.width, c.height).data; }
-      catch (e){ return (grupos[g] = { n: 0, celdas: [] }); }
-      var paso = Math.max(2, Math.round(2.5 * DPR)), celdas;
-      for (;;){
-        celdas = [];
-        for (var py = 0; py < c.height; py += paso){
-          for (var px = 0; px < c.width; px += paso){
-            var w = Math.min(paso, c.width - px), h = Math.min(paso, c.height - py), hit = -1;
-            for (var yy = py; yy < py + h && hit < 0; yy++) for (var xx = px; xx < px + w; xx++){
-              var idx = (yy * c.width + xx) * 4;
-              if (datos[idx + 3] > 70){ hit = idx; break; }
-            }
-            if (hit >= 0) celdas.push({ sx: px, sy: py, sw: w, sh: h,
-              dx: x0 - base.left + px / DPR, dy: y0 - base.top + py / DPR,
-              x: x0 - base.left + (px + w / 2) / DPR, y: y0 - base.top + (py + h / 2) / DPR,
-              r: datos[hit], g: datos[hit + 1], b: datos[hit + 2] });
-          }
-        }
-        if (celdas.length <= MAX_CELDAS) break;
-        paso++;
-      }
-      celdas.sort(function(a, b){ return a.x - b.x; });
-      return (grupos[g] = { c: c, n: celdas.length, celdas: celdas });
-    }
-    function celdaDe(G, k){ return G.celdas[Math.floor(k * G.n / POOL)]; }
-
-    function ltDe(k, now){
-      if (!tr || ya[k]) return 1;
-      return clamp(((now - tr.t0) / tr.dur - dl[k] * 0.55) / 0.45, 0, 1);
-    }
-    // Posición actual del grano k. Los que flotan sueltos en la nube se
-    // mecen un poco; la mecida entra y sale suave al empezar/terminar el vuelo.
-    var P = { x: 0, y: 0 };
-    function posicion(k, now){
-      var lt = ltDe(k, now);
-      var e = lt < 0.5 ? 4 * lt * lt * lt : 1 - Math.pow(-2 * lt + 2, 3) / 2;
-      var ax = sx[k], ay = sy[k], bx = tx[k], by = ty[k];
-      var dx = bx - ax, dy = by - ay, L = Math.sqrt(dx * dx + dy * dy) || 1;
-      var arco = Math.sin(e * Math.PI) * bd[k];
-      var x = ax + dx * e + (-dy / L) * arco, y = ay + dy * e + (dx / L) * arco;
-      var mece = (gt[k] < 0 && tr && !ya[k] ? 1 - e : 0) + (tr && tr.tipo === 'soltar' ? e : 0);
-      if (mece > 0){
-        x += Math.sin(now * 0.0008 * (0.6 + r1[k]) + r2[k] * 6.28) * 6 * mece;
-        y += Math.cos(now * 0.0007 * (0.6 + r2[k]) + r3[k] * 6.28) * 4 * mece;
-      }
-      P.x = x; P.y = y;
-      return lt;
-    }
-
-    // Arranca una transición. tipo 'soltar': lo que está a la vista se
-    // deshace en nube. tipo 'armar': los granos arman el grupo B.
-    function iniciar(tipo, B){
-      var now = performance.now(), k, c;
-      var colorTmp = new Uint8Array(POOL * 3), nuevoGt = new Int8Array(POOL);
-      if (asentado >= 0){
-        // desde un texto quieto: cada grano está en su pedacito
-        var G0 = medir(asentado);
-        verDOM(asentado, false);
-        for (k = 0; k < POOL; k++){
-          c = G0.n ? celdaDe(G0, k) : null;
-          sx[k] = c ? c.x : W / 2; sy[k] = c ? c.y : H / 2;
-          nuevoGt[k] = c ? asentado : -1;
-          colorTmp[k * 3] = c ? c.r : 230; colorTmp[k * 3 + 1] = c ? c.g : 220; colorTmp[k * 3 + 2] = c ? c.b : 200;
-        }
-        vistaNube = 1;
-        asentado = -1;
-      } else {
-        // a mitad de otra transición (o desde la nube): desde donde esté cada grano
-        for (k = 0; k < POOL; k++){
-          var lt = posicion(k, now);
-          sx[k] = P.x; sy[k] = P.y;
-          var en = -1;
-          if (tr){
-            if (lt <= 0 && gt[k] >= 0) en = gt[k];                 // todavía no se había ido de su texto
-            else if (tr.tipo === 'armar' && lt >= 1) en = tr.B;     // ya había llegado
-          }
-          nuevoGt[k] = en;
-          var m = sm(lt);
-          for (var q = 0; q < 3; q++){
-            colorTmp[k * 3 + q] = tr ? Math.round(ca[k * 3 + q] + (cb[k * 3 + q] - ca[k * 3 + q]) * m) : cb[k * 3 + q];
-          }
-        }
-      }
-      var eros = [];
-      for (k = 0; k < POOL; k++){
-        gt[k] = nuevoGt[k];
-        if (gt[k] >= 0 && eros.indexOf(gt[k]) < 0) eros.push(gt[k]);
-        ca[k * 3] = colorTmp[k * 3]; ca[k * 3 + 1] = colorTmp[k * 3 + 1]; ca[k * 3 + 2] = colorTmp[k * 3 + 2];
-      }
-      var GB = tipo === 'armar' ? medir(B) : null;
-      var minX = 1e9, maxX = -1e9;
-      for (k = 0; k < POOL; k++){
-        if (GB){
-          c = GB.n ? celdaDe(GB, k) : null;
-          tx[k] = c ? c.x : sx[k]; ty[k] = c ? c.y : sy[k];
-          ya[k] = gt[k] === B ? 1 : 0;
-          if (c){ cb[k * 3] = c.r; cb[k * 3 + 1] = c.g; cb[k * 3 + 2] = c.b; }
-        } else {
-          // el viento se lleva la arena a la derecha y un poco hacia arriba
-          tx[k] = sx[k] + 50 + r1[k] * 120; ty[k] = sy[k] - 28 + r2[k] * 34;
-          ya[k] = 0;
-          var ar = ARENA[(r3[k] * ARENA.length) | 0];
-          cb[k * 3] = ar[0]; cb[k * 3 + 1] = ar[1]; cb[k * 3 + 2] = ar[2];
-        }
-        var ref = GB ? tx[k] : sx[k];
-        if (ref < minX) minX = ref;
-        if (ref > maxX) maxX = ref;
-      }
-      for (k = 0; k < POOL; k++){
-        // arena: barrido de izquierda a derecha
-        var nx = ((GB ? tx[k] : sx[k]) - minX) / Math.max(1, maxX - minX);
-        dl[k] = nx * 0.6 + r3[k] * 0.18;
-        var ddx = tx[k] - sx[k], ddy = ty[k] - sy[k];
-        bd[k] = (r1[k] - 0.5) * clamp(Math.sqrt(ddx * ddx + ddy * ddy) * 0.25, 20, 140);
-      }
-      tr = { tipo: tipo, B: GB ? B : -1, t0: now, dur: GB ? 1500 : 1150, eros: eros, nube0: vistaNube, fin: 0 };
-    }
-
-    function mostrar(g){
-      if (asentado === g) return;
-      if (tr && tr.tipo === 'armar' && tr.B === g) return;
-      iniciar('armar', g);
-    }
-    function soltar(g){
-      var aLaVista = asentado === g || (tr && tr.tipo === 'armar' && tr.B === g);
-      if (!aLaVista) return;
-      iniciar('soltar', -1);
-    }
-
-    var sucio = false;   // sin transición y ya limpio: no se toca el lienzo (antes se borraba en cada cuadro)
-    function pintar(now){
-      if (!tr){ if (sucio){ ctx.clearRect(0, 0, W, H); sucio = false; } return; }
-      ctx.clearRect(0, 0, W, H); sucio = true;
-      var k, j, c, lt, a;
-      // pedacitos de texto que todavía no se desprendieron
-      for (var e = 0; e < tr.eros.length; e++){
-        var g = tr.eros[e];
-        if (g === tr.B) continue;
-        var G = grupos[g];
-        if (!G || !G.n) continue;
-        for (j = 0; j < G.n; j++){
-          k = Math.floor(j * POOL / G.n);
-          if (gt[k] !== g) continue;
-          a = 1 - sm(ltDe(k, now) / 0.18);
-          if (a <= 0.003) continue;
-          c = G.celdas[j];
-          ctx.globalAlpha = a;
-          ctx.drawImage(G.c, c.sx, c.sy, c.sw, c.sh, c.dx, c.dy, c.sw / DPR, c.sh / DPR);
-        }
-      }
-      // pedacitos del texto destino que ya se armaron
-      if (tr.B >= 0){
-        var GB = grupos[tr.B];
-        if (GB && GB.n){
-          for (j = 0; j < GB.n; j++){
-            k = Math.floor(j * POOL / GB.n);
-            a = ya[k] ? 1 : sm((ltDe(k, now) - 0.82) / 0.18);
-            if (a <= 0.003) continue;
-            c = GB.celdas[j];
-            ctx.globalAlpha = a;
-            ctx.drawImage(GB.c, c.sx, c.sy, c.sw, c.sh, c.dx, c.dy, c.sw / DPR, c.sh / DPR);
-          }
-        }
-      }
-      // la nube suelta se apaga sola si nadie la vuelve a usar
-      if (tr.tipo === 'soltar' && tr.fin) vistaNube = 1 - sm((now - tr.fin - 1800) / 1600);
-      // granos
-      for (k = 0; k < POOL; k++){
-        lt = posicion(k, now);
-        var desdeTexto = gt[k] >= 0;
-        if (lt <= 0){
-          if (desdeTexto) continue;              // escondido: se ve su pedacito de texto
-          a = 0.5 * tr.nube0;
-        } else if (lt < 1){
-          if (tr.tipo === 'soltar'){
-            a = desdeTexto ? 0.9 * sm(lt / 0.12) : 0.5 * tr.nube0;
-            a += (0.5 - a) * sm(lt);
-          } else {
-            a = desdeTexto ? 0.9 * sm(lt / 0.12) : 0.5 * tr.nube0 + (0.9 - 0.5 * tr.nube0) * sm(lt);
-            a *= 1 - sm((lt - 0.82) / 0.18);       // se funde con su pedacito al llegar
-          }
-        } else {
-          if (tr.tipo !== 'soltar') continue;
-          a = 0.5 * vistaNube;
-        }
-        if (a <= 0.01) continue;
-        var m = sm(lt), i3 = k * 3;
-        var cr = Math.round(ca[i3] + (cb[i3] - ca[i3]) * m), cg = Math.round(ca[i3 + 1] + (cb[i3 + 1] - ca[i3 + 1]) * m),
-            cbb = Math.round(ca[i3 + 2] + (cb[i3 + 2] - ca[i3 + 2]) * m);
-        var lado = tam[k];
-        ctx.globalAlpha = a;
-        ctx.fillStyle = 'rgb(' + cr + ',' + cg + ',' + cbb + ')';
-        ctx.fillRect(P.x - lado / 2, P.y - lado / 2, lado, lado);
-      }
-      ctx.globalAlpha = 1;
-      // fin de la transición
-      if ((now - tr.t0) / tr.dur >= 1){
-        if (tr.tipo === 'armar'){
-          verDOM(tr.B, true);
-          asentado = tr.B;
-          for (k = 0; k < POOL; k++){ gt[k] = tr.B; ya[k] = 1; }
-          tr = null;
-          ctx.clearRect(0, 0, W, H);
-        } else if (!tr.fin){
-          tr.fin = now;
-        } else if (vistaNube <= 0){
-          vistaNube = 0;
-          for (k = 0; k < POOL; k++){ sx[k] = tx[k]; sy[k] = ty[k]; gt[k] = -1; }
-          tr = null;
-          ctx.clearRect(0, 0, W, H);
-        }
-      }
-    }
-
-    function medirEnFrio(){
-      var todas = [].concat.apply([], gruposDeLetras);
-      gsap.set(todas, { x: 0, y: 0, rotation: 0 });
-      resize();
-      refrescarScrollTrigger();
-      if (premedirListo){ clearTimeout(tPremedir); tPremedir = setTimeout(premedir, 800); }
-    }
-    // Fotografiar cada frase (medir) cuesta: se adelanta en ratos libres, una
-    // frase por vez, para que no caiga justo cuando empieza una transición
-    // durante el scroll (eso era un cuadro largo cada vez).
-    var tPremedir = 0, premedirListo = false;   // listo = el hero ya se lanzó (H1 en su lugar)
-    function premedir(){
-      premedirListo = true;
-      var pend = gruposDeLetras.map(function(_, g){ return g; });
-      var ric = window.requestIdleCallback || function(f){ return setTimeout(f, 120); };
-      (function uno(){
-        ric(function(){
-          var g = pend.shift();
-          if (g === undefined) return;
-          if (!grupos[g] && (!tr || tr.B !== g)) medir(g);
-          uno();
-        }, { timeout: 1500 });
-      })();
-    }
-    resize();
-    window.addEventListener('resize', medirEnFrio);
-    bucleVisible(cv.closest('.acto-superficie'), pintar);
-
-    return { medirEnFrio: medirEnFrio, mostrar: mostrar, soltar: soltar, premedir: premedir };
-  }
-
-  // timeline scrubbed de la superficie
-  var polvoTextos; // se arma más abajo, después de tener todos los grupos de letras
-  var espejismosCtl; // ídem — controlador de índice de las frases-espejismo
-  var giroCtl;       // ídem — controlador (mostrar/ocultar) del giro
-  var h1Fuera = false;
-  var tlSup = gsap.timeline({
-    scrollTrigger: {
-      trigger: '.acto-superficie',
-      start: 'top top',
-      end: 'bottom bottom',
-      scrub: 0.6,
-      onUpdate: function(self){
-        terreno.setP(self.progress);
-        if (espejismosCtl) espejismosCtl.update(self.progress);
-        if (giroCtl) giroCtl.update(self.progress);
-        // el H1 se deshace en arena justo donde entra la primera frase (0.13)
-        // y se rearma al volver: sin tramo intermedio con solo arena a la vista
-        var fuera = self.progress >= 0.13;
-        if (fuera !== h1Fuera) document.getElementById('hero-copy').classList.toggle('hero-oculto', fuera);
-        if (polvoTextos && fuera !== h1Fuera){ h1Fuera = fuera; if (fuera) polvoTextos.soltar(0); else polvoTextos.mostrar(0); }
-      }
-    }
-  });
-  // El título inicial se queda quieto y legible durante prácticamente todo
-  // el tramo previo a las frases-espejismo; en 0.115 se deshace en arena
-  // (lo dispara el onUpdate de tlSup, no un tween) y el resto del bloque
-  // (eyebrow, párrafo, CTAs) se desliza hacia arriba y se desvanece.
-  var letrasH1 = splitLetters(document.getElementById('h1'));
-  // fromTo, no to: '#hero-copy .eyebrow'/'p'/'.hero-ctas' arrancan en
-  // opacity:0 por el gsap.set(...) de más arriba (para que lanzarHero() los
-  // pueda hacer entrar con su propio fundido) — con un .to() normal, tlSup
-  // habría capturado ESE opacity:0 como su "desde" la primera vez que se
-  // renderiza (antes de que lanzarHero corra), y lo dejaría clavado ahí
-  // para siempre: aunque lanzarHero después los suba a 1 y el usuario
-  // vuelva a subir el scroll hasta el hero, tlSup los devolvería al
-  // opacity:0 "desde" que grabó, no al 1 real — el hero no reaparecía.
-  // Con fromTo el "desde" (opacity:1) queda explícito, sin depender de en
-  // qué momento tlSup evalúe el tween por primera vez.
-  // «Agendemos tu consulta» se queda a la vista durante todas las frases: solo se retiran el
-  // eyebrow, el párrafo y «Empecemos el viaje»
-  tlSup.fromTo(['#hero-copy .eyebrow', '#hero-copy p:not(.eyebrow)', '.hero-ctas .btn-solido'],
-        { opacity:1, y:0 },
-        { opacity:0, y:-70, duration:0.015, ease:'none' }, 0.115)
-       .to('.indicador-scroll', { opacity:0, duration:0.04 }, 0.04);
-  // Las espejismo y el giro ya no ponen tweens en tlSup (ahora las manejan
-  // sus controladores por su cuenta con self.progress), así que el último
-  // tween REAL de tlSup es la salida del H1 en 0.115. Sin esto, la duración
-  // total de tlSup colapsaría a ~0.13, y como el scrub mapea el scroll 0→1
-  // sobre esa duración, la salida del H1 (posición absoluta 0.115) se
-  // dispararía recién al ~88% del scroll en vez de al ~11.5% — el hero no
-  // se ocultaba en casi todo el recorrido. Este marcador vacío en la
-  // posición 1.0 fija la duración a 1.0 para que las posiciones absolutas
-  // vuelvan a mapear 1:1 con el progreso de scroll.
-  tlSup.set({}, { x: 0 }, 1);
-
-  // «Agendemos tu consulta» se queda durante las frases y, al irse «Empecemos el viaje», se corre
-  // a la izquierda hasta el lugar que ese botón dejó libre (si están en la misma fila; apilados
-  // en mobile ya está en el borde izquierdo). El CSS hace el desplazamiento con una transición;
-  // acá solo se mide cuánto: offsetLeft no cambia con transformaciones, así que da lo mismo
-  // cuándo se mida.
-  function medirReserva(){
-    var ctas = document.querySelector('.hero-ctas');
-    var inicio = ctas && ctas.querySelector('.btn-solido'), reserva = ctas && ctas.querySelector('.btn-reserva');
-    if (!inicio || !reserva) return;
-    var mismaFila = Math.abs(inicio.offsetTop - reserva.offsetTop) < 4;
-    ctas.style.setProperty('--reserva-dx', mismaFila ? (inicio.offsetLeft - reserva.offsetLeft) + 'px' : '0px');
-  }
-  medirReserva();
-  window.addEventListener('resize', medirReserva);
-  window.addEventListener('load', medirReserva);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(medirReserva);
-
-  // Frases-espejismo: ANCLADAS — en vez de atarlas a una fracción exacta de
-  // scroll (frágil: con scroll rápido se veían aparecer/desaparecer de
-  // golpe, y quedaban desincronizadas del enjambre de polvo), cada una se
-  // muestra/oculta por ÍNDICE, con animaciones de duración fija en TIEMPO
-  // REAL — mismo patrón que etapasCtl (Acto 4, las tarjetas del método) más
-  // abajo en este archivo. La pausa de lectura queda atada a cuánto scroll
-  // real se necesita para cruzar la ventana de esa frase, pero la entrada y
-  // la salida en sí siempre tardan lo mismo, sin importar qué tan rápido se
-  // scrollee.
-  var frases = ['.e1','.e2','.e3','.e4','.e5'];
-  var ini = 0.13, paso = 0.115;
-  // Tramo de scroll de cada frase, en múltiplos de `paso`. La e5 («Mis
-  // exámenes salen normales… pero yo no me siento normal.») es ~1.5×
-  // más larga que las demás y va en dos líneas: con el mismo tramo
-  // terminaba de formarse tarde y se iba antes de alcanzar a leerla. Su
-  // tramo extra sale del hueco libre antes del giro (que entra en 0.86):
-  // las frases ahora van de 0.13 a ~0.774.
-  var pesos = [1, 1, 1, 1, 1.6];
-  var bordes = [ini];
-  for (var b = 0; b < pesos.length; b++) bordes.push(bordes[b] + paso * pesos[b]);
-  var finFrases = bordes[pesos.length];
-  var letrasEspejismos = frases.map(function(sel){ return splitLetters(document.querySelector(sel)); });
-
-  espejismosCtl = (function(){
-    var mostrada = [false, false, false, false, false];
-
-    // la arena hace todo: la frase se arma con los granos de la anterior
-    // y al irse se deshace en una nube que espera a la siguiente
-    function entra(i){ if (polvoTextos) polvoTextos.mostrar(i + 1); }
-    function sale(i){ if (polvoTextos) polvoTextos.soltar(i + 1); }
-
-    return {
-      // p: progreso global 0–1 de .acto-superficie (viene de tlSup.onUpdate).
-      update: function(p){
-        if (p < ini || p >= finFrases){
-          for (var k = 0; k < 5; k++){ if (mostrada[k]){ mostrada[k] = false; sale(k); } }
-          return;
-        }
-        var s = 0;
-        while (s < 4 && p >= bordes[s + 1]) s++;
-        // Cada frase ocupa su segmento COMPLETO: en el borde la arena de la
-        // que se va viaja directo a armar la siguiente. Con una ventana más
-        // angosta quedaba un tramo sin ninguna frase y solo la nube a la vista.
-        var visible = s;
-        for (var i = 0; i < 5; i++){
-          if (i === visible && !mostrada[i]){ mostrada[i] = true; entra(i); }
-          if (i !== visible && mostrada[i]){ mostrada[i] = false; sale(i); }
-        }
-      }
-    };
-  })();
-
-  // Giro (cierre del acto 2): ANCLADO igual que las espejismo, por la misma
-  // razón — antes estaba atado al scroll-scrub, y con un scroll normal las
-  // últimas letras seguían borrosas (el stagger tarda ~0.09 de scroll, más
-  // que su ventana de entrada de 0.08) cuando ya empezaba la salida en
-  // 0.955: aparecía y desaparecía sin terminar de formarse. Ahora se
-  // muestra/oculta por umbral de scroll, pero la formación en sí es un tween
-  // de tiempo real fijo, así que SIEMPRE termina de formarse nítido antes de
-  // quedarse anclado y legible hasta casi el final de la sección.
-  var letrasGiro = splitLetters(document.getElementById('giro'));
-  giroCtl = (function(){
-    var mostrado = false;
-
-    function entra(){ if (polvoTextos) polvoTextos.mostrar(6); }
-    function sale(){ if (polvoTextos) polvoTextos.soltar(6); }
-
-    return {
-      // Ventana de scroll del giro: se muestra al entrar en [finFrases ≈ 0.77, 1] (queda
-      // anclado y legible hasta el final de .acto-superficie), y se oculta
-      // al salir de ella. El fundido de salida en sí lo maneja sale() en
-      // tiempo real.
-      //
-      // El límite de arriba era 0.99, no 1: el último 1% de .acto-superficie
-      // (0.99→1) ya no corresponde a ningún tween -tlSup ya terminó todo lo
-      // suyo antes de eso- así que ese tramo final solo sirve para que el
-      // <div class="escenario"> (position:sticky) alcance a "despegarse" del
-      // tope antes de que termine su contenedor (position:sticky SIEMPRE dejɑ
-      // un tramo sin pegar del alto de un viewport al final del contenedor,
-      // es cómo funciona sticky). En ese tramo, y en el viewport completo que
-      // sigue después (ya fuera de .acto-superficie, antes de que la sección
-      // "Causa raíz" llene la pantalla), no había NADA dibujado -sale() ya
-      // había ocultado el giro en 0.99- así que se sentía como "mucho
-      // scroll para nada" entre el giro y lo siguiente. Con el límite en 1
-      // el giro se queda a la vista todo ese tramo final y se ve
-      // desplazarse con el scroll (ya no está pegado) hasta que la
-      // siguiente sección lo tapa, en vez de dejar la pantalla vacía.
-      update: function(p){
-        var dentro = p >= finFrases && p <= 1;
-        if (dentro && !mostrado){ mostrado = true; entra(); }
-        if (!dentro && mostrado){ mostrado = false; sale(); }
-      }
-    };
-  })();
-
-  // Ahora que existen los 7 grupos (H1, las 5 espejismo, giro), se arma el
-  // enjambre y se mide su posición real — medirEnFrio() debe correr DESPUÉS
-  // de que tlSup ya definió todos sus fromTo/to (si no, algunas letras
-  // todavía no habrían recibido su x/rotation de "immediateRender" y la
-  // medición de reset no tendría nada que neutralizar).
-  polvoTextos = construirPolvoTextos(
-    document.getElementById('lienzo-polvo-textos'),
-    [letrasH1].concat(letrasEspejismos).concat([letrasGiro]),
-    [document.getElementById('h1')].concat(frases.map(function(sel){ return document.querySelector(sel); })).concat([document.getElementById('giro')])
-  );
-  polvoTextos.medirEnFrio();
-  // el H1 recién queda en su lugar después de su entrada animada (tras el velo):
-  // ahí se adelantan las mediciones de todas las frases
-  if (lanzarHero && polvoTextos.premedir){
-    var lanzarHeroOriginal = lanzarHero;
-    lanzarHero = function(){ var r = lanzarHeroOriginal.apply(this, arguments); setTimeout(polvoTextos.premedir, 2600); return r; };
-  }
-
-  // Un gesto de scroll = una frase. Dentro de la superficie (hero → frases →
-  // giro) la rueda, el dedo y las teclas no desplazan la página a pie: cada
-  // gesto lleva a la parada siguiente (o anterior), sin importar cuánto se
-  // haya scrolleado. Las paradas son el hero, el centro del tramo de cada
-  // frase y el giro; pasado el giro (hacia abajo) o sobre el hero (hacia
-  // arriba) el scroll vuelve a ser el normal. El recorrido es una animación
-  // de tiempo fijo del scroll, así que tlSup (scrub) la sigue como a
-  // cualquier otro scroll.
-  var paradas = [0];
-  for (var q = 0; q < pesos.length; q++) paradas.push((bordes[q] + bordes[q + 1]) / 2);
-  paradas.push((finFrases + 1) / 2);
-  // última parada = el final de la sección: tras el giro quedaba un tramo largo de scroll con la
-  // pantalla fija y hacían falta varios gestos para salir; ahora un gesto lo cruza entero
-  paradas.push(1);
-  var snapAnim = null, snapLibre = 0, ultimaRueda = 0, ultimoDelta = 0, objetivoSnap = -1;
-
-  // La zona llega hasta donde empieza la sección siguiente: pasado el giro, la pantalla fija se
-  // suelta y sube durante un alto de ventana; esa última parada la cruza de un solo gesto.
-  function zonaSup(){ var st = tlSup.scrollTrigger; return { a: st.start, b: st.end, y: window.scrollY, fin: st.end + window.innerHeight }; }
-  function enZonaSup(z){ return z.y >= z.a - 2 && z.y <= z.fin + 2; }
-  function posParada(z, k){ return k === paradas.length - 1 ? z.fin : z.a + paradas[k] * (z.b - z.a); }
-  function paradaActual(z){
-    var mejor = 0, d = Infinity;
-    for (var k = 0; k < paradas.length; k++){
-      var dk = Math.abs(posParada(z, k) - z.y);
-      if (dk < d){ d = dk; mejor = k; }
-    }
-    return mejor;
-  }
-  function irAParada(j){
-    var z = zonaSup(), destino = posParada(z, j), cur = { y: window.scrollY };
-    var htmlEl = document.documentElement;
-    if (snapAnim) snapAnim.kill();
-    objetivoSnap = j;
-    // html{scroll-behavior:smooth} suavizaría cada cuadro de esta misma animación
-    htmlEl.style.scrollBehavior = 'auto';
-    // Arranca de inmediato (ease «out»: el primer cuadro ya se mueve, no hay tramo muerto al
-    // empezar) y dura según la distancia: un salto corto es rápido, el largo hacia la sección
-    // siguiente algo más. Un gesto nuevo a mitad de camino la redirige desde donde esté.
-    var dur = clamp(0.5 + Math.abs(destino - cur.y) / 2600, 0.6, 1.0);
-    snapAnim = gsap.to(cur, {
-      y: destino, duration: dur, ease: 'power3.out',
-      onUpdate: function(){ window.scrollTo(0, cur.y); },
-      onComplete: function(){ snapAnim = null; objetivoSnap = -1; snapLibre = performance.now() + 60; htmlEl.style.scrollBehavior = ''; }
-    });
-  }
-  // A qué parada lleva un gesto en esa dirección: si ya hay un viaje en marcha, la siguiente a SU destino
-  // (así dos gestos seguidos avanzan dos frases en vez de perderse el segundo); -1 = scroll normal.
-  function proximaParada(dir){
-    if (snapAnim && objetivoSnap >= 0){
-      var k = objetivoSnap + dir;
-      return (k < 0 || k >= paradas.length) ? -2 : k;   // -2: ya va al extremo, el gesto se absorbe
-    }
-    return destinoSnap(dir);
-  }
-  // devuelve la parada a la que lleva el gesto, o -1 si el scroll debe ser el normal
-  function destinoSnap(dir){
-    var z = zonaSup();
-    if (!enZonaSup(z)) return -1;
-    var j = paradaActual(z) + dir;
-    return (j < 0 || j >= paradas.length) ? -1 : j;
-  }
-  function snapIgnorado(e){
-    var t = e.target;
-    if (document.documentElement.classList.contains('velado') || document.documentElement.classList.contains('menu-abierto')) return true;
-    return !!(t && t.closest && t.closest('#panel-raiz, .menu-movil'));
-  }
-
-  window.addEventListener('wheel', function(e){
-    if (e.ctrlKey || !e.deltaY || snapIgnorado(e)) return;
-    var dir = e.deltaY > 0 ? 1 : -1, j = proximaParada(dir);
-    if (j === -1) return;
-    e.preventDefault();
-    if (j === -2) return;
-    // la inercia del trackpad sigue mandando eventos un buen rato: solo
-    // cuenta como gesto nuevo si hubo una pausa o la rueda vuelve a acelerar
-    var ahora = performance.now(), delta = Math.abs(e.deltaY);
-    var nuevo = ahora - ultimaRueda > 140 || delta > ultimoDelta + 8;
-    ultimaRueda = ahora; ultimoDelta = delta;
-    if (!nuevo || (!snapAnim && ahora < snapLibre)) return;
-    irAParada(j);
-  }, { passive: false });
-
-  window.addEventListener('keydown', function(e){
-    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || snapIgnorado(e)) return;
-    var tag = e.target && e.target.tagName, dir = 0;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) return;
-    var espacio = e.key === ' ' && tag !== 'BUTTON' && tag !== 'A';
-    if (e.key === 'ArrowDown' || e.key === 'PageDown' || (espacio && !e.shiftKey)) dir = 1;
-    else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (espacio && e.shiftKey)) dir = -1;
-    if (!dir) return;
-    var j = proximaParada(dir);
-    if (j === -1) return;
-    e.preventDefault();
-    if (j >= 0 && !e.repeat) irAParada(j);
-  });
-
-  // Táctil: mientras el dedo arrastra dentro de la zona se bloquea el scroll
-  // nativo; al soltar, un arrastre de ≥30px lleva a la frase siguiente/anterior.
-  var tocY0 = 0, tocDir = 0, tocCapturado = false;
-  document.addEventListener('touchstart', function(e){
-    tocCapturado = false;
-    if (e.touches.length === 1) tocY0 = e.touches[0].clientY;
-  }, { passive: true });
-  document.addEventListener('touchmove', function(e){
-    if (e.touches.length !== 1 || snapIgnorado(e)) return;
-    var dy = tocY0 - e.touches[0].clientY;
-    if (!dy) return;
-    var dir = dy > 0 ? 1 : -1;
-    if (proximaParada(dir) === -1){ tocCapturado = false; return; }
-    if (e.cancelable) e.preventDefault();
-    tocCapturado = true; tocDir = dir;
-  }, { passive: false });
-  document.addEventListener('touchend', function(e){
-    if (!tocCapturado) return;
-    tocCapturado = false;
-    var dy = tocY0 - e.changedTouches[0].clientY;
-    if ((!snapAnim && performance.now() < snapLibre) || Math.abs(dy) < 30 || (dy > 0 ? 1 : -1) !== tocDir) return;
-    var j = proximaParada(tocDir);
-    if (j >= 0) irAParada(j);
-  }, { passive: true });
-
-  // «Empecemos el viaje»: lleva a la primera frase.
-  window.kairalIrAFrase = function(){ irAParada(1); };
-  var btnViaje = document.getElementById('btn-viaje');
-  if (btnViaje) btnViaje.addEventListener('click', function(e){
-    e.preventDefault();
-    irAParada(1);
-  });
-
-  })();
 
   // ─── Acto 4: una gota por etapa + tarjetas cinematográficas ───
   var etapasCtl = (function(){
@@ -2155,9 +1443,9 @@ try{ (function(){
 })();
 
 /* ============================================================
-   5 · FLORES GENERATIVAS (testimonios)
+   5 · FLORES GENERATIVAS (una por reseña)
 ============================================================ */
-document.querySelectorAll('.flor-svg').forEach(function(svg){
+function sembrarFlor(svg){
   var seed = +svg.dataset.seed || 1;
   var nP = 5 + Math.floor(hash(seed)*4);          // 5–8 pétalos
   var rot = hash(seed*3)*360;
@@ -2180,17 +1468,16 @@ document.querySelectorAll('.flor-svg').forEach(function(svg){
   c.setAttribute('r', 5); c.setAttribute('fill', '#F2A65A');
   g.appendChild(c);
   svg.appendChild(g);
-});
+}
 
 /* ============================================================
-   5b · CARRUSEL DE HISTORIAS (testimonios)
-   Cada tarjeta lleva un paisaje del desierto generado acá (sin fotos:
-   son historias con datos protegidos), sembrado por la historia para que
-   siempre salga igual. La tarjeta más cercana al centro es la "activa":
-   crece y muestra la cita. Se navega con flechas, arrastre (mouse),
-   deslizamiento (touch, scroll nativo), clic en una tarjeta o teclado.
+   5b · CARRUSEL DE RESEÑAS
+   Las tarjetas son las reseñas reales de Google (las arma kairalHistorias, más abajo, cuando llegan).
+   Cada una lleva un paisaje del desierto generado acá, sembrado por su posición para que siempre
+   salga igual. La tarjeta más cercana al centro es la "activa": crece y muestra el texto. Se navega
+   con flechas, arrastre (mouse), deslizamiento (touch, scroll nativo), clic en una tarjeta o teclado.
 ============================================================ */
-try{ (function(){
+function armarCarrusel(){
   var carril = document.getElementById('carril');
   if (!carril) return;
   var originales = [].slice.call(carril.querySelectorAll('.caso'));
@@ -2230,6 +1517,8 @@ try{ (function(){
   var n = originales.length;
   function copia(c){
     var k = c.cloneNode(true);
+    var degradado = k.querySelector('linearGradient');
+    if (degradado) degradado.removeAttribute('id');   // la copia usa el degradado del original: sin ids repetidos
     k.setAttribute('aria-hidden', 'true');
     k.removeAttribute('aria-label');
     k.setAttribute('tabindex', '-1');
@@ -2330,7 +1619,47 @@ try{ (function(){
   medirMargen();
   ir(n, true);
   window.addEventListener('resize', function(){ medirMargen(); if (activa >= 0) ir(activa, true); });
-})(); }catch(e){ console.error('Kairal: carrusel de historias no disponible.', e); }
+}
+
+// Recibe las reseñas (ya filtradas) y arma una tarjeta por cada una. Todo el texto entra con textContent:
+// lo que escriba una persona en Google nunca se interpreta como HTML. Devuelve false si no pudo armarlas.
+window.kairalHistorias = function(resenas){
+  var carril = document.getElementById('carril');
+  if (!carril || !resenas || !resenas.length || carril.querySelector('.caso')) return false;
+  try{
+    var ns = 'http://www.w3.org/2000/svg', SEMILLAS = [11, 42, 77, 93, 58, 26];
+    var MAX = movil ? 230 : 300;
+    resenas.forEach(function(rs, i){
+      var art = document.createElement('article');
+      art.className = 'caso caso-resena visible';
+      art.setAttribute('aria-label', 'Reseña ' + (i + 1) + ' de ' + resenas.length);
+      var paisaje = document.createElementNS(ns, 'svg');
+      paisaje.setAttribute('class', 'caso-paisaje'); paisaje.setAttribute('viewBox', '0 0 400 520');
+      paisaje.setAttribute('preserveAspectRatio', 'xMidYMax slice'); paisaje.setAttribute('aria-hidden', 'true');
+      paisaje.setAttribute('data-seed', SEMILLAS[i % SEMILLAS.length]);
+      var flor = document.createElementNS(ns, 'svg');
+      flor.setAttribute('class', 'flor-svg'); flor.setAttribute('viewBox', '0 0 56 56'); flor.setAttribute('aria-hidden', 'true');
+      flor.setAttribute('data-seed', SEMILLAS[i % SEMILLAS.length]);
+      sembrarFlor(flor);
+      var caja = document.createElement('div'); caja.className = 'caso-texto';
+      var n = Math.max(1, Math.min(5, Math.round(+rs.rating) || 5));
+      var est = document.createElement('p'); est.className = 'caso-estrellas';
+      est.setAttribute('aria-label', n + ' de 5 estrellas'); est.textContent = '★★★★★'.slice(0, n);
+      var txt = String(rs.text || '').replace(/\s+/g, ' ').trim();
+      if (txt.length > MAX) txt = txt.slice(0, MAX).replace(/\s+\S*$/, '') + '…';
+      var cita = document.createElement('p'); cita.className = 'hoy'; cita.textContent = '«' + txt + '»';
+      var pie = document.createElement('footer');
+      var nombre = document.createElement('b'); nombre.textContent = rs.author_name || 'Paciente de Kairal';
+      var fuente = document.createElement('span'); fuente.textContent = 'Reseña en Google';
+      pie.appendChild(nombre); pie.appendChild(fuente);
+      caja.appendChild(est); caja.appendChild(cita); caja.appendChild(pie);
+      art.appendChild(paisaje); art.appendChild(flor); art.appendChild(caja);
+      carril.appendChild(art);
+    });
+    armarCarrusel();
+    return true;
+  }catch(e){ console.error('Kairal: carrusel de reseñas no disponible.', e); return false; }
+};
 
 /* ============================================================
    6 · REVELADOS, HEADER, NAV, FLOTANTES
@@ -2346,20 +1675,6 @@ var ioRev = new IntersectionObserver(function(ents){
 revelables.forEach(function(r){
   var el = document.querySelector(r[0]); if (el) ioRev.observe(el);
 });
-// Las tarjetas se revelan todas juntas (escalonadas) cuando el carrusel entra
-// en pantalla: con la alineada a la izquierda, la siguiente apenas asoma y no
-// alcanzaría el umbral de visibilidad por sí sola.
-var carrilRev = document.getElementById('carril');
-if (carrilRev){
-  var tarjetasRev = [].slice.call(carrilRev.querySelectorAll('.caso'));
-  tarjetasRev.forEach(function(c, i){ c.style.transitionDelay = (i*0.12)+'s'; });
-  var ioCarril = new IntersectionObserver(function(ents){
-    if (!ents[0].isIntersecting) return;
-    tarjetasRev.forEach(function(c){ c.classList.add('visible'); });
-    ioCarril.disconnect();
-  }, { threshold: 0.25 });
-  ioCarril.observe(carrilRev);
-}
 document.querySelectorAll('.blog-card').forEach(function(c, i){
   c.style.transitionDelay = (i*0.1)+'s';
   ioRev.observe(c);
@@ -2463,13 +1778,6 @@ window.addEventListener('scroll', function(){
 }, { passive: true });
 window.addEventListener('resize', actualizarNav);
 actualizarNav();
-
-// «¿Te suena familiar?»: su ancla está dentro de la pantalla fija y por sí sola dejaba la vista en el
-// hero; lleva a la primera frase, igual que «Empecemos el viaje».
-var linkSintomas = navLinks['sintomas'];
-if (linkSintomas) linkSintomas.addEventListener('click', function(e){
-  if (window.kairalIrAFrase){ e.preventDefault(); window.kairalIrAFrase(); }
-});
 
 /* ============================================================
    7 · CURSOR CONTEXTUAL + BOTONES MAGNÉTICOS
@@ -3711,97 +3019,6 @@ try{
   }
 }catch(e){ console.error('Kairal: preguntas frecuentes no disponibles.', e); }
 
-/* ============================================================
-   9 · VELO DE ENTRADA NARRATIVO
-============================================================ */
-(function(){
-  var velo = document.getElementById('velo');
-  var btn = document.getElementById('velo-btn');
-  var cvv = document.getElementById('lienzo-velo');
-  if (!velo || !btn || !cvv){ document.documentElement.classList.remove('velado'); return; }   // sin pantalla de entrada
-  document.documentElement.classList.add('velado');
-  // Refuerzo del arranque-desde-el-hero: además del scrollRestoration:manual
-  // del <head>, se vuelve a llevar el scroll al tope acá (el layout ya está
-  // listo al final del body) y en el evento load, por si el navegador
-  // restauró la posición antes de que corriera lo del <head>.
-  window.scrollTo(0, 0);
-  window.addEventListener('load', function(){ window.scrollTo(0, 0); });
-  var entrado = false, fin = false;
-
-  function entrar(){
-    if (entrado) return;
-    entrado = true;
-    // La página siempre arranca desde el hero (ver scrollRestoration:manual
-    // en el <head>), así que al soltar el preloader nos aseguramos de estar
-    // en el tope antes de lanzar la entrada del hero.
-    window.scrollTo(0, 0);
-    velo.classList.add('fuera');
-    document.documentElement.classList.remove('velado');
-    terreno.amanecer();
-    if (lanzarHero) lanzarHero();
-    setTimeout(function(){ velo.style.display = 'none'; fin = true; }, 1300);
-  }
-  btn.addEventListener('click', entrar);
-
-  if (reduced){
-    velo.classList.add('lista');
-  } else {
-    var c = cvv.getContext('2d');
-    var W=0, H=0;
-    function rs(){ W=cvv.clientWidth; H=cvv.clientHeight; cvv.width=W*DPR; cvv.height=H*DPR; c.setTransform(DPR,0,0,DPR,0,0); }
-    rs(); window.addEventListener('resize', rs);
-
-    function gotaV(px, py, r, T, a){
-      c.save(); c.translate(px, py);
-      var gd = c.createRadialGradient(-r*0.35,-r*0.1,r*0.08, 0,0,r*1.15);
-      gd.addColorStop(0,'rgba(240,252,248,'+(0.95*a).toFixed(3)+')');
-      gd.addColorStop(0.5,'rgba(159,216,204,'+(0.7*a).toFixed(3)+')');
-      gd.addColorStop(1,'rgba(14,124,107,'+(0.5*a).toFixed(3)+')');
-      c.fillStyle = gd;
-      c.beginPath();
-      c.moveTo(0,-T);
-      c.bezierCurveTo( r*0.42,-T*0.5, r,-r*0.6, r,0);
-      c.bezierCurveTo( r,r*0.56, r*0.56,r, 0,r);
-      c.bezierCurveTo(-r*0.56,r, -r,r*0.56, -r,0);
-      c.bezierCurveTo(-r,-r*0.6, -r*0.42,-T*0.5, 0,-T);
-      c.closePath(); c.fill();
-      c.fillStyle = 'rgba(255,255,255,'+(0.75*a).toFixed(3)+')';
-      c.beginPath(); c.ellipse(-r*0.36,-r*0.12,r*0.17,r*0.3,-0.5,0,6.28); c.fill();
-      c.restore();
-    }
-
-    var t0 = performance.now(), revelado = false;
-    (function anim(now){
-      if (fin) return;
-      var t = (now - t0)/1000;
-      c.clearRect(0,0,W,H);
-      var x = W/2, yImp = H*0.55;
-      if (t < 1.5){
-        var k = t/1.5, e = k*k;
-        var y = -24 + e*(yImp + 24);
-        gotaV(x, y, 9, 9*(1 + 1.5*k), 0.95);
-      } else {
-        var rt = t - 1.5;
-        for (var i=0;i<3;i++){
-          var rk = clamp((rt - i*0.13)/1.3, 0, 1);
-          if (rk <= 0 || rk >= 1) continue;
-          var eo = 1 - Math.pow(1-rk, 2);
-          c.strokeStyle = 'rgba(127,181,171,'+((1-eo)*0.5).toFixed(3)+')';
-          c.lineWidth = 1.3;
-          c.beginPath(); c.ellipse(x, yImp, 18+eo*190, (18+eo*190)*0.28, 0, 0, 6.28); c.stroke();
-        }
-        var pk = (rt % 3.2)/3.2;
-        c.strokeStyle = 'rgba(127,181,171,'+((1-pk)*0.1).toFixed(3)+')';
-        c.lineWidth = 1;
-        c.beginPath(); c.ellipse(x, yImp, 18+pk*230, (18+pk*230)*0.28, 0, 0, 6.28); c.stroke();
-        if (!revelado){ revelado = true; velo.classList.add('lista'); }
-      }
-      requestAnimationFrame(anim);
-    })(t0);
-  }
-  // failsafe: el botón siempre aparece
-  setTimeout(function(){ velo.classList.add('lista'); }, 2800);
-})();
 })();
 
 /* ============================================================
@@ -4023,44 +3240,25 @@ try{
 })();
 
 /* ============================================================
-   13 · RESEÑAS REALES DE GOOGLE — misma función que index.html
+   13 · RESEÑAS REALES DE GOOGLE
+   La función /.netlify/functions/reviews las pide a Google (Places API). Solo se muestran las de 4 o 5
+   estrellas que traen texto; nunca se inventa ni se completa una frase. Si Google no responde, la
+   sección muestra el enlace a la ficha en vez de tarjetas.
 ============================================================ */
 (function(){
-  var star = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>';
-
-  function escHtml(s){
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-  function tarjeta(r){
-    var inicial = escHtml(r.author_name ? r.author_name[0].toUpperCase() : '?');
-    var foto = r.profile_photo_url;
-    return '<div style="background:var(--tinta-2);border:1px solid rgba(127,181,171,.18);border-radius:16px;padding:1.4rem">' +
-      '<div style="display:flex;gap:2px;margin-bottom:.7rem;color:var(--alba)">' + star.repeat(r.rating || 5) + '</div>' +
-      '<p style="font-size:.92rem;line-height:1.6;margin-bottom:1rem;color:var(--arena)">"' + escHtml(r.text) + '"</p>' +
-      '<div style="display:flex;align-items:center;gap:.7rem">' +
-      (foto
-        ? '<img src="' + escHtml(foto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover" alt="">'
-        : '<div style="width:36px;height:36px;border-radius:50%;background:var(--teal);color:var(--arena);display:flex;align-items:center;justify-content:center;font-weight:600">' + inicial + '</div>') +
-      '<span style="font-size:.85rem;font-weight:600;color:var(--bruma)">' + escHtml(r.author_name || 'Paciente Kairal') + '</span>' +
-      '</div></div>';
-  }
-
+  var seccion = document.getElementById('floraciones');
+  if (!seccion) return;
+  function estado(e){ seccion.setAttribute('data-resenas', e); }
   fetch('/.netlify/functions/reviews')
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (data.status !== 'OK' || !data.result || !data.result.reviews) throw new Error('sin reseñas');
-      // Solo reseñas de 4 o 5 estrellas que tengan texto (nunca se inventa una frase)
       var buenas = data.result.reviews.filter(function(r){ return r.rating >= 4 && r.text; });
-      var carga = document.getElementById('resenas-carga');
-      var grid = document.getElementById('resenas-grid');
-      if (carga) carga.style.display = 'none';
-      if (grid) grid.innerHTML = buenas.map(tarjeta).join('');
+      estado('listas');   // el carril tiene que estar visible para que el carrusel se mida bien
+      if (!window.kairalHistorias || !window.kairalHistorias(buenas)) throw new Error('sin reseñas para mostrar');
     })
     .catch(function(e){
-      var carga = document.getElementById('resenas-carga');
-      var err = document.getElementById('resenas-error');
-      if (carga) carga.style.display = 'none';
-      if (err) err.style.display = 'block';
+      estado('error');
       console.log('Reseñas de Google:', e);
     });
 })();

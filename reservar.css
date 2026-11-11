@@ -51,7 +51,6 @@
 .rv-error{margin:0 0 1rem;padding:.9rem 1.1rem;border-radius:14px;background:#F9E8EF;border:1px solid rgba(199,92,132,.45);color:#7A1F45;font-size:.92rem}
 .rv-btn{width:100%;justify-content:center;border:none;cursor:pointer}
 .rv-btn[disabled]{opacity:.55;cursor:not-allowed;box-shadow:none}
-.rv-link{background:none;border:none;color:var(--teal);font:inherit;font-size:.9rem;text-decoration:underline;cursor:pointer;padding:.3rem 0}
 
 /* ─── Resumen ─── */
 .rv-resumen{position:sticky;top:6.5rem;background:var(--tinta-2);color:var(--arena);border-radius:24px;padding:1.5rem;box-shadow:0 24px 60px -30px rgba(8,31,29,.7)}

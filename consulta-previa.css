@@ -67,15 +67,15 @@ select{cursor:pointer}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.2rem}
 
 /* ─── Opciones (radio, check, síntomas) ─── */
-.radio-group,.check-group{display:flex;flex-wrap:wrap;gap:.5rem}
+.radio-group{display:flex;flex-wrap:wrap;gap:.5rem}
 .radio-item,.check-item,.sys-item{display:flex;align-items:center;gap:.6rem;padding:.6rem .95rem;border-radius:14px;border:1px solid rgba(14,124,107,.28);background:rgba(255,255,255,.7);
   cursor:pointer;font-size:.92rem;font-weight:400;color:rgba(26,36,33,.78);transition:border-color .25s,background .25s,color .25s;user-select:none}
 .radio-item:hover,.check-item:hover,.sys-item:hover{border-color:var(--teal);background:rgba(14,124,107,.07)}
 .radio-item.selected,.check-item.selected,.sys-item.selected{border-color:var(--teal);background:var(--teal);color:#fff}
 .radio-item:focus-within,.sys-item:focus-within{outline:2px solid var(--alba);outline-offset:2px}
 .radio-item input,.check-item input,.sys-item input{flex:none;width:1.05rem;height:1.05rem;margin:0;padding:0;border:none;box-shadow:none;accent-color:var(--alba)}
-.radio-group.col,.check-group.col{flex-direction:column}
-.radio-group.col .radio-item,.check-group.col .check-item{width:100%}
+.radio-group.col{flex-direction:column}
+.radio-group.col .radio-item{width:100%}
 .sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));gap:.5rem}
 .sys-item{font-size:.88rem;padding:.55rem .8rem}
 .sys-category{display:flex;align-items:center;gap:.6rem;margin:1.6rem 0 .7rem;font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--flor)}

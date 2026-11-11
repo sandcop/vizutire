@@ -95,15 +95,7 @@ function elegir(v){
 /* ─── arranque ─── */
 var actual = leer();
 if (actual === 'medicion') cargarAnalytics();
-else if (!actual){
-  // en la portada se espera a que termine la pantalla de bienvenida
-  var intentos = 0;
-  (function esperar(){
-    var velo = document.documentElement.classList.contains('velado');
-    if (velo && intentos++ < 120) return setTimeout(esperar, 500);
-    setTimeout(mostrar, 1200);
-  })();
-}
+else if (!actual) mostrar();
 
 document.addEventListener('click', function(e){
   var t = e.target.closest('[data-cookies-prefs]');
