@@ -283,11 +283,13 @@
 
     <div class="hh-escena" id="hh-escena" role="group" aria-label="Lo que cuentan muchas pacientes">
       <ul class="hh-voces" id="hh-voces">
-        <li style="--i:0">«Me canso mucho y nadie sabe por qué.»</li>
-        <li style="--i:1">«Hago todo bien y no bajo de peso.»</li>
-        <li style="--i:2">«Vivo inflamada. Duermo, pero no descanso.»</li>
-        <li style="--i:3">«La ansiedad me llega directo al estómago.»</li>
-        <li style="--i:4">«Mis exámenes salen normales… pero yo no me siento normal.»</li>
+        <!-- La frase más larga va primero a propósito: en celular es el texto más grande de la pantalla y así Google
+             (métrica LCP) la mide en cuanto aparece, a los ~2 s, en lugar de esperar a una frase más grande a los 17 s. -->
+        <li style="--i:0">«Mis exámenes salen normales… pero yo no me siento normal.»</li>
+        <li style="--i:1">«Me canso mucho y nadie sabe por qué.»</li>
+        <li style="--i:2">«Hago todo bien y no bajo de peso.»</li>
+        <li style="--i:3">«Vivo inflamada. Duermo, pero no descanso.»</li>
+        <li style="--i:4">«La ansiedad me llega directo al estómago.»</li>
       </ul>
       <div class="hh-giro" id="giro">
         <h2 class="display">Son mensajes. <em>Y nadie los estaba escuchando.</em></h2>

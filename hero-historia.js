@@ -112,6 +112,7 @@ function bucleVisible(el, paso){
       cb[i * 3] = a[0]; cb[i * 3 + 1] = a[1]; cb[i * 3 + 2] = a[2];
       gt[i] = -1;
     }
+    var primeraVista = false;   // la primera frase se arma más rápido que las demás
     var asentado = -1;  // grupo que el DOM muestra ahora (al cargar: ninguno; la arena arma el primero)
     var sembrado = false;
     var tr = null;      // transición en curso
@@ -306,7 +307,7 @@ function bucleVisible(el, paso){
         var ddx = tx[k] - sx[k], ddy = ty[k] - sy[k];
         bd[k] = (r1[k] - 0.5) * clamp(Math.sqrt(ddx * ddx + ddy * ddy) * 0.25, 20, 140);
       }
-      tr = { tipo: tipo, B: GB ? B : -1, t0: now, dur: GB ? 1500 : 1150, eros: eros, nube0: vistaNube, fin: 0 };
+      tr = { tipo: tipo, B: GB ? B : -1, t0: now, dur: GB ? (primeraVista ? 1500 : 1050) : 1150, eros: eros, nube0: vistaNube, fin: 0 };
     }
 
     function mostrar(g){
@@ -390,6 +391,7 @@ function bucleVisible(el, paso){
       if ((now - tr.t0) / tr.dur >= 1){
         if (tr.tipo === 'armar'){
           verDOM(tr.B, true);
+          primeraVista = true;
           asentado = tr.B;
           for (k = 0; k < POOL; k++){ gt[k] = tr.B; ya[k] = 1; }
           tr = null;
@@ -435,7 +437,7 @@ function bucleVisible(el, paso){
 
 /* ── arranque ── */
 var PERIODO = 3400;   // ms entre frase y frase
-var ARRANQUE = 900;   // ms hasta que empieza la primera
+var ARRANQUE = 250;   // ms hasta que empieza la primera (corto: esa frase es el texto más grande en celular, ver index.html)
 function arrancar(){
   var grupos = [], contenedores = [];
   Array.prototype.forEach.call(voces, function(li){
