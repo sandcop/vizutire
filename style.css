@@ -1025,13 +1025,17 @@ body.reduced .faq-item summary::before{transition:none}
   display:flex;flex-direction:column;gap:.9rem;
 }
 @media(max-width:920px){.actos-nav{display:none}}
-.actos-nav a{width:8px;height:8px;border-radius:50%;background:rgba(237,229,214,.3);transition:all .4s var(--ease-tierra);position:relative}
-.actos-nav a.activo{background:var(--alba);transform:scale(1.4)}
+.actos-nav a{width:8px;height:8px;border-radius:50%;background:rgba(237,229,214,.45);box-shadow:0 0 0 1px rgba(8,31,29,.4);transition:all .4s var(--ease-tierra);position:relative}
+/* el aro oscuro hace que los puntos (y el amarillo) se vean también sobre los fondos claros */
+.actos-nav a.activo{background:var(--alba);transform:scale(1.4);box-shadow:0 0 0 1.5px rgba(8,31,29,.55)}
+.actos-nav a:focus-visible{outline:2px solid var(--alba);outline-offset:4px}
 .actos-nav a span{
   position:absolute;right:1.4rem;top:50%;transform:translateY(-50%);
   font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--bruma);white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none;
+  color:var(--arena);background:rgba(8,31,29,.88);padding:.4em .8em;border-radius:999px;
+  white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none;
 }
+.actos-nav a:focus-visible span{opacity:1}
 .actos-nav a:hover span{opacity:1}
 
 /* ============ FLOTANTES ============ */
