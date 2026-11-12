@@ -1279,13 +1279,18 @@ try{ (function(){
     svg.classList.toggle('enfocada', i >= 0);
     cierre.classList.toggle('visible', listo && i < 0);
     nombres.forEach(function(n){ n.classList.toggle('elegida', +n.dataset.i === i); });
+    // la invitación a tocar corre solo cuando no hay ningún sistema abierto
+    nombres.forEach(function(n){ n.classList.toggle('parpadea', listo && i < 0); });
   }
+  // orden de la invitación: neuroendocrino, inmune, digestivo, metabólico (data-i 0, 2, 1, 3), 1,1 s entre una y otra
+  [0, 2, 1, 3].forEach(function(di, pos){
+    nombres.forEach(function(n){ if (+n.dataset.i === di) n.style.setProperty('--d', (pos * 1.1) + 's'); });
+  });
   function terminar(){
     if (listo) return;
     listo = true;
     polvoConcepto.terminar();
     crecer(S_FIN);
-    nombres.forEach(function(n, k){ n.classList.add('parpadea'); n.style.animationDelay = (k * 0.7) + 's'; });
     elegir(-1);
   }
   [].forEach.call(document.querySelectorAll('.raiz-volver'), function(v){ v.addEventListener('click', function(){ elegir(-1); }); });
@@ -2979,11 +2984,11 @@ try{
       var primera = chipsRaiz.querySelector('button');
       if (!movil && primera) setTimeout(function(){ primera.focus(); }, 350);
     }
-    function cerrarRaizPanel(){
+    function cerrarRaizPanel(sinFoco){
       panelRaiz.classList.remove('abierto');
       panelRaiz.setAttribute('aria-hidden','true');
       fabRaiz.setAttribute('aria-expanded','false');
-      fabRaiz.focus();
+      if (sinFoco !== true) fabRaiz.focus();
     }
     fabRaiz.addEventListener('click', function(){
       panelRaiz.classList.contains('abierto') ? cerrarRaizPanel() : abrirRaiz();
@@ -2993,6 +2998,20 @@ try{
     document.addEventListener('keydown', function(e){
       if (e.key === 'Escape' && panelRaiz.classList.contains('abierto')) cerrarRaizPanel();
     });
+    // un toque o clic fuera del panel lo cierra (no el del propio panel, ni el del botón que lo abre/cierra, ni el
+    // enlace del pie que lo abre). Se usan pointerdown + pointerup y no 'click': en Safari del iPhone un toque sobre un
+    // texto o fondo (algo que no es botón ni enlace) NO genera 'click' para un oyente del documento. Arrastrar la página
+    // de atrás (scroll) no cuenta: el navegador cancela el gesto, y si el dedo se movió más de 10 px tampoco.
+    var tocoEn = null;
+    document.addEventListener('pointerdown', function(e){ tocoEn = { x: e.clientX, y: e.clientY }; }, { passive: true });
+    document.addEventListener('pointerup', function(e){
+      var ini = tocoEn; tocoEn = null;
+      if (!ini || !panelRaiz.classList.contains('abierto')) return;
+      if (Math.abs(e.clientX - ini.x) > 10 || Math.abs(e.clientY - ini.y) > 10) return;
+      var ruta = e.composedPath ? e.composedPath() : [];
+      if (ruta.indexOf(panelRaiz) >= 0 || ruta.indexOf(fabRaiz) >= 0 || (footerAbrirRaiz && ruta.indexOf(footerAbrirRaiz) >= 0)) return;
+      cerrarRaizPanel(true);
+    }, { passive: true });
     if (footerAbrirRaiz){
       footerAbrirRaiz.addEventListener('click', function(e){
         e.preventDefault();

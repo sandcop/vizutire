@@ -309,20 +309,23 @@ body.reduced .giro{position:static;opacity:1;padding:3rem 1.5rem}
 .raiz-nombre{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);
   font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
   color:var(--c);background:rgba(8,31,29,.94);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
-  border-radius:999px;padding:.35em .9em;opacity:.4;transition:opacity .5s var(--ease-tierra),box-shadow .3s}
+  border-radius:999px;padding:.35em .9em;opacity:.4;cursor:pointer;transition:opacity .5s var(--ease-tierra),box-shadow .3s}
 .raiz-nombre.crecida{opacity:1}
 .raiz-nombre:hover,.raiz-nombre:focus-visible{opacity:1;box-shadow:0 0 18px color-mix(in srgb,var(--c) 40%,transparent)}
 .raiz-nombre:focus-visible{outline:2px solid var(--c);outline-offset:3px}
-/* Invitación a tocar: una iluminación mínima y lenta, cada etiqueta a destiempo
-   (el retraso lo pone el JS). La elegida queda encendida fija. */
+/* Invitación a tocar: las cuatro etiquetas se activan una tras otra (neuroendocrino, inmune, digestivo, metabólico:
+   el JS pone el retraso en --d, 1,1 s entre una y otra) y descansan unos segundos antes de repetir. Cada una crece un poco
+   y lanza un anillo de luz hacia afuera; solo transform y opacity, que son baratos. Mientras hay un sistema abierto, se detiene. */
 .raiz-nombre::before{content:'';position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;opacity:0;
-  box-shadow:0 0 12px 1px color-mix(in srgb,var(--c) 42%,transparent);border:1px solid color-mix(in srgb,var(--c) 85%,transparent)}
-.raiz-nombre.parpadea{cursor:pointer}
-.raiz-nombre.parpadea::before{animation:raizInvita 2.8s ease-in-out infinite;animation-delay:inherit}
-@keyframes raizInvita{0%,100%{opacity:0}50%{opacity:1}}
+  box-shadow:0 0 14px 2px color-mix(in srgb,var(--c) 55%,transparent);border:1.5px solid var(--c)}
+.raiz-nombre.parpadea{animation:raizPulso 6s ease-in-out infinite;animation-delay:var(--d,0s)}
+.raiz-nombre.parpadea::before{animation:raizOnda 6s ease-out infinite;animation-delay:var(--d,0s)}
+@keyframes raizPulso{0%,20%,100%{scale:1}8%{scale:1.14}}
+@keyframes raizOnda{0%{opacity:0;transform:scale(1)}4%{opacity:1}22%{opacity:0;transform:scale(1.4,1.9)}23%,100%{opacity:0;transform:scale(1)}}
 .raiz-nombre.elegida::before{animation:none;opacity:0}
 .raiz-nombre.elegida{opacity:1;box-shadow:0 0 18px color-mix(in srgb,var(--c) 48%,transparent);border-color:var(--c)}
-body.reduced .raiz-nombre.parpadea::before{animation:none;opacity:.6}
+body.reduced .raiz-nombre.parpadea,body.reduced .raiz-nombre.parpadea::before{animation:none}
+body.reduced .raiz-nombre.parpadea::before{opacity:.6}
 
 /* Texto del sistema activo: a la derecha, a la altura de la punta de su
    raíz (--y = alto de la punta en el viewBox / 640). */
@@ -1086,6 +1089,12 @@ body.reduced .panel-raiz.abierto{filter:none}
    táctil vertical reservado para ellos; así el scroll no se pierde ni se va a la página de atrás (iPhone). */
 .raiz-cuerpo{flex:1 1 auto;min-height:7rem;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;
   padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.7rem}
+/* barras de desplazamiento del panel: finas, verde suave sobre el fondo oscuro (la blanca del navegador desentonaba) */
+.raiz-cuerpo,.raiz-chips{scrollbar-width:thin;scrollbar-color:rgba(127,181,171,.45) transparent}
+.raiz-cuerpo::-webkit-scrollbar,.raiz-chips::-webkit-scrollbar{width:8px}
+.raiz-cuerpo::-webkit-scrollbar-track,.raiz-chips::-webkit-scrollbar-track{background:transparent}
+.raiz-cuerpo::-webkit-scrollbar-thumb,.raiz-chips::-webkit-scrollbar-thumb{background:rgba(127,181,171,.4);border-radius:999px;border:2px solid transparent;background-clip:content-box}
+.raiz-cuerpo::-webkit-scrollbar-thumb:hover,.raiz-chips::-webkit-scrollbar-thumb:hover{background:rgba(127,181,171,.7);background-clip:content-box}
 .raiz-msg{max-width:88%;padding:.7rem .95rem;border-radius:14px;font-size:.88rem;line-height:1.55}
 .raiz-msg p{margin:0}
 .raiz-msg p + p{margin-top:.5rem}
